@@ -291,6 +291,11 @@
     pointer-events: none;
     user-select: none;
     text-align: right;
+    /* Scale overlay to match the ~33% reduction of the Three.js scene below.
+       Transform origin = top-right so the block still hugs the top-right
+       corner after scaling. */
+    transform: scale(0.67);
+    transform-origin: top right;
   }
   .replay-title-floating {
     line-height: 1.25;
@@ -510,7 +515,10 @@
   scene.background = new THREE.Color(0xffffff);
 
   let aspect = window.innerWidth / window.innerHeight;
-  const frustumSize = 32;
+  // Frustum scaled up so the chart renders ~33% smaller on screen. The
+  // orthographic camera now captures more world content per screen pixel,
+  // which scales down all candles, planes, labels, and markers uniformly.
+  const frustumSize = 48;
   // Chart is biased slightly to the right of center. 0 = centered,
   // 0.25 = chart in right half, negative = bias left.
   const RIGHT_HALF_PAN = 0.17;
