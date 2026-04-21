@@ -485,90 +485,6 @@
 </head>
 <body>
 
-<!-- LEFT SIDE: banner headline + waitlist widget. -->
-<div class="banner-content">
-  <div class="eyebrow">ProRealAlgos</div>
-  <h1>Automatic trading algorithms for ProRealTime<span class="tm">™</span></h1>
-  <p class="ingress">Fully hands-off strategies running live on your ProRealTime platform — rigorously backtested, continuously monitored, and deployed by a small team of algo developers.</p>
-  <p class="compat">Compatible with <strong>Interactive Brokers</strong> and <strong>IG</strong></p>
-
-  <div class="waitlist">
-    <div class="waitlist-head">
-      <div class="waitlist-eyebrow">Waitlist · Q3 onboarding</div>
-      <div class="waitlist-title">Join the next wave</div>
-    </div>
-
-    <div class="countdown">
-      <div class="countdown-timer" id="countdownTimer">—</div>
-      <div class="countdown-label">until July 1<sup>st</sup>, 2026</div>
-    </div>
-
-    <form id="waitlistForm" class="waitlist-form" onsubmit="return false;">
-      <input
-        type="email"
-        id="waitlistEmail"
-        class="waitlist-input"
-        placeholder="your@email.com"
-        autocomplete="email"
-        required
-      />
-      <button type="submit" class="cta cta-primary" id="waitlistJoinBtn">
-        Join waitlist
-      </button>
-    </form>
-
-    <div class="waitlist-meta">
-      <span class="dot"></span>
-      <span><strong>9 traders</strong> in line · Admitting one at a time · <span class="subtle">access not guaranteed</span></span>
-    </div>
-  </div>
-</div>
-
-<script>
-// ============ WAITLIST COUNTDOWN + FORM ============
-// Target: July 1st 2026, 00:00 local time (start of next quarter).
-(function () {
-  const TARGET = new Date(2026, 6, 1, 0, 0, 0).getTime(); // month is 0-indexed: 6 = July
-  const timerEl = document.getElementById('countdownTimer');
-  const formEl  = document.getElementById('waitlistForm');
-  const emailEl = document.getElementById('waitlistEmail');
-  const btnEl   = document.getElementById('waitlistJoinBtn');
-
-  function updateCountdown() {
-    if (!timerEl) return;
-    const now = Date.now();
-    let diff = Math.max(0, TARGET - now);
-    const days    = Math.floor(diff / (1000 * 60 * 60 * 24));
-    diff -= days * 1000 * 60 * 60 * 24;
-    const hours   = Math.floor(diff / (1000 * 60 * 60));
-    diff -= hours * 1000 * 60 * 60;
-    const minutes = Math.floor(diff / (1000 * 60));
-    diff -= minutes * 1000 * 60;
-    const seconds = Math.floor(diff / 1000);
-    timerEl.textContent =
-      `${days}d ${hours}h ${minutes}m ${seconds}s`;
-  }
-  updateCountdown();
-  setInterval(updateCountdown, 1000);
-
-  if (formEl) {
-    formEl.addEventListener('submit', function (e) {
-      e.preventDefault();
-      const email = (emailEl && emailEl.value || '').trim();
-      if (!email || email.indexOf('@') === -1) {
-        if (emailEl) emailEl.focus();
-        return;
-      }
-      // Swap form → success message.
-      const msg = document.createElement('div');
-      msg.className = 'waitlist-joined';
-      msg.textContent = `✓ You're on the list — we'll be in touch.`;
-      formEl.parentNode.replaceChild(msg, formEl);
-    });
-  }
-})();
-</script>
-
 <!-- Floating top-right corner: title + recent trades (no box). -->
 <div id="topRight" class="top-right-stack">
   <div id="replayTitle" class="replay-title-floating">
@@ -1145,10 +1061,15 @@
     const t = nowMs() - simStartTime;
     const barIdx = wrapBarIdx(getBarIdxAt(t));
     const ts = bars[barIdx].time;
-    const minutes = new Date(ts).getMinutes();
-    if (minutes % TIME_LABEL_INTERVAL_MIN !== 0) return;
+    const TZ = 'America/New_York';
+    // Minutes in NY — check the 5-min boundary using NY time, not browser local.
+    const nyMinutes = parseInt(
+      new Date(ts).toLocaleString('en-US', { minute: 'numeric', timeZone: TZ }),
+      10,
+    );
+    if (nyMinutes % TIME_LABEL_INTERVAL_MIN !== 0) return;
     const text = new Date(ts).toLocaleTimeString('en-GB', {
-      hour: '2-digit', minute: '2-digit', hour12: false,
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ,
     });
 
     // Draw text onto a canvas. The canvas becomes the TOP face texture of a
@@ -1459,6 +1380,7 @@
       const t = hourBefore + s.offsetMin * 60000;
       const timeStr = new Date(t).toLocaleTimeString('en-GB', {
         hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
       });
       // Fake entry/exit prices consistent with the P&L (not displayed, but
       // kept for data completeness). P&L was computed with POSITION_SIZE=100,
@@ -1557,10 +1479,12 @@
       const idx = wrapBarIdx(getBarIdxAt(t));
       timeStr = new Date(bars[idx].time).toLocaleTimeString('en-GB', {
         hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
       });
     } else {
       timeStr = new Date().toLocaleTimeString('en-GB', {
         hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
       });
     }
     recentTrades.unshift({
@@ -1772,17 +1696,19 @@
       short_exit:  'Short exit',
     };
     // Time: if we have real data, use the bar timestamp; else use wall clock.
-    // 24-hour clock (no AM/PM) for tighter labels.
+    // 24-hour clock in New York time (native S&P trading timezone).
     let timeStr;
     if (dataMode === 'real' && bars) {
       const t = nowMs() - simStartTime;
       const idx = wrapBarIdx(getBarIdxAt(t));
       timeStr = new Date(bars[idx].time).toLocaleTimeString('en-GB', {
         hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
       });
     } else {
       timeStr = new Date().toLocaleTimeString('en-GB', {
         hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
       });
     }
     const priceLine = isEntry
@@ -2385,18 +2311,28 @@
       // re-center the chart dynamically instead of forcing a lift offset.
       UPTREND_LIFT = 0;
 
-      // Fill in the replay-range text.
+      // Fill in the replay-range text — all times in New York (ET), which
+      // is the native timezone of S&P 500 trading hours.
       const replayRangeEl = document.getElementById('replayRange');
       if (replayRangeEl) {
-        const d = new Date(replayWindowStart);
-        const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const fmtHour = ts => new Date(ts).toLocaleTimeString('en-US', {
-          hour: '2-digit', minute: '2-digit', hour12: false,
+        const TZ = 'America/New_York';
+        // Weekday in NY time.
+        const weekday = new Date(replayWindowStart).toLocaleDateString('en-US', {
+          weekday: 'long', timeZone: TZ,
+        });
+        // DD/MM in NY time — easiest via formatToParts.
+        const dmFmt = new Intl.DateTimeFormat('en-GB', {
+          day: '2-digit', month: '2-digit', timeZone: TZ,
+        });
+        const dmParts = dmFmt.formatToParts(new Date(replayWindowStart));
+        const dd = dmParts.find(p => p.type === 'day').value;
+        const mm = dmParts.find(p => p.type === 'month').value;
+        // HH:MM in NY time.
+        const fmtHour = ts => new Date(ts).toLocaleTimeString('en-GB', {
+          hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ,
         });
         replayRangeEl.textContent =
-          `${weekday} ${dd}/${mm} ${fmtHour(replayWindowStart)} to ${fmtHour(replayWindowEnd)}`;
+          `${weekday} ${dd}/${mm} ${fmtHour(replayWindowStart)} to ${fmtHour(replayWindowEnd)} NY time`;
       }
 
       console.log('[chart] real-data mode',
