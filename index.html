@@ -294,7 +294,7 @@
     /* Scale overlay to match the ~33% reduction of the Three.js scene below.
        Transform origin = top-right so the block still hugs the top-right
        corner after scaling. */
-    transform: scale(0.67);
+    transform: scale(0.75);
     transform-origin: top right;
   }
   .replay-title-floating {
@@ -515,10 +515,10 @@
   scene.background = new THREE.Color(0xffffff);
 
   let aspect = window.innerWidth / window.innerHeight;
-  // Frustum scaled up so the chart renders ~33% smaller on screen. The
+  // Frustum scaled up so the chart renders ~25% smaller on screen. The
   // orthographic camera now captures more world content per screen pixel,
   // which scales down all candles, planes, labels, and markers uniformly.
-  const frustumSize = 48;
+  const frustumSize = 43;
   // Chart is biased slightly to the right of center. 0 = centered,
   // 0.25 = chart in right half, negative = bias left.
   const RIGHT_HALF_PAN = 0.17;
@@ -2316,8 +2316,9 @@
       BASE_PRICE        = cnt > 0 ? sumP / cnt : bars[dataStartBarIdx].open;
       smoothedTrendline = BASE_PRICE;
       // Real data doesn't have a guaranteed uptrend — let smoothedTrendline
-      // re-center the chart dynamically instead of forcing a lift offset.
-      UPTREND_LIFT = 0;
+      // re-center the chart dynamically. Small positive lift shifts the whole
+      // chart slightly upward on screen so it sits higher in the viewport.
+      UPTREND_LIFT = 2.5;
 
       // Fill in the replay-range text — all times in New York (ET), which
       // is the native timezone of S&P 500 trading hours.
