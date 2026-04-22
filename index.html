@@ -340,6 +340,76 @@
     align-items: flex-end;
   }
 
+  /* Matrix-style pseudo-code stream — sits under Recent Trades. Lines appear
+     at the bottom and scroll up as more come in; oldest ones fade out. */
+  .codestream {
+    margin-top: 10px;
+    text-align: right;
+    width: 280px;
+  }
+  .codestream-lines {
+    height: 170px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    position: relative;
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(0,0,0,0.2) 12%,
+      rgba(0,0,0,0.75) 30%,
+      #000 50%);
+    mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(0,0,0,0.2) 12%,
+      rgba(0,0,0,0.75) 30%,
+      #000 50%);
+  }
+  .cs-line {
+    color: #333;  /* brand dark grey, not green — only event lines are colored */
+    white-space: nowrap;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    font-variant-numeric: tabular-nums;
+  }
+  .cs-line.show { opacity: 1; transform: translateY(0); }
+  .cs-line .prompt { color: #888; margin-right: 4px; }
+  .cs-line .kw { color: #555; }
+  .cs-line .num { color: #333; font-weight: 600; }
+
+  /* Trade event lines — bright green for long, bright red for short. */
+  .cs-line.event-long {
+    color: #2f9b2f;
+    font-weight: 700;
+    background: rgba(81, 201, 81, 0.08);
+    padding: 1px 6px;
+    margin: 1px -6px;
+    border-left: 2px solid #51C951;
+  }
+  .cs-line.event-long .prompt { color: #51C951; }
+  .cs-line.event-short {
+    color: #d03a3f;
+    font-weight: 700;
+    background: rgba(255, 79, 85, 0.08);
+    padding: 1px 6px;
+    margin: 1px -6px;
+    border-left: 2px solid #FF4F55;
+  }
+  .cs-line.event-short .prompt { color: #FF4F55; }
+  .cs-line.event-win {
+    color: #2f9b2f;
+    font-weight: 700;
+  }
+  .cs-line.event-loss {
+    color: #d03a3f;
+    font-weight: 700;
+  }
+
   .latent-block-top {
     margin-bottom: 12px;
     padding-bottom: 10px;
@@ -501,6 +571,13 @@
     <div class="rt-trades-label">Recent Trades</div>
     <div id="recentTradesList"><div class="no-trades">No closed trades yet</div></div>
   </div>
+
+  <!-- Matrix-style pseudo-code stream. Continuously prints lines; entries
+       and exits are highlighted in brand colors. -->
+  <div class="codestream">
+    <div class="rt-trades-label">Algo · live</div>
+    <div id="codeStream" class="codestream-lines"></div>
+  </div>
 </div>
 
 <div id="loading">
@@ -626,6 +703,10 @@
   // chart auto-fits to whatever the actual S&P price range is.
   let   PRICE_SCALE     = 1.5;
   let   BASE_PRICE      = 100;
+  // Y position for time-axis slabs on the floor. Computed from the first
+  // ~45 bars after real data loads, so labels sit at an aesthetic distance
+  // below the opening candles (what most users see first).
+  let   TIME_SLAB_Y     = -13.5;
   const CANDLE_DURATION = 2000;
   const MAX_CANDLES     = 32;
   const LATEST_X        = 13;
@@ -786,6 +867,23 @@
   const swings = [];
 
   function rand(min, max) { return min + Math.random() * (max - min); }
+
+  // Seedable PRNG for DETERMINISTIC algo decisions — so trade entries/exits
+  // happen at the same candles on every reload. mulberry32 is tiny and fast.
+  // Only used for algo cooldown jitter and fake-trade P&L variation; real
+  // price data stays untouched and is already deterministic.
+  function makeSeededRng(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  // Fixed seed → deterministic sequence. Reload = same trade timing.
+  let algoRng = makeSeededRng(0xC0FFEE);
   function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
 
   function generateNextSwing() {
@@ -1125,8 +1223,9 @@
     const slab = new THREE.Mesh(new THREE.BoxGeometry(slabW, slabT, slabD), mat);
     // Position: all time slabs at the SAME fixed Y so they're coplanar,
     // like time-axis labels painted on a single horizontal floor plane.
-    // Independent of each bar's individual price level.
-    slab.position.y = -13.5;
+    // TIME_SLAB_Y is computed from the first 45 bars of the session so
+    // labels are visually anchored below the opening candles.
+    slab.position.y = TIME_SLAB_Y;
     slab.position.x = 0;
     slab.position.z = 0;
     slab.renderOrder = 4;
@@ -1164,6 +1263,8 @@
         // Re-seed fake trades so the list always has 5 entries — avoids the
         // "No closed trades yet" placeholder flashing during loop wraps.
         seedFakeTrades();
+        // Reset the seeded PRNG so trade timing is identical across loops.
+        algoRng = makeSeededRng(0xC0FFEE);
         algo.cooldownUntilCandle = candleCounter + ENTRY_COOLDOWN_MIN;
       }
     }
@@ -1404,7 +1505,6 @@
   }
 
   // Active SL/TP monitoring: exit the moment price touches either level.
-  // This is the ONLY exit path — swing flips no longer cause exits.
   function algoOnTick() {
     if (algo.position === 0) return;
     const p = currentPrice;
@@ -1416,6 +1516,210 @@
       // Short: TP is below, SL above.
       if (p <= algo.takeProfit) algoClose();
       else if (p >= algo.stopLoss) algoClose();
+    }
+  }
+
+  // ============ MATRIX-STYLE CODE STREAM ============
+  // Continuously prints dim pseudo-code lines. Trade entries/exits inject
+  // bright green (long/win) or red (short/loss) lines into the stream.
+  const codeStreamEl = document.getElementById('codeStream');
+  const STREAM_MAX_LINES = 11;
+  const STREAM_MIN_INTERVAL = 700;  // ms between background lines
+  const STREAM_MAX_INTERVAL = 1400;
+  let lastStreamLineAt = 0;
+  let nextStreamLineDelay = STREAM_MIN_INTERVAL;
+  let streamRotationIdx = 0;
+
+  // Pool of trader-thought lines. Each line is tagged with state conditions
+  // it's valid in ('up', 'down', 'range', 'long', 'short', 'flat', 'any').
+  // streamBackgroundLine() evaluates current market state from recent candles
+  // and picks only lines consistent with that state. Keeps the feed feeling
+  // responsive — no "higher_high confirmed" during a red streak.
+  function getMarketState() {
+    const state = {
+      isUp: false, isDown: false, isRange: true,
+      recentHigh: currentPrice + 2, recentLow: currentPrice - 2,
+      inTrade: algo.position !== 0,
+      isLong: algo.position === 1,
+      isShort: algo.position === -1,
+      isFlat: algo.position === 0,
+    };
+    // Analyze the last 5 candles (if we have them).
+    const N = Math.min(5, candles.length);
+    if (N >= 3) {
+      let greens = 0, reds = 0;
+      let hi = -Infinity, lo = Infinity;
+      const sample = candles.slice(-N);
+      for (const c of sample) {
+        if (c.close >= c.open) greens++; else reds++;
+        if (c.high > hi) hi = c.high;
+        if (c.low  < lo) lo = c.low;
+      }
+      const firstClose = sample[0].close;
+      const lastClose  = sample[sample.length - 1].close;
+      const delta = lastClose - firstClose;
+      const range = Math.max(hi - lo, 0.01);
+      // Declare a trend only if BOTH candle majority AND net price movement agree.
+      if (greens >= 3 && delta > range * 0.2) state.isUp = true;
+      else if (reds >= 3 && delta < -range * 0.2) state.isDown = true;
+      if (state.isUp || state.isDown) state.isRange = false;
+      state.recentHigh = hi;
+      state.recentLow  = lo;
+    }
+    return state;
+  }
+
+  function streamBackgroundLine() {
+    const s = getMarketState();
+    // Each entry: [predicate_key, renderer_fn]. 'any' always passes.
+    const pool = [
+      // Always-valid lines (generic trader talk).
+      ['any',   () => `<span class="prompt">&gt;</span> check rr_ratio`],
+      ['any',   () => `<span class="prompt">&gt;</span> vwap = <span class="num">${fmtPrice1(currentPrice)}</span>`],
+      ['any',   () => `<span class="prompt">&gt;</span> <span class="kw">if</span> rr &lt; <span class="num">1.3</span>: skip`],
+      ['any',   () => `<span class="prompt">&gt;</span> liquidity check`],
+      ['any',   () => `<span class="prompt">&gt;</span> order_book = clean`],
+      ['any',   () => `<span class="prompt">&gt;</span> spread = tight`],
+      ['any',   () => `<span class="prompt">&gt;</span> session vol = <span class="num">${(Math.abs(currentPrice - BASE_PRICE)).toFixed(1)}pt</span>`],
+      ['any',   () => `<span class="prompt">&gt;</span> time-in-force = day`],
+      ['any',   () => `<span class="prompt">&gt;</span> tick_size = 0.25`],
+
+      // Uptrend — trend intact, longs favored.
+      ['up',    () => `<span class="prompt">&gt;</span> higher_high confirmed`],
+      ['up',    () => `<span class="prompt">&gt;</span> uptrend intact`],
+      ['up',    () => `<span class="prompt">&gt;</span> bullish momentum`],
+      ['up',    () => `<span class="prompt">&gt;</span> buyers in control`],
+      ['up',    () => `<span class="prompt">&gt;</span> pullback @ <span class="num">${fmtPrice1(s.recentLow)}</span>?`],
+      ['up',    () => `<span class="prompt">&gt;</span> bid_aggression rising`],
+      ['up',    () => `<span class="prompt">&gt;</span> dip_buyers active`],
+      ['up',    () => `<span class="prompt">&gt;</span> breakout watch`],
+      ['up',    () => `<span class="prompt">&gt;</span> favor long bias`],
+
+      // Downtrend — trend intact, shorts favored.
+      ['down',  () => `<span class="prompt">&gt;</span> lower_low forming`],
+      ['down',  () => `<span class="prompt">&gt;</span> downtrend intact`],
+      ['down',  () => `<span class="prompt">&gt;</span> bearish momentum`],
+      ['down',  () => `<span class="prompt">&gt;</span> sellers in control`],
+      ['down',  () => `<span class="prompt">&gt;</span> bounce @ <span class="num">${fmtPrice1(s.recentHigh)}</span>?`],
+      ['down',  () => `<span class="prompt">&gt;</span> offer_pressure rising`],
+      ['down',  () => `<span class="prompt">&gt;</span> rally_sellers active`],
+      ['down',  () => `<span class="prompt">&gt;</span> breakdown watch`],
+      ['down',  () => `<span class="prompt">&gt;</span> favor short bias`],
+
+      // Range / low-conviction.
+      ['range', () => `<span class="prompt">&gt;</span> range_bound`],
+      ['range', () => `<span class="prompt">&gt;</span> momentum = neutral`],
+      ['range', () => `<span class="prompt">&gt;</span> awaiting confirmation`],
+      ['range', () => `<span class="prompt">&gt;</span> chop detected`],
+      ['range', () => `<span class="prompt">&gt;</span> setup invalid`],
+      ['range', () => `<span class="prompt">&gt;</span> low_conviction`],
+      ['range', () => `<span class="prompt">&gt;</span> indecision`],
+      ['range', () => `<span class="prompt">&gt;</span> volume = thin`],
+      ['range', () => `<span class="prompt">&gt;</span> no directional edge`],
+
+      // Structural levels — dynamic from recent bars.
+      ['any',   () => `<span class="prompt">&gt;</span> recent_high = <span class="num">${fmtPrice1(s.recentHigh)}</span>`],
+      ['any',   () => `<span class="prompt">&gt;</span> recent_low  = <span class="num">${fmtPrice1(s.recentLow)}</span>`],
+      ['up',    () => `<span class="prompt">&gt;</span> support @ <span class="num">${fmtPrice1(s.recentLow)}</span>`],
+      ['down',  () => `<span class="prompt">&gt;</span> resistance @ <span class="num">${fmtPrice1(s.recentHigh)}</span>`],
+      ['range', () => `<span class="prompt">&gt;</span> balance @ <span class="num">${fmtPrice1((s.recentHigh + s.recentLow) / 2)}</span>`],
+
+      // In-trade — long.
+      ['long',  () => `<span class="prompt">&gt;</span> holding LONG`],
+      ['long',  () => `<span class="prompt">&gt;</span> monitor SL / TP`],
+      ['long',  () => `<span class="prompt">&gt;</span> unrealized_pnl &gt; 0?`],
+      ['long',  () => `<span class="prompt">&gt;</span> trail_stop eligible?`],
+      ['long',  () => `<span class="prompt">&gt;</span> let_winners_run`],
+      ['long',  () => `<span class="prompt">&gt;</span> respecting structure`],
+
+      // In-trade — short.
+      ['short', () => `<span class="prompt">&gt;</span> holding SHORT`],
+      ['short', () => `<span class="prompt">&gt;</span> monitor SL / TP`],
+      ['short', () => `<span class="prompt">&gt;</span> unrealized_pnl &gt; 0?`],
+      ['short', () => `<span class="prompt">&gt;</span> trail_stop eligible?`],
+      ['short', () => `<span class="prompt">&gt;</span> let_winners_run`],
+      ['short', () => `<span class="prompt">&gt;</span> respecting structure`],
+
+      // Flat / hunting for a setup.
+      ['flat',  () => `<span class="prompt">&gt;</span> scanning structure`],
+      ['flat',  () => `<span class="prompt">&gt;</span> no setup`],
+      ['flat',  () => `<span class="prompt">&gt;</span> waiting for entry`],
+      ['flat',  () => `<span class="prompt">&gt;</span> patience`],
+      ['flat',  () => `<span class="prompt">&gt;</span> sitting on hands`],
+      ['flat',  () => `<span class="prompt">&gt;</span> next_setup?`],
+    ];
+
+    // Build active-state set.
+    const active = new Set(['any']);
+    if (s.isUp)    active.add('up');
+    if (s.isDown)  active.add('down');
+    if (s.isRange) active.add('range');
+    if (s.isLong)  active.add('long');
+    if (s.isShort) active.add('short');
+    if (s.isFlat)  active.add('flat');
+
+    // Filter pool by active states.
+    const valid = pool.filter(([key]) => active.has(key));
+    // Pick deterministically-rotating through the valid subset so we don't
+    // spam the same line twice in a row.
+    const pick = valid[streamRotationIdx % valid.length][1]();
+    streamRotationIdx++;
+    return pick;
+  }
+
+  function appendStreamLine(html, extraClass) {
+    if (!codeStreamEl) return;
+    const div = document.createElement('div');
+    div.className = 'cs-line' + (extraClass ? ' ' + extraClass : '');
+    div.innerHTML = html;
+    codeStreamEl.appendChild(div);
+    // Reveal on next frame so CSS transition fires.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => div.classList.add('show'));
+    });
+    // Prune oldest lines — flex-end alignment means DOM order matters:
+    // oldest lines are at the top and get cut off by the mask gradient;
+    // we physically remove them when count exceeds the cap.
+    while (codeStreamEl.children.length > STREAM_MAX_LINES) {
+      codeStreamEl.removeChild(codeStreamEl.firstChild);
+    }
+  }
+
+  function tickCodeStream() {
+    const now = performance.now();
+    if (now - lastStreamLineAt < nextStreamLineDelay) return;
+    lastStreamLineAt = now;
+    // Randomize next interval so the stream doesn't tick mechanically.
+    nextStreamLineDelay = STREAM_MIN_INTERVAL +
+      Math.random() * (STREAM_MAX_INTERVAL - STREAM_MIN_INTERVAL);
+    appendStreamLine(streamBackgroundLine());
+  }
+
+  // Log a trade event (entry or exit) as a cluster of 3-4 highlighted lines.
+  function logStreamEvent(kind, side, extra) {
+    const sideStr = side === 1 ? 'LONG' : 'SHORT';
+    const evtClass = side === 1 ? 'event-long' : 'event-short';
+    if (kind === 'entry') {
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> entry_conditions: <strong>PASS</strong>`, evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> SL=${fmtPrice1(extra.sl)} · TP=${fmtPrice1(extra.tp)}`, evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> → Entering ${sideStr} @ ${fmtPrice1(extra.entryPrice)}`, evtClass);
+    } else if (kind === 'exit') {
+      const pnl = extra.pnl;
+      const hit = extra.hit; // 'target' | 'stop'
+      const pnlClass = pnl >= 0 ? 'event-win' : 'event-loss';
+      const sign = pnl >= 0 ? '+' : '−';
+      const abs = Math.abs(Math.round(pnl));
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> ${hit === 'target' ? 'target hit' : 'stop hit'}`,
+        evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> closing ${sideStr} @ ${fmtPrice1(extra.exitPrice)}`,
+        evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> P&L: ${sign}$${abs}`, pnlClass);
     }
   }
 
@@ -1458,6 +1762,9 @@
     algo.takeProfit = computeTakeProfit(1);
     attachTradeMarker(currentCandle, 'long_entry', undefined, algo.stopLoss);
     openTradeViz(currentCandle, algo.stopLoss, algo.takeProfit);
+    logStreamEvent('entry', 1, {
+      entryPrice: algo.entryPrice, sl: algo.stopLoss, tp: algo.takeProfit,
+    });
   }
 
   function algoShort() {
@@ -1468,6 +1775,9 @@
     algo.takeProfit = computeTakeProfit(-1);
     attachTradeMarker(currentCandle, 'short_entry', undefined, algo.stopLoss);
     openTradeViz(currentCandle, algo.stopLoss, algo.takeProfit);
+    logStreamEvent('entry', -1, {
+      entryPrice: algo.entryPrice, sl: algo.stopLoss, tp: algo.takeProfit,
+    });
   }
 
   function algoClose() {
@@ -1507,6 +1817,10 @@
 
     attachTradeMarker(currentCandle,
       side === 1 ? 'long_exit' : 'short_exit', pnl);
+    // Detect whether this was a target hit or a stop hit (based on direction
+    // and which level price crossed).
+    const hit = pnl >= 0 ? 'target' : 'stop';
+    logStreamEvent('exit', side, { pnl, hit, exitPrice: currentPrice });
     // Flash all candles from entry to exit in black, win or loss.
     if (activeTradeViz && activeTradeViz.entryCandle) {
       flashCandleRange(activeTradeViz.entryCandle, currentCandle, 0x111111);
@@ -1515,7 +1829,7 @@
     algo.position = 0;
     algo.entryPrice = 0;
     algo.cooldownUntilCandle = candleCounter +
-      ENTRY_COOLDOWN_MIN + Math.floor(Math.random() *
+      ENTRY_COOLDOWN_MIN + Math.floor(algoRng() *
         (ENTRY_COOLDOWN_MAX - ENTRY_COOLDOWN_MIN + 1));
   }
 
@@ -1776,7 +2090,7 @@
   function makeLevelLabel(text, color) {
     const label = makeTextSprite([{
       text,
-      font: 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      font: 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       color,
     }]);
     label.renderOrder = 21;
@@ -1923,7 +2237,7 @@
   function initChartPriceLabel() {
     const DPR = 2;
     // Keep original text size; just trim trailing whitespace on the right.
-    const W_CSS = 118, H_CSS = 54;
+    const W_CSS = 128, H_CSS = 64;
     chartPriceCanvas = document.createElement('canvas');
     chartPriceCanvas.width  = W_CSS * DPR;
     chartPriceCanvas.height = H_CSS * DPR;
@@ -1977,13 +2291,13 @@
     // Symbol label — white.
     const PAD = 8;
     ctx.textBaseline = 'top';
-    ctx.font = '700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.font = '700 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.fillStyle = '#fff';
     ctx.fillText(symbol, PAD, PAD);
     // Price — white, bigger.
     ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.fillStyle = '#fff';
-    ctx.fillText(priceText, PAD, PAD + 15);
+    ctx.fillText(priceText, PAD, PAD + 22);
     chartPriceTex.needsUpdate = true;
   }
 
@@ -2226,39 +2540,53 @@
       bars       = fetched.bars;
       realSymbol = fetched.symbol;
 
-      // Find the last two fully-completed trading hours in the data, aligned
-      // to hour boundaries (e.g. 12:00-14:00 not 12:27-14:27). If we're
-      // outside market hours, this naturally becomes the last two hours of
-      // the previous trading session.
-      const WINDOW_MS = 2 * 3600000;
-      const latestTs = bars[bars.length - 1].time;
-      // hourEnd = start of the hour after the latest bar's hour, unless the
-      // latest bar is exactly on an hour boundary (rare); then hourEnd is
-      // one hour later. Either way: `floor(latestTs/h) * h + h` gives us the
-      // boundary AFTER the latest bar's hour — and we need the latest
-      // COMPLETED boundary. If latestTs hasn't reached that boundary, step
-      // back one hour.
-      let hourEnd = Math.floor(latestTs / 3600000) * 3600000 + 3600000;
-      if (latestTs < hourEnd - 60000) {
-        // Latest bar is mid-hour → current hour is incomplete; use the one
-        // that just ended.
-        hourEnd -= 3600000;
+      // Pick the PREVIOUS trading day (never today). Bars are timestamped
+      // in ms UTC. For grouping, we use the UTC date (fast — no Intl per
+      // bar). The S&P session 09:30-16:00 NY always falls within one UTC
+      // day, so UTC-date grouping correctly separates sessions.
+      const TZ = 'America/New_York';
+      // For the "today" check: the NY date corresponds to the UTC date if
+      // we subtract ~5h (EST) or 4h (EDT). Shifting "now" by -5h UTC gives
+      // us a point that's reliably within the NY calendar day. We then
+      // take the UTC date of that shifted point — matches the format of
+      // bars' UTC date strings.
+      const nowShifted = Date.now() - 5 * 3600 * 1000;
+      const todayDateStr = new Date(nowShifted).toISOString().slice(0, 10);
+      // Count bars per UTC-date string (proxy for NY session date).
+      const dateCounts = new Map();
+      const dateBarIndices = new Map();
+      for (let i = 0; i < bars.length; i++) {
+        const d = new Date(bars[i].time).toISOString().slice(0, 10);
+        dateCounts.set(d, (dateCounts.get(d) || 0) + 1);
+        if (!dateBarIndices.has(d)) dateBarIndices.set(d, [i, i]);
+        else dateBarIndices.get(d)[1] = i;
       }
-      const hourStart = hourEnd - WINDOW_MS;
+      // Pick the most recent date that isn't today and has at least 200 bars
+      // (filters half-days / data gaps). Never pick today's session.
+      const sortedDates = [...dateCounts.keys()].sort();
+      let chosenDate = null;
+      for (let i = sortedDates.length - 1; i >= 0; i--) {
+        const d = sortedDates[i];
+        if (d === todayDateStr) continue;  // always skip today
+        if (dateCounts.get(d) >= 200) { chosenDate = d; break; }
+      }
+      let startIdx, endIdx;
+      if (chosenDate) {
+        [startIdx, endIdx] = dateBarIndices.get(chosenDate);
+        endIdx += 1; // make endIdx exclusive to match [start, end) convention
+      } else {
+        // Fallback: last contiguous block of bars.
+        startIdx = Math.max(0, bars.length - 390);
+        endIdx = bars.length;
+      }
 
-      // Find bar indices spanning [hourStart, hourEnd).
-      let startIdx = 0;
-      while (startIdx < bars.length && bars[startIdx].time < hourStart) startIdx++;
-      let endIdx = startIdx;
-      while (endIdx < bars.length && bars[endIdx].time < hourEnd) endIdx++;
-
-      // Use the 2-hour window if we have enough prefill room before it;
-      // otherwise fall back to the last ~120 bars we have.
+      // Use the day window if we have enough prefill room before it;
+      // otherwise fall back to the last ~390 bars we have.
       if (endIdx - startIdx >= PREFILL_COUNT + 2 && startIdx >= PREFILL_COUNT) {
         dataStartBarIdx = startIdx;
         LOOP_LENGTH = endIdx - startIdx;
       } else {
-        LOOP_LENGTH = Math.min(120, bars.length - PREFILL_COUNT - 1);
+        LOOP_LENGTH = Math.min(390, bars.length - PREFILL_COUNT - 1);
         dataStartBarIdx = bars.length - LOOP_LENGTH;
       }
 
@@ -2304,11 +2632,38 @@
         if (bars[i].low  < minP) minP = bars[i].low;
         if (bars[i].high > maxP) maxP = bars[i].high;
       }
-      const range = Math.max(maxP - minP, 0.01);
-      // 18 world units of vertical space per visible range (up from 14) —
-      // makes candles taller and swings more pronounced without going out
-      // of frame (frustum top/bottom are ±16 world units).
-      PRICE_SCALE = 18 / range;
+      // PRICE_SCALE: calibrate so a TYPICAL bar's wick extent (high-low)
+      // maps to roughly 4 world units of vertical space. Sample the first 30
+      // bars of the session (the open, what users see first). This gives
+      // candles a substantial, visible presence on the chart.
+      const openingBarCount = Math.min(30, LOOP_LENGTH);
+      let openRangeSum = 0;
+      for (let i = 0; i < openingBarCount; i++) {
+        openRangeSum += bars[dataStartBarIdx + i].high - bars[dataStartBarIdx + i].low;
+      }
+      const openAvgRange = (openRangeSum / openingBarCount) || 0.5;
+      // Target: avg wick extent ≈ 4 world units (~9% of the 43-unit frustum).
+      PRICE_SCALE = 4.0 / Math.max(openAvgRange, 0.1);
+      // Safety clamp: prevent the PRICE_SCALE from becoming absurdly large
+      // on ultra-calm days where a single bar's open range is tiny. Compute
+      // the largest local 25-bar extent and only clamp if it would truly
+      // overflow — the rotationGroup auto-centers on current price, so we
+      // can be generous here (extent up to 40 world units is still OK since
+      // the camera tracks the baseline). This clamp rarely triggers.
+      let maxLocalExtent = 0;
+      const localWindowBars = 25;
+      for (let i = dataStartBarIdx; i < windowEnd - localWindowBars; i++) {
+        let lo = Infinity, hi = -Infinity;
+        for (let j = 0; j < localWindowBars; j++) {
+          const b = bars[i + j];
+          if (b.low  < lo) lo = b.low;
+          if (b.high > hi) hi = b.high;
+        }
+        const extent = hi - lo;
+        if (extent > maxLocalExtent) maxLocalExtent = extent;
+      }
+      const maxAllowedScale = 40 / Math.max(maxLocalExtent, 0.01);
+      if (PRICE_SCALE > maxAllowedScale) PRICE_SCALE = maxAllowedScale;
       // Anchor BASE_PRICE so the chart starts near world Y = 0. Use the
       // average of the prefill window so candles aren't piled above or below.
       let sumP = 0, cnt = 0;
@@ -2320,8 +2675,24 @@
       // chart slightly upward on screen so it sits higher in the viewport.
       UPTREND_LIFT = 3.5;
 
-      // Fill in the replay-range text — all times in New York (ET), which
-      // is the native timezone of S&P 500 trading hours.
+      // Position time-axis slabs based on the FIRST 45 bars (~90 seconds of
+      // replay — what most users see before leaving the page). Take the
+      // minimum price of that opening window, convert to world Y, and place
+      // the slabs a fixed distance below it. This keeps time labels visually
+      // anchored to the opening candles regardless of where prices end up
+      // later in the session.
+      const openingLookBars = Math.min(45, LOOP_LENGTH);
+      let openMinP = Infinity;
+      for (let i = 0; i < openingLookBars; i++) {
+        if (bars[dataStartBarIdx + i].low < openMinP) {
+          openMinP = bars[dataStartBarIdx + i].low;
+        }
+      }
+      // Slab Y in rotationGroup-local coords. priceToY gives world Y of the
+      // min price; subtract an aesthetic offset so labels sit below the wick.
+      TIME_SLAB_Y = priceToY(openMinP) - 2.5;
+
+      // Fill in the replay-range text — date in NY time, e.g. "Tuesday, April 21st".
       const replayRangeEl = document.getElementById('replayRange');
       if (replayRangeEl) {
         const TZ = 'America/New_York';
@@ -2329,19 +2700,26 @@
         const weekday = new Date(replayWindowStart).toLocaleDateString('en-US', {
           weekday: 'long', timeZone: TZ,
         });
-        // DD/MM in NY time — easiest via formatToParts.
-        const dmFmt = new Intl.DateTimeFormat('en-GB', {
-          day: '2-digit', month: '2-digit', timeZone: TZ,
+        // Month name in NY time.
+        const monthName = new Date(replayWindowStart).toLocaleDateString('en-US', {
+          month: 'long', timeZone: TZ,
         });
-        const dmParts = dmFmt.formatToParts(new Date(replayWindowStart));
-        const dd = dmParts.find(p => p.type === 'day').value;
-        const mm = dmParts.find(p => p.type === 'month').value;
-        // HH:MM in NY time.
-        const fmtHour = ts => new Date(ts).toLocaleTimeString('en-GB', {
-          hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ,
-        });
-        replayRangeEl.textContent =
-          `${weekday} ${dd}/${mm} ${fmtHour(replayWindowStart)} to ${fmtHour(replayWindowEnd)} NY time`;
+        // Day of month in NY time.
+        const dayNum = parseInt(new Intl.DateTimeFormat('en-US', {
+          day: 'numeric', timeZone: TZ,
+        }).format(new Date(replayWindowStart)), 10);
+        // English ordinal suffix: 1st, 2nd, 3rd, 4th-20th, 21st, 22nd, 23rd, 24th-30th, 31st.
+        const ordinal = (n) => {
+          const mod100 = n % 100;
+          if (mod100 >= 11 && mod100 <= 13) return 'th';
+          switch (n % 10) {
+            case 1: return 'st';
+            case 2: return 'nd';
+            case 3: return 'rd';
+            default: return 'th';
+          }
+        };
+        replayRangeEl.textContent = `${weekday}, ${monthName} ${dayNum}${ordinal(dayNum)}`;
       }
 
       console.log('[chart] real-data mode',
@@ -2418,6 +2796,7 @@
     updateDissolvingMarkers();
     updateActiveTradeViz();
     updateCandleFlashes();
+    tickCodeStream();
     updateDisplayedPrice();
     updateChartPriceLabel();
     updateUI();
