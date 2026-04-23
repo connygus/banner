@@ -638,11 +638,14 @@
   });
 
   // ============ LIGHTING ============
-  scene.add(new THREE.AmbientLight(0xffffff, 0.82));
-  const dir1 = new THREE.DirectionalLight(0xffffff, 0.45);
+  // Higher directional / lower ambient gives more visible top-vs-side
+  // shading contrast, which is especially helpful for darker colors like
+  // the brand red (#FF4F55) where flat lighting reads as flat-looking.
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const dir1 = new THREE.DirectionalLight(0xffffff, 0.7);
   dir1.position.set(15, 30, 15);
   scene.add(dir1);
-  const dir2 = new THREE.DirectionalLight(0xffffff, 0.18);
+  const dir2 = new THREE.DirectionalLight(0xffffff, 0.25);
   dir2.position.set(-15, 10, -20);
   scene.add(dir2);
 
@@ -695,6 +698,9 @@
   // ============ CONSTANTS ============
   const GREEN_HEX = 0x51C951;
   const RED_HEX   = 0xFF4F55;
+  // Wick colors — darker shades of the body colors.
+  const WICK_GREEN_HEX = 0x2E7D32;
+  const WICK_RED_HEX   = 0x8B2F33;
 
   const CANDLE_W    = 0.95;
   const CANDLE_D    = 0.95;
@@ -731,7 +737,7 @@
       // Wicks: TWO cylinders — one above the body, one below the body.
       // Splitting them prevents the wick from showing through the body during
       // the transparent fade-out on the chart's left edge.
-      this.wickMat = new THREE.MeshLambertMaterial({ color: 0x3a3a3a,
+      this.wickMat = new THREE.MeshLambertMaterial({ color: WICK_GREEN_HEX,
         transparent: true, opacity: 1 });
       this.wickUp = new THREE.Mesh(
         new THREE.CylinderGeometry(WICK_W / 2, WICK_W / 2, 1, 12),
@@ -791,9 +797,10 @@
       const newIsGreen = this.close >= this.open;
       if (newIsGreen !== this.isGreen) {
         this.isGreen = newIsGreen;
-        const hex = newIsGreen ? GREEN_HEX : RED_HEX;
-        // Wick stays black; only the body color follows direction.
+        const hex     = newIsGreen ? GREEN_HEX      : RED_HEX;
+        const wickHex = newIsGreen ? WICK_GREEN_HEX : WICK_RED_HEX;
         this.bodyMat.color.setHex(hex);
+        this.wickMat.color.setHex(wickHex);
       }
 
       // Compute price → world Y for the candle's key levels first; the body
@@ -2217,7 +2224,8 @@
       const remaining = c.flashUntil - now;
       const natural = c.isGreen ? GREEN_HEX : RED_HEX;
       if (remaining <= 0) {
-        // Flash done — restore body to natural color (wick stays black).
+        // Flash done — restore body to natural color. Wick color is managed
+        // separately in update() so it stays in its dark-green/red state.
         c.flashUntil = undefined;
         c.bodyMat.color.setHex(natural);
       } else {
