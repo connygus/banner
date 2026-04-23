@@ -985,50 +985,64 @@
       // Fallback if the Worker is down.
       url => 'https://corsproxy.io/?' + encodeURIComponent(url),
     ];
+
+    // Helper: fetch a single symbol/proxy and return parsed bars (or null).
+    async function tryFetch(sym, proxy) {
+      try {
+        // range=2d gives us ~800 bars — enough for "previous day" + prefill,
+        // half the payload of range=5d.
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym.code}?interval=1m&range=2d`;
+        const proxiedUrl = proxy(yahooUrl);
+        // Use the browser's default cache (Yahoo's CDN sets short TTLs anyway).
+        // This makes back/forward navigation effectively instant.
+        const res = await fetch(proxiedUrl);
+        if (!res.ok) return null;
+        const j = await res.json();
+        const r = j?.chart?.result?.[0];
+        if (!r || !r.timestamp || !r.indicators?.quote?.[0]) return null;
+        const ts = r.timestamp;
+        const q  = r.indicators.quote[0];
+        const out = [];
+        for (let i = 0; i < ts.length; i++) {
+          if (q.open[i] == null || q.high[i] == null ||
+              q.low[i]  == null || q.close[i] == null) continue;
+          out.push({
+            time:  ts[i] * 1000,
+            open:  q.open[i],
+            high:  q.high[i],
+            low:   q.low[i],
+            close: q.close[i],
+          });
+        }
+        if (out.length > MAX_CANDLES + 10) {
+          return { bars: out, symbol: sym.label };
+        }
+      } catch (e) { /* try next */ }
+      return null;
+    }
+
+    // Fire ALL symbol/proxy combinations in parallel; use the FIRST result
+    // that comes back. This is much faster than sequential fallback.
+    const attempts = [];
     for (const sym of symbols) {
       for (const proxy of proxies) {
-        try {
-          const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym.code}?interval=1m&range=5d`;
-          const proxiedUrl = proxy(yahooUrl);
-          console.log('[chart] fetching', sym.label, 'via', new URL(proxiedUrl).host);
-          const res = await fetch(proxiedUrl, { cache: 'no-store' });
-          if (!res.ok) {
-            console.warn('[chart] fetch returned', res.status, 'for', sym.label);
-            continue;
-          }
-          const j = await res.json();
-          const r = j?.chart?.result?.[0];
-          if (!r || !r.timestamp || !r.indicators?.quote?.[0]) {
-            console.warn('[chart] unexpected response shape for', sym.label);
-            continue;
-          }
-          const ts = r.timestamp;
-          const q  = r.indicators.quote[0];
-          const out = [];
-          for (let i = 0; i < ts.length; i++) {
-            if (q.open[i] == null || q.high[i] == null ||
-                q.low[i]  == null || q.close[i] == null) continue;
-            out.push({
-              time:  ts[i] * 1000,
-              open:  q.open[i],
-              high:  q.high[i],
-              low:   q.low[i],
-              close: q.close[i],
-            });
-          }
-          if (out.length > MAX_CANDLES + 10) {
-            console.log('[chart] loaded', out.length, 'bars for', sym.label,
-              '— latest:', new Date(out[out.length-1].time).toLocaleString());
-            return { bars: out, symbol: sym.label };
-          }
-          console.warn('[chart] not enough bars for', sym.label, '(' + out.length + ')');
-        } catch (e) {
-          console.warn('[chart] fetch error:', e.message);
-        }
+        attempts.push(tryFetch(sym, proxy));
       }
     }
-    console.warn('[chart] all market-data sources failed — using synthetic mode');
-    return null;
+    // Wait for the first successful fetch, or all to fail.
+    return new Promise((resolve) => {
+      let pending = attempts.length;
+      let resolved = false;
+      attempts.forEach(p => p.then(result => {
+        if (resolved) return;
+        if (result) {
+          resolved = true;
+          resolve(result);
+        } else if (--pending === 0) {
+          resolve(null);
+        }
+      }));
+    });
   }
 
   // Zigzag-style swing detection: walks bars and records confirmed extrema
@@ -2543,7 +2557,7 @@
     // Try fetching real S&P data. A short timeout keeps page load snappy even
     // if the proxy is slow — synthetic fallback is fine.
     const fetchPromise = fetchMarketBars();
-    const timeoutPromise = new Promise(r => setTimeout(() => r(null), 8000));
+    const timeoutPromise = new Promise(r => setTimeout(() => r(null), 4000));
     const fetched = await Promise.race([fetchPromise, timeoutPromise]);
 
     if (fetched && fetched.bars.length > MAX_CANDLES + 10) {
