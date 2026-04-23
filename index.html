@@ -652,7 +652,10 @@
 
   // Grid lives directly on the scene — it's the static floor and should not
   // translate down with the chart as the baseline rises.
-  const grid = new THREE.GridHelper(120, 60, 0xd6d6d6, 0xdddddd);
+  // Grid is oversized on purpose — with mouse tilt + uptrend lift + wide
+  // aspect ratios, a small grid's edge can creep into view. 300 world units
+  // wide is safely larger than any visible extent we can reach.
+  const grid = new THREE.GridHelper(300, 150, 0xd6d6d6, 0xdddddd);
   grid.position.y = -12;
   grid.material.opacity = 0.6;
   grid.material.transparent = true;
@@ -2673,7 +2676,7 @@
       // Real data doesn't have a guaranteed uptrend — let smoothedTrendline
       // re-center the chart dynamically. Small positive lift shifts the whole
       // chart slightly upward on screen so it sits higher in the viewport.
-      UPTREND_LIFT = 8;
+      UPTREND_LIFT = 9;
 
       // Position time-axis slabs based on the FIRST 45 bars (~90 seconds of
       // replay — what most users see before leaving the page). Take the
@@ -2690,7 +2693,7 @@
       }
       // Slab Y in rotationGroup-local coords. priceToY gives world Y of the
       // min price; subtract an aesthetic offset so labels sit below the wick.
-      TIME_SLAB_Y = priceToY(openMinP) - 2.5;
+      TIME_SLAB_Y = priceToY(openMinP) - 1.2;
 
       // Fill in the replay-range text — date in NY time, e.g. "Tuesday, April 21st".
       const replayRangeEl = document.getElementById('replayRange');
