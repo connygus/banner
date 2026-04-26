@@ -566,7 +566,6 @@
   <div id="replayTitle" class="replay-title-floating">
     <div class="rt-main">Replay of S&amp;P 500 algo</div>
     <div class="rt-range" id="replayRange">&nbsp;</div>
-    <div class="rt-sub">With position size 100x</div>
   </div>
   <!-- Matrix-style pseudo-code stream. Continuously prints lines; entries
        and exits are highlighted in brand colors. -->
@@ -596,18 +595,31 @@
   // orthographic camera now captures more world content per screen pixel,
   // which scales down all candles, planes, labels, and markers uniformly.
   const frustumSize = 43;
+  // Design viewport height the chart was tuned for. If the actual viewport
+  // is taller (e.g. 150vh in Wix), the frustum extends downward into more
+  // grid floor while everything else stays positioned identically.
+  const DESIGN_VIEWPORT_HEIGHT = 1000;
   // Chart is biased slightly to the right of center. 0 = centered,
   // 0.25 = chart in right half, negative = bias left.
   const RIGHT_HALF_PAN = 0.17;
 
   function computeFrustum() {
-    const halfW = frustumSize * aspect / 2;
-    const pan = frustumSize * aspect * RIGHT_HALF_PAN;
+    // World-units-per-pixel anchor — fixed regardless of actual viewport.
+    // This locks the visual size of all chart elements.
+    const unitsPerPx = frustumSize / DESIGN_VIEWPORT_HEIGHT;
+    // Width and height in world units, derived from the ACTUAL viewport size.
+    const halfH_design = frustumSize / 2;
+    const totalH_world = window.innerHeight * unitsPerPx;
+    // Top stays at the design-height top (+21.5). Bottom drops as far as the
+    // viewport's actual height demands — extending into grid floor below.
+    const top    =  halfH_design;
+    const bottom =  halfH_design - totalH_world;
+    const halfW  = window.innerWidth * unitsPerPx / 2;
+    const pan    = window.innerWidth * unitsPerPx * RIGHT_HALF_PAN;
     return {
-      left:   -halfW - pan,
-      right:   halfW - pan,
-      top:     frustumSize / 2,
-      bottom: -frustumSize / 2,
+      left:  -halfW - pan,
+      right:  halfW - pan,
+      top, bottom,
     };
   }
 
