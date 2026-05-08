@@ -526,33 +526,47 @@
     user-select: none;
   }
 
+  /* Loading state — small corner pill instead of a full-screen overlay so
+     the skeleton grid stays visible behind it while data loads. */
   #loading {
     position: fixed;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.96);
+    top: 24px;
+    left: 24px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 18px;
+    gap: 10px;
+    padding: 9px 14px 9px 11px;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     z-index: 100;
-    transition: opacity 0.4s ease;
+    opacity: 0;
+    animation: loadingPillIn 0.5s ease-out 0.2s forwards;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    user-select: none;
   }
   #loading.hidden {
     opacity: 0;
     pointer-events: none;
   }
+  @keyframes loadingPillIn { to { opacity: 1; } }
   .loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(0, 0, 0, 0.08);
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.08);
     border-top-color: #51C951;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text {
-    font-size: 12px;
+    font-size: 10px;
+    font-weight: 600;
     color: #888;
     letter-spacing: 0.8px;
     text-transform: uppercase;
@@ -677,6 +691,40 @@
   // Parent to rotationGroup (not scene) so mouse tilt rotates the grid
   // together with the candles and trade planes.
   rotationGroup.add(grid);
+
+  // ============ MOUSE TILT (declared early so the skeleton loop reacts) ============
+  let targetRotY = 0, targetRotX = 0;
+  window.addEventListener('mousemove', (e) => {
+    targetRotY =  ((e.clientX / window.innerWidth)  - 0.5) * 0.45;
+    targetRotX = -((e.clientY / window.innerHeight) - 0.5) * 0.18;
+  });
+  window.addEventListener('mouseleave', () => {
+    targetRotY = 0; targetRotX = 0;
+  });
+
+  // ============ SKELETON LOAD ============
+  // Show the grid right away so the canvas isn't blank during the data fetch.
+  // The grid material fades in from 0 → 0.6 opacity over ~1 second, and mouse
+  // tilt is wired up so the floor responds to motion. This loop stops as soon
+  // as the main animate() loop takes over (skeletonAlive = false in init()).
+  grid.material.opacity = 0;
+  let skeletonAlive = true;
+  let chartAppearStart = 0;
+  const skeletonStart = performance.now();
+  const SKELETON_FADE_MS = 1000;
+  const CHART_APPEAR_MS = 500;
+  function skeletonFrame() {
+    if (!skeletonAlive) return;
+    requestAnimationFrame(skeletonFrame);
+    const t = Math.min((performance.now() - skeletonStart) / SKELETON_FADE_MS, 1);
+    // ease-out cubic — fast at first, settling gently into the final value.
+    const eased = 1 - Math.pow(1 - t, 3);
+    grid.material.opacity = 0.6 * eased;
+    rotationGroup.rotation.y += (targetRotY - rotationGroup.rotation.y) * 0.06;
+    rotationGroup.rotation.x += (targetRotX - rotationGroup.rotation.x) * 0.06;
+    renderer.render(scene, camera);
+  }
+  skeletonFrame();
 
   // ============ ROUNDED-BOX HELPER ============
   // r128 has no RoundedBoxGeometry — build one from an extruded rounded-rect shape.
@@ -2373,16 +2421,6 @@
     }
   }
 
-  // ============ MOUSE TILT ============
-  let targetRotY = 0, targetRotX = 0;
-  window.addEventListener('mousemove', (e) => {
-    targetRotY =  ((e.clientX / window.innerWidth)  - 0.5) * 0.45;
-    targetRotX = -((e.clientY / window.innerHeight) - 0.5) * 0.18;
-  });
-  window.addEventListener('mouseleave', () => {
-    targetRotY = 0; targetRotX = 0;
-  });
-
   // ============ UI ============
   const recentTradesListEl = document.getElementById('recentTradesList');
 
@@ -2780,9 +2818,18 @@
       setTimeout(() => loadingEl.remove(), 500);
     }
 
+    // Make sure the grid has finished its fade-in before candles appear on
+    // top — avoids a hand-off where the chart pops in over a half-faded grid.
+    grid.material.opacity = 0.6;
+    // Stop the skeleton render loop; animate() takes over from here.
+    skeletonAlive = false;
+
     prefillHistory();
     startCandle();
     initChartPriceLabel();
+    // Stamp the moment the chart hand-off happens so animate() can fade the
+    // candles in over ~500ms instead of popping them in at full opacity.
+    chartAppearStart = performance.now();
     animate();
   }
 
@@ -2805,6 +2852,13 @@
     const progress = Math.min((performance.now() - candleStartTime) / CANDLE_DURATION, 1);
     const offset = -progress * SPACING;
     const latestIdx = candles.length - 1;
+    // Scene-appear ramp: fades all candles in 0 → 1 over CHART_APPEAR_MS the
+    // first time animate() runs after data load. Eliminates the "pop" of
+    // 28 prefilled candles arriving on top of the already-visible grid.
+    const appearRaw = chartAppearStart
+      ? Math.min((performance.now() - chartAppearStart) / CHART_APPEAR_MS, 1)
+      : 1;
+    const appearT = 1 - Math.pow(1 - appearRaw, 3); // ease-out cubic
     for (let i = 0; i < candles.length; i++) {
       const indexFromLatest = latestIdx - i;
       candles[i].group.position.x = LATEST_X - indexFromLatest * SPACING + offset;
@@ -2817,7 +2871,7 @@
         const t = Math.min((age - fadeStart) / FADE_ZONE, 1);
         opacity = Math.max(0, 1 - t); // linear fade
       }
-      candles[i].setOpacity(opacity);
+      candles[i].setOpacity(opacity * appearT);
     }
 
     rotationGroup.rotation.y += (targetRotY - rotationGroup.rotation.y) * 0.06;
