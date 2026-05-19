@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design 02 (revised) · cascade of independent cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html { scroll-behavior: smooth; }
+ html, body {overflow: hidden; }
+
+  :root {
+    --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-paper: #FAFAFB;
+    --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+    --red: #EC3B3D; --green: #3DC574;
+    --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Onest', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+    font-size: 16px;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  /* Container: 1320 max-width + 40 padding → 1240 content width on desktop */
+  .container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+
+  .rp-section { padding: 100px 0 80px; border-bottom: 1px solid var(--hairline); }
+
+  .rp-eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.18em; color: var(--ink-muted); font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .rp-eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+  .rp-h2 {
+    font-size: clamp(32px, 4vw, 48px);
+    font-weight: 700; letter-spacing: -0.026em; line-height: 1.05;
+    margin-bottom: 14px; max-width: 900px;
+  }
+  .rp-h2 em { font-style: italic; color: var(--ink-muted); font-weight: 400; }
+  .rp-lead {
+    color: var(--ink-muted); font-size: 16px; line-height: 1.55;
+    max-width: 720px; margin-bottom: 48px;
+  }
+
+  /* ===== Study panel ===== */
+  .rp-study-panel {
+    position: relative;
+    background: var(--bg-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 22px;
+    min-height: 480px;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  .rp-study-narr {
+    flex: 0 0 36%;
+    padding: 44px 0 44px 44px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .rp-study-narr h3 {
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 700; letter-spacing: -0.022em; line-height: 1.15;
+    margin-bottom: 10px;
+  }
+  .rp-study-narr h3 .accent { color: var(--green); }
+  .rp-study-narr > p {
+    font-size: 14.5px; color: var(--ink-muted); line-height: 1.55;
+    margin-bottom: 28px; max-width: 380px;
+  }
+  .rp-stat-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    margin-bottom: 28px; max-width: 380px;
+  }
+  .rp-stat { border-left: 1px solid var(--hairline-strong); padding-left: 14px; }
+  .rp-stat:first-child { border-left: 0; padding-left: 0; }
+  .rp-stat-num {
+    font-size: 46px; font-weight: 800;
+    letter-spacing: -0.045em; line-height: 0.92; margin-bottom: 6px;
+  }
+  .rp-stat-num.g { color: var(--green); }
+  .rp-stat-num.r { color: var(--red); }
+  .rp-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px; color: var(--ink-muted);
+    letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.4;
+  }
+  .rp-study-cta-row {
+    display: flex; align-items: center; gap: 16px;
+    flex-wrap: wrap; margin-bottom: 14px;
+  }
+
+  /* .rp-study-cta — default state */
+  .rp-study-cta {
+    display: inline-flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 26px;
+    font-family: 'Onest', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #FFFFFF;
+    background: #333333;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, transform 0.08s ease, opacity 0.15s ease;
+    appearance: none;
+  }
+  /* .rp-study-cta — hover */
+  .rp-study-cta:hover { background: var(--red); }
+  /* .rp-study-cta — active / pressed */
+  .rp-study-cta:active { transform: translateY(1px); }
+  /* .rp-study-cta — focus-visible / keyboard accessibility */
+  .rp-study-cta:focus-visible {
+    outline: 2px solid var(--red);
+    outline-offset: 2px;
+  }
+  /* .rp-study-cta — disabled */
+  .rp-study-cta:disabled,
+  .rp-study-cta[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .rp-study-cta-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; color: var(--ink-muted); letter-spacing: 0.06em;
+  }
+  .rp-browse-papers {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: 0.06em; color: var(--ink-muted);
+    border-bottom: 1px solid var(--hairline-strong);
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
+    align-self: flex-start;
+  }
+  .rp-browse-papers:hover { color: var(--red); border-bottom-color: var(--red); }
+
+  .rp-chart-area {
+    flex: 1; background: transparent;
+    padding: 28px 18px 18px 0;
+    display: flex; flex-direction: column; min-width: 0;
+  }
+  .rp-chart-svg-wrap { flex: 1; min-height: 0; display: block; margin-left: -80px; }
+  .rp-chart-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  /* ===== Floating study card with tether ===== */
+  .rp-study-card-floating {
+    position: absolute; z-index: 5;
+    left: 40%; top: 32%;
+    transform: translateY(-50%);
+    width: 30%; min-width: 320px; max-width: 400px;
+    background: var(--bg-paper);
+    border: 1px solid var(--hairline-strong);
+    border-radius: 14px;
+    padding: 18px 22px 16px;
+    box-shadow:
+      0 38px 60px -22px rgba(14, 14, 16, 0.22),
+      0 14px 28px -10px rgba(14, 14, 16, 0.10),
+      0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  }
+  /* The dot sits right on the bottom edge of the card */
+  .rp-study-card-floating::before {
+    content: "";
+    position: absolute;
+    left: 50%; bottom: -5px;
+    transform: translateX(-50%);
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: var(--ink);
+    z-index: 6;
+  }
+  /* The tether line extends below the card down through the panel bottom.
+     Generous height (320px) to cover panels that grow past min-height; the
+     panel's overflow:hidden clips the excess cleanly. */
+  .rp-study-card-floating::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 100%;
+    transform: translateX(-50%);
+    width: 1.5px;
+    height: 320px;
+    background: var(--hairline-strong);
+    z-index: 4;
+  }
+
+  .rp-study-intro {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.06em; color: var(--red);
+    line-height: 1.3; margin-bottom: 6px;
+  }
+  .rp-study-title {
+    font-size: 19px; font-weight: 700;
+    letter-spacing: -0.024em; line-height: 1.18;
+    margin-bottom: 10px;
+  }
+  .rp-study-title em { font-style: italic; color: var(--red); font-weight: 600; }
+  .rp-study-title .paren { color: var(--ink-muted); font-weight: 400; }
+  .rp-study-desc {
+    font-size: 12.5px; color: var(--ink-muted);
+    line-height: 1.5; margin-bottom: 12px;
+  }
+  .rp-study-card-foot {
+    padding-top: 10px; border-top: 1px solid var(--hairline-strong);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 10px;
+  }
+  .rp-study-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.08em; color: var(--ink-muted);
+  }
+  .rp-study-card-foot .read {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink); border-bottom: 1px solid var(--ink); padding-bottom: 2px;
+  }
+  .rp-study-card-foot .read:hover { color: var(--red); border-bottom-color: var(--red); }
+  .rp-study-card-foot .read .arrow { color: var(--red); }
+
+  /* ============================================================
+     CONNECTOR (junction + horizontal rail + heading)
+     The rail sits at the very bottom of the SVG so the cards' tails
+     connect to it with zero gap. The heading lives absolutely inside
+     this area, to the left of the trunk, just above the red dot.
+     ============================================================ */
+  .connector-area {
+    position: relative;
+    height: 145px;
+  }
+  .connector-area svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .connector-heading {
+    position: absolute;
+    right: 47%;          /* heading right edge ~53% from left; trunk at 55% */
+    bottom: 22px;        /* sits just above the red dot at the rail */
+    text-align: right;
+    max-width: 360px;
+  }
+  .connector-heading h3 {
+    font-size: clamp(22px, 2.6vw, 28px);
+    font-weight: 700; letter-spacing: -0.022em; line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .connector-heading h3 em { font-style: italic; color: var(--red); font-weight: 500; }
+  .connector-heading .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px; color: var(--ink-muted);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  /* ============================================================
+     CASCADE — 6 independent cards in a single row, stepped down
+     ============================================================ */
+  .cascade-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: -2px;       /* lifts the tails so they overlap the rail */
+  }
+
+  .cascade-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Vertical hairline above each card */
+  .cascade-card .tail {
+    width: 1.5px;
+    background: var(--hairline-strong);
+    flex-shrink: 0;
+    position: relative;
+  }
+  /* Dot at the bottom of the tail — sits on the card's top edge */
+  .cascade-card .tail::after {
+    content: "";
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    z-index: 3;
+    transition: transform 0.2s;
+  }
+  /* On hover, lift the dot the same -2px the body lifts so they stay glued */
+  .cascade-card:hover .tail::after {
+    transform: translate(-50%, -2px);
+  }
+
+  /* Cascade tail lengths: progressively longer, creates the staircase */
+  .cascade-card:nth-child(1) .tail { height: 10px; }
+  .cascade-card:nth-child(2) .tail { height: 30px; }
+  .cascade-card:nth-child(3) .tail { height: 50px; }
+  .cascade-card:nth-child(4) .tail { height: 70px; }
+  .cascade-card:nth-child(5) .tail { height: 90px; }
+
+  /* Dot colors alternate ink/green to match the principle numbers */
+  .cascade-card:nth-child(odd) .tail::after  { background: var(--ink); }
+  .cascade-card:nth-child(even) .tail::after { background: var(--green); }
+
+  /* Card body — light grey background, independent box */
+  .cascade-card .body {
+    background: var(--bg-soft);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 22px 20px 18px;
+    width: 100%;
+    display: flex; flex-direction: column;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+  }
+  .cascade-card:hover .body {
+    border-color: var(--ink);
+    transform: translateY(-2px);
+  }
+
+  .cascade-card .num {
+    font-family: 'Onest', sans-serif;
+    font-size: 30px; font-weight: 800;
+    letter-spacing: -0.04em; color: var(--ink);
+    line-height: 0.9;
+    margin-bottom: 12px;
+  }
+  .cascade-card:nth-child(even) .num { color: var(--green); }
+
+  .cascade-card .title {
+    font-size: 16px; font-weight: 600;
+    letter-spacing: -0.022em; line-height: 1.22;
+    margin-bottom: 8px;
+  }
+  .cascade-card .title em { font-style: italic; color: var(--red); font-weight: 600; }
+  .cascade-card .title strong { color: var(--green); font-weight: 600; }
+
+  .cascade-card .desc {
+    color: var(--ink-muted);
+    font-size: 12px;
+    line-height: 1.45;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .cascade-card .traces {
+    margin-top: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--ink-dim);
+    letter-spacing: 0.04em;
+    padding-top: 8px;
+    border-top: 1px solid var(--hairline);
+  }
+  .cascade-card .traces a {
+    color: var(--ink-muted);
+    text-decoration: underline;
+    text-decoration-color: var(--hairline-strong);
+    text-underline-offset: 2px;
+  }
+  .cascade-card .traces a:hover { color: var(--red); }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (min-width: 1001px) {
+    .container { width: 1320px; max-width: 1320px; padding: 0 40px; margin: 0 auto; }
+    .rp-h2            { font-size: 46px; line-height: 1.05; }
+    .rp-study-narr h3 { font-size: 28px; line-height: 1.15; }
+    .rp-study-panel { flex-direction: row; align-items: stretch; min-height: 480px; overflow: hidden; }
+    .rp-study-narr { flex: 0 0 36%; padding: 44px 0 44px 44px; }
+    .rp-chart-area { padding: 28px 18px 18px 0; min-height: 0; }
+    .rp-chart-svg-wrap { margin-left: -80px; }
+    .rp-study-card-floating {
+      position: absolute; left: 40%; top: 32%;
+      transform: translateY(-50%);
+      width: 30%; min-width: 320px; max-width: 400px; margin: 0;
+    }
+  }
+
+  /* TABLET: cascade reverts to a tidy 2-column grid */
+  @media (min-width: 751px) and (max-width: 1000px) {
+    .container { width: 100%; max-width: 980px; padding: 0 32px; margin: 0 auto; }
+    .rp-h2 { font-size: 38px; line-height: 1.05; }
+    .rp-lead { margin-bottom: 36px; }
+    .rp-study-narr h3 { font-size: 24px; }
+    .rp-study-panel {
+      flex-direction: column; align-items: stretch;
+      min-height: 0; overflow: visible;
+    }
+    /* narr sits in front of the chart so text stays readable when chart bleeds up */
+    .rp-study-narr {
+      flex: 0 0 auto;
+      padding: 36px 32px 0 32px;
+      position: relative;
+      z-index: 3;
+    }
+    /* chart is pulled up 250px so it overflows deep into the narr text */
+    .rp-chart-area {
+      padding: 24px 32px 24px 32px;
+      min-height: 320px;
+      margin-top: -250px;
+      position: relative;
+      z-index: 1;
+    }
+    .rp-chart-svg-wrap { margin-left: 0; }
+    /* floating card stays in front of chart, full panel width */
+    .rp-study-card-floating {
+      position: relative;
+      left: auto; top: auto;
+      width: auto; max-width: none; min-width: 0;
+      transform: none; margin: -20px 0 0;
+      z-index: 2;
+    }
+    /* card is wide enough to fit the title on one line, no manual break needed */
+    .rp-study-title br { display: none; }
+    /* Tether becomes a single short vertical drop from the now-static card */
+    .rp-study-card-floating::after { height: 60px; }
+
+    /* Connector: trunk + horizontal rail drawn as background gradients.
+       Rail width = 50% + 7px exactly spans the centers of the 2 card columns
+       (math: rail_width = (cascade_row_width + gap) / 2 = 50% + 7px when gap=14px).
+       Rail sits 28px above the bottom — exactly where the card tails reach up to. */
+    .connector-area {
+      height: 180px;
+      margin-top: 10px;
+      background-image:
+        linear-gradient(var(--hairline-strong), var(--hairline-strong)),
+        linear-gradient(var(--hairline-strong), var(--hairline-strong));
+      background-size:
+        1.5px calc(100% - 28px),
+        calc(50% + 7px) 1.5px;
+      background-position:
+        50% 0,
+        50% calc(100% - 28px);
+      background-repeat: no-repeat;
+    }
+    .connector-area svg { display: none; }
+    .connector-area::before { display: none; }
+    .connector-area::after {
+      /* red dot centered on the trunk-rail intersection */
+      content: "";
+      position: absolute;
+      left: 50%; bottom: calc(28px - 6.5px);
+      transform: translateX(-50%);
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: var(--red);
+      z-index: 2;
+    }
+    /* Heading: white background + z-index so the trunk line is masked behind the text */
+    .connector-heading {
+      right: auto; left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      bottom: 60px;
+      max-width: 360px;
+      background: var(--bg);
+      padding: 8px 16px;
+      border-radius: 10px;
+      z-index: 3;
+    }
+
+    /* Cascade: 2 columns. Tails become absolutely positioned so they overflow
+       upward beyond the cell — extending into the connector area (top row)
+       or into the card above (lower rows). 28px = 14px gap + 14px into card above. */
+    .cascade-row { grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 0; }
+    .cascade-card { position: relative; }
+    .cascade-card:nth-child(n) .tail {
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1.5px;
+      height: 28px;
+      z-index: 2;
+    }
+  }
+
+  /* MOBILE: stack vertically, no cascade */
+  @media (max-width: 750px) {
+    .container { width: 100%; max-width: 540px; padding: 0 18px; margin: 0 auto; }
+    .rp-section { padding: 40px 0 52px; }
+    .rp-h2 { font-size: 28px; line-height: 1.08; }
+    .rp-lead { font-size: 14.5px; margin-bottom: 28px; }
+    .rp-study-narr h3 { font-size: 22px; }
+    .rp-study-panel {
+      flex-direction: column; align-items: stretch;
+      min-height: 0; overflow: visible; border-radius: 18px;
+    }
+    .rp-study-narr {
+      flex: 0 0 auto; padding: 28px 22px 0 22px;
+      position: relative; z-index: 3;
+    }
+    .rp-stat-num { font-size: 36px; }
+    .rp-stat-row { gap: 0; max-width: 100%; }
+    .rp-stat { padding-left: 12px; }
+    /* chart pulled up 60px so it overflows into the bottom of the narr;
+       narr's z-index keeps its text on top of the overlapping chart. */
+    .rp-chart-area {
+      padding: 18px 14px 14px 14px; min-height: 240px;
+      margin-top: -60px;
+      position: relative; z-index: 1;
+    }
+    .rp-chart-svg-wrap { margin-left: 0; min-height: 240px; }
+    /* card spans the full panel width and overlaps the chart by 20px to
+       tighten the gap between the chart's x-axis and the card's content */
+    .rp-study-card-floating {
+      position: static; width: auto; max-width: 100%; min-width: 0;
+      transform: none; margin: -20px 0 0;
+      padding: 16px 18px 14px;
+    }
+    /* card is wide enough to fit the title on one line, no manual break needed */
+    .rp-study-title br { display: none; }
+    .rp-study-card-floating::after { height: 50px; }
+    .rp-study-title { font-size: 17px; }
+    .rp-study-desc  { font-size: 12px; }
+
+    /* Connector: single-column means no rail — just a trunk + a dot at the bottom.
+       Trunk extends from top down to the dot's center. Card 1's tail (28px tall)
+       reaches up from below to meet the dot. */
+    .connector-area { height: 150px; }
+    .connector-area svg { display: none; }
+    .connector-area::before {
+      content: "";
+      position: absolute;
+      left: 50%; top: 0; bottom: 28px;
+      transform: translateX(-50%);
+      width: 1.5px;
+      background: var(--hairline-strong);
+    }
+    /* Heading: white background + z-index so the trunk line is masked behind the text.
+       z-index must exceed the card's tether ::after (z-index: 4) — on mobile the card
+       is position:static so it doesn't form its own stacking context, and the tether
+       would otherwise paint over the heading's white BG. */
+    .connector-heading {
+      right: auto; left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      bottom: 50px;
+      max-width: none;
+      background: var(--bg);
+      padding: 8px 14px;
+      border-radius: 10px;
+      z-index: 5;
+    }
+    .connector-heading h3 { font-size: 22px; white-space: nowrap; }
+    .connector-heading .meta { white-space: nowrap; }
+
+    /* Cascade: 1 column. Tails absolutely positioned, extending 28px up:
+       card 1's tail reaches into the connector to meet the dot;
+       cards 2-5 tails extend 14px of gap + 14px into the card above. */
+    .cascade-row { grid-template-columns: 1fr; gap: 14px; margin-top: 0; }
+    .cascade-card { position: relative; }
+    .cascade-card:nth-child(n) .tail {
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 1.5px;
+      height: 28px;
+      z-index: 2;
+    }
+    .cascade-card .desc { -webkit-line-clamp: unset; }
+  }
+</style>
+</head>
+<body>
+
+<section class="rp-section">
+  <div class="container">
+
+    <div class="rp-eyebrow">Where the algos come from</div>
+    <h2 class="rp-h2">Built on years of research, <em>not instinct</em>.</h2>
+    <p class="rp-lead">Most retail strategies start with a hunch. Ours start with research: 18 papers, 150 years of market data, nine years of synthesis. Everything we ship is built on top of this study.</p>
+
+    <!-- ===== STUDY PANEL (unchanged structure; tether is on the floating card) ===== -->
+    <div class="rp-study-panel">
+      <div class="rp-study-narr">
+        <h3>Research on <span class="accent">150 years</span> of market data.</h3>
+        <p>Every algo we ship has positive expected alpha, derived from centuries of data and nearly a decade of research.</p>
+        <div class="rp-stat-row">
+          <div class="rp-stat"><div class="rp-stat-num">18</div><div class="rp-stat-label">Research<br>papers</div></div>
+          <div class="rp-stat"><div class="rp-stat-num g">150</div><div class="rp-stat-label">Years of<br>market data</div></div>
+          <div class="rp-stat"><div class="rp-stat-num r">09</div><div class="rp-stat-label">Years of<br>compilation</div></div>
+        </div>
+        <div class="rp-study-cta-row">
+          <a class="rp-study-cta" href="https://prorealalgos.com/research">Read the full study →</a>
+          <span class="rp-study-cta-meta">~24 min read</span>
+        </div>
+        <a class="rp-browse-papers" href="https://prorealalgos.com/research">↳ Browse all 18 research papers</a>
+      </div>
+
+      <div class="rp-chart-area">
+        <div class="rp-chart-svg-wrap">
+          <svg class="rp-chart-svg" viewBox="0 0 920 500" preserveAspectRatio="none">
+            <line x1="20" x2="900" y1="450" y2="450" stroke="#C8C8CC" stroke-width="1"/>
+            <path d="M30,413 L62,416 L94,422 L126,417 L158,414 L190,413 L222,409 L254,407 L286,419 L318,414 L350,410 L382,409 L414,405 L446,393 L478,387 L510,386 L542,380 L574,367 L606,370 L638,348 L670,331 L702,300 L734,325 L766,295 L798,259 L830,246"
+                  fill="none" stroke="#6B6B72" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+            <path d="M30,413 L62,411 L94,413 L126,407 L158,402 L190,398 L222,391 L254,384 L286,388 L318,377 L350,367 L382,359 L414,348 L446,330 L478,317 L510,307 L542,291 L574,270 L606,265 L638,236 L670,211 L702,180 L734,185 L766,151 L798,110 L830,65"
+                  fill="none" stroke="#3DC574" stroke-width="3.6" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="830" cy="246" r="5.5" fill="#6B6B72"/>
+            <circle cx="830" cy="65" r="6.5" fill="#3DC574"/>
+            <text x="838" y="59" fill="#3DC574" font-family="JetBrains Mono" font-size="20" font-weight="700">+1,290%</text>
+            <text x="838" y="80" fill="#3DC574" font-family="JetBrains Mono" font-size="12" font-weight="600" letter-spacing="0.02em">ProRealAlgos</text>
+            <text x="838" y="96" fill="#3DC574" font-family="JetBrains Mono" font-size="12" font-weight="600" letter-spacing="0.02em">strategies</text>
+            <text x="838" y="240" fill="#6B6B72" font-family="JetBrains Mono" font-size="20" font-weight="700">+620%</text>
+            <text x="838" y="261" fill="#6B6B72" font-family="JetBrains Mono" font-size="12" font-weight="600" letter-spacing="0.02em">S&amp;P 500</text>
+            <text x="30" y="478" fill="#9B9BA0" font-family="JetBrains Mono" font-size="14" font-weight="600">2000</text>
+            <text x="190" y="478" text-anchor="middle" fill="#9B9BA0" font-family="JetBrains Mono" font-size="14" font-weight="600">2005</text>
+            <text x="350" y="478" text-anchor="middle" fill="#9B9BA0" font-family="JetBrains Mono" font-size="14" font-weight="600">2010</text>
+            <text x="510" y="478" text-anchor="middle" fill="#9B9BA0" font-family="JetBrains Mono" font-size="14" font-weight="600">2015</text>
+            <text x="670" y="478" text-anchor="middle" fill="#9B9BA0" font-family="JetBrains Mono" font-size="14" font-weight="600">2020</text>
+            <text x="830" y="478" text-anchor="end" fill="#9B9BA0" font-family="JetBrains Mono" font-size="14" font-weight="600">2025</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Floating study card. The ::before pseudo gives it the dot
+           anchored to its bottom edge; the ::after gives it the tether
+           that extends down to the bottom of the study panel. -->
+      <div class="rp-study-card-floating">
+        <span class="rp-study-intro">↳ The study that ProRealAlgos is built on</span>
+        <h4 class="rp-study-title">What works <span class="paren">(and what doesn't)</span> <br>in the stock market.</h4>
+        <p class="rp-study-desc">A comprehensive synthesis of what 150 years of market history actually teach us. Drawn from 18 research papers; condensed into six principles and 20 algos.</p>
+        <div class="rp-study-card-foot">
+          <span class="rp-study-version">Updated May 2026</span>
+          <a class="read" href="https://prorealalgos.com/research">Read the study <span class="arrow">→</span></a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== CONNECTOR AREA =====
+         The trunk continues straight down from the tether's exit point
+         (x=682 = 55% of 1240). The rail sits at y=178 — right at the
+         bottom edge of the SVG — so the tails on the cards below
+         connect to it without any gap. Heading text is layered on top,
+         left of the trunk, just above the red dot. -->
+    <div class="connector-area">
+      <svg viewBox="0 0 1240 145" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Vertical trunk from top edge down to the rail -->
+        <line x1="682" y1="0" x2="682" y2="143" stroke="#D8D8DB" stroke-width="1.5"/>
+        <!-- Horizontal rail at the very bottom — spans 5 card centers (119 → 1121) -->
+        <line x1="119" y1="143" x2="1121" y2="143" stroke="#D8D8DB" stroke-width="1.5"/>
+        <!-- Junction node (red) sits on the rail at the trunk's x -->
+        <circle cx="682" cy="143" r="6.5" fill="#EC3B3D"/>
+      </svg>
+      <div class="connector-heading">
+        <h3>Distilled into <em>five principles.</em></h3>
+        <span class="meta">↳ Auditable against the study</span>
+      </div>
+    </div>
+
+    <!-- ===== CASCADE OF 5 INDEPENDENT CARDS ===== -->
+    <div class="cascade-row">
+
+      <div class="cascade-card">
+        <span class="tail"></span>
+        <div class="body">
+          <div class="num">01</div>
+          <h4 class="title">Risk management is the <em>strategy.</em></h4>
+          <p class="desc">Most retail traders pick "what to buy" and forget "how much." Sizing, drawdown limits, and exposure rules decide whether a 70% win-rate system makes you rich or breaks you.</p>
+          <div class="traces"><a href="https://prorealalgos.com/research">RP-15</a> · <a href="https://prorealalgos.com/research">RP-07</a> · <a href="https://prorealalgos.com/research">RP-10</a></div>
+        </div>
+      </div>
+
+      <div class="cascade-card">
+        <span class="tail"></span>
+        <div class="body">
+          <div class="num">02</div>
+          <h4 class="title">Complexity is usually <strong>compensation.</strong></h4>
+          <p class="desc">When a strategy needs fourteen indicators to work, it's usually compensating for the fact that none of them really do. The robust edges tend to be the simple ones.</p>
+          <div class="traces"><a href="https://prorealalgos.com/research">RP-04</a> · <a href="https://prorealalgos.com/research">RP-11</a></div>
+        </div>
+      </div>
+
+      <div class="cascade-card">
+        <span class="tail"></span>
+        <div class="body">
+          <div class="num">03</div>
+          <h4 class="title">Automatic execution removes <em>ego.</em></h4>
+          <p class="desc">Discretionary trading rewards whoever can manage their own psychology. Automated systems just take the psychology out of the loop entirely — fewer chances to be the weak link.</p>
+          <div class="traces"><a href="https://prorealalgos.com/research">RP-03</a> · <a href="https://prorealalgos.com/research">RP-14</a></div>
+        </div>
+      </div>
+
+      <div class="cascade-card">
+        <span class="tail"></span>
+        <div class="body">
+          <div class="num">04</div>
+          <h4 class="title">Onboarding only one trader at a <strong>time.</strong></h4>
+          <p class="desc">We onboard new members one at a time, with personal handover. Algo trading without proper onboarding is how people lose money quietly.</p>
+          <div class="traces"><a href="https://prorealalgos.com/research">RP-17</a> · <a href="https://prorealalgos.com/research">RP-06</a></div>
+        </div>
+      </div>
+
+      <div class="cascade-card">
+        <span class="tail"></span>
+        <div class="body">
+          <div class="num">05</div>
+          <h4 class="title">If we don't run it, we <em>don't sell it.</em></h4>
+          <p class="desc">Every algo licensed to a member is running on Carl's own brokerage account, with real capital, in real time. Skin in the same game we ask of you.</p>
+          <div class="traces"><a href="https://prorealalgos.com/research">RP-18</a> · <a href="https://prorealalgos.com/research">RP-09</a></div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>

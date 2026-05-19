@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProRealAlgos — Personal invitation letter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+   html { scroll-behavior: smooth; overflow: hidden; }
+body { 
+  overflow: hidden;
+}
+:root {
+  --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+  --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+  --red: #EC3B3D; --red-hover: #D62F31; --red-soft: #FDECEC;
+  --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Onest', -apple-system, sans-serif;
+  background: var(--bg); color: var(--ink);
+  line-height: 1.55; -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em; font-size: 16px;
+}
+.container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+.accent { color: var(--red); }
+input, button { font-family: inherit; }
+
+/* Preview chrome */
+.page-head { padding: 40px 0 28px; border-bottom: 1px solid var(--hairline); }
+.page-head h1 { font-size: 24px; letter-spacing: -0.02em; font-weight: 700; }
+.page-head p { color: var(--ink-muted); margin-top: 8px; max-width: 720px; font-size: 14px; }
+
+/* ============================================================
+   LETTER SECTION
+   ============================================================ */
+.letter {
+  padding: 80px 0 120px;
+  background: var(--bg);
+  border-top: 1px solid var(--hairline);
+}
+.letter-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--bg-soft);
+  border: 1px solid var(--hairline);
+  border-radius: 28px;
+  padding: 64px 60px 56px;
+  position: relative;
+}
+.letter-stamp {
+  position: absolute;
+  top: -18px; right: 40px;
+  background: var(--red); color: #FFFFFF;
+  padding: 8px 16px; border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; font-weight: 600;
+}
+.letter-meta {
+  display: flex; justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11.5px; letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 36px;
+}
+.letter-greeting {
+  font-size: 20px; color: var(--ink);
+  margin-bottom: 24px; font-weight: 500;
+}
+.letter-inner p {
+  font-size: 16.5px; line-height: 1.7;
+  color: var(--ink-soft); margin-bottom: 20px;
+}
+.letter-inner p:last-of-type { margin-bottom: 0; }
+
+/* SIGNATURE */
+.letter-sign {
+  margin-top: 36px;
+  display: flex; align-items: center; gap: 16px;
+  padding-top: 28px;
+  border-top: 1px solid var(--hairline);
+}
+.letter-sig-mark {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--ink); color: #FFFFFF;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 17px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.letter-sig-name { font-size: 15px; font-weight: 600; color: var(--ink); }
+.letter-sig-role {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  color: var(--ink-muted); margin-top: 2px;
+}
+
+/* ============================================================
+   P.S. BLOCK — visually clear it was added later
+   - sits inside the letter card but with its own treatment
+   - dashed top border + slight bg tint = "patch attached after"
+   - mono label with pin icon dates it (APR 2026 vs letter's JAN 2026)
+   - copy is brief and apologetic, not scarcity-amplifying
+   ============================================================ */
+.letter-ps {
+  margin-top: 44px;
+  padding: 24px 26px 22px;
+  background: var(--bg-muted);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: 16px;
+  position: relative;
+}
+.letter-ps-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted); font-weight: 600;
+  margin-bottom: 14px;
+  background: var(--bg);
+  padding: 4px 10px; border-radius: 100px;
+  border: 1px solid var(--hairline);
+  position: relative; top: -2px;
+}
+.letter-ps-label svg {
+  width: 11px; height: 11px;
+  color: var(--red);
+}
+.letter-ps p {
+  font-size: 14.5px; line-height: 1.65;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+}
+.letter-ps p:last-of-type { margin-bottom: 18px; }
+
+.letter-ps-form {
+  display: flex; gap: 8px; padding: 6px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.letter-ps-form:focus-within {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(236, 59, 61, 0.10);
+}
+.letter-ps-form input {
+  flex: 1; padding: 12px 18px;
+  background: transparent; border: none;
+  font-family: inherit; font-size: 14px; outline: none;
+  color: var(--ink); min-width: 0;
+}
+.letter-ps-form input::placeholder { color: var(--ink-muted); }
+.letter-ps-form button {
+  padding: 11px 20px;
+  background: var(--red); color: #fff;
+  border: none; border-radius: 100px;
+  font-family: inherit; font-weight: 500;
+  font-size: 13.5px; cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+}
+.letter-ps-form button:hover { background: var(--red-hover); }
+.letter-ps-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+.letter-ps-form button:disabled:hover { background: var(--red); }
+.letter-ps-form.is-invalid {
+  border-color: var(--red);
+  box-shadow: 0 0 0 4px rgba(236, 59, 61, 0.10);
+}
+
+.letter-ps-status {
+  font-size: 13px; font-weight: 500;
+  margin-top: 12px; padding: 0 6px;
+  opacity: 0; max-height: 0; overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+.letter-ps-status.is-visible { opacity: 1; max-height: 60px; }
+.letter-ps-status.is-success { color: #1a8a4a; }
+.letter-ps-status.is-error { color: var(--red); }
+
+/* RESPONSIVE */
+@media (max-width: 720px) {
+  .letter { padding: 100px 0 80px; }
+  .letter-inner { padding: 44px 28px 36px; border-radius: 22px; }
+  .letter-stamp { right: 20px; top: -16px; font-size: 10.5px; padding: 7px 13px; }
+  .letter-meta { flex-direction: column; gap: 6px; }
+  .letter-inner p { font-size: 15.5px; }
+  .container { padding: 0 20px; }
+  .letter-ps { padding: 22px 20px 20px; }
+  .letter-ps-form { flex-direction: column; background: transparent; padding: 0; border: none; }
+  .letter-ps-form input {
+    background: var(--bg); border: 1px solid var(--hairline);
+    border-radius: 100px;
+  }
+  .letter-ps-form button { width: 100%; padding: 14px 20px; }
+  .letter-ps-form.is-invalid { border: none; box-shadow: none; }
+  .letter-ps-form.is-invalid input {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(236, 59, 61, 0.10);
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     PERSONAL INVITATION LETTER
+     ============================================================ -->
+<section class="letter" id="invitation">
+  <div class="container">
+    <div class="letter-inner">
+
+      <div class="letter-stamp">Personal invitation</div>
+
+      <div class="letter-meta">
+        <span>FROM: CARL ERIKSSON, STOCKHOLM</span>
+        <span>JANUARY 2026</span>
+      </div>
+
+      <div class="letter-greeting">Hey,</div>
+
+      <p>If you've scrolled this far, you probably already know what kind of trading this is, and what it isn't. No Lamborghinis. No private jets. No trading gurus. Just 20 algorithms I built for myself and my family.</p>
+
+      <p>I built the algos because I wanted time away from the screens but it came with a side effect of bumping up the returns. The systems are mechanical and boring on purpose, so if you're looking for excitement — this isn't it. They don't beat the market every day, nor every month, they limit the bear market drawdowns and leverage the bull market runs, and over time — that compounds.</p>
+
+      <p>When you join, we walk through setup together. That's my whole offer to you. Same one I'd want if I were on your side of the screen.</p>
+
+      <div class="letter-sign">
+        <div class="letter-sig-mark">CE</div>
+        <div>
+          <div class="letter-sig-name">Carl Eriksson</div>
+          <div class="letter-sig-role">FOUNDER · PROREALALGOS</div>
+        </div>
+      </div>
+
+      <!-- ====================================================
+           P.S. — Added later. Different visual treatment so it
+           reads as a patch, not a planned section.
+           ==================================================== -->
+      <div class="letter-ps">
+        <span class="letter-ps-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 17v5"/>
+            <path d="M9 10.76V4h6v6.76l2 3.24H7l2-3.24z"/>
+          </svg>
+          P.S. — APR 2026 update
+        </span>
+
+        <p>Quick note since I wrote the above. The last few months have been busier than I can onboard one-at-a-time, so there's a waitlist for now. Usually a couple of weeks. Drop your email below if you'd like a seat and I'll reach out when one opens.</p>
+
+        <form class="letter-ps-form" id="letterPsForm" novalidate>
+          <input type="email" id="letterPsEmail" name="email" placeholder="Your e-mail address" required autocomplete="email">
+          <button type="submit" id="letterPsSubmit">Join waitlist</button>
+        </form>
+        <div class="letter-ps-status" id="letterPsStatus" aria-live="polite"></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var form       = document.getElementById('letterPsForm');
+    var emailInput = document.getElementById('letterPsEmail');
+    var submitBtn  = document.getElementById('letterPsSubmit');
+    var status     = document.getElementById('letterPsStatus');
+
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    function setStatus(message, kind) {
+      status.textContent = message || '';
+      status.classList.remove('is-success', 'is-error');
+      if (kind) status.classList.add('is-' + kind);
+      status.classList.toggle('is-visible', Boolean(message));
+    }
+
+    function setLoading(isLoading) {
+      submitBtn.disabled = isLoading;
+      submitBtn.textContent = isLoading ? 'Submitting…' : 'Join waitlist';
+    }
+
+    emailInput.addEventListener('input', function () {
+      form.classList.remove('is-invalid');
+      if (status.classList.contains('is-error')) setStatus('', null);
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var email = emailInput.value.trim();
+
+      if (!EMAIL_RE.test(email)) {
+        form.classList.add('is-invalid');
+        setStatus('Please enter a valid email address.', 'error');
+        emailInput.focus();
+        return;
+      }
+
+      setLoading(true);
+      setStatus('', null);
+
+      window.parent.postMessage({
+        type: 'waitlistSubmit',
+        email: email
+      }, '*');
+    });
+
+    window.addEventListener('message', function (event) {
+      var data = event.data;
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'waitlistResult') {
+        setLoading(false);
+
+        if (data.status === 'success') {
+          form.reset();
+          setStatus('You’re on the list. We’ll be in touch.', 'success');
+        } else {
+          setStatus(
+            data.message || 'Something went wrong. Please try again.',
+            'error'
+          );
+        }
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

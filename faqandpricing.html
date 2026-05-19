@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProRealAlgos — FAQ + Pick a License</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root {
+  --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+  --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+  --red: #EC3B3D; --red-hover: #D62F31; --red-soft: #FDECEC; --red-border: #F9D3D4;
+  --green: #3DC574; --green-hover: #34A862; --green-soft: #E6F7EE; --green-border: #C7EBD6;
+  --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; overflow: hidden; }
+
+body {
+  font-family: 'Onest', -apple-system, sans-serif;
+  background: var(--bg-soft); color: var(--ink);
+  line-height: 1.55; -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em; font-size: 16px;
+  overflow: hidden; 
+}
+.container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+
+h2 {
+  font-weight: 700; letter-spacing: -0.028em; line-height: 1.05;
+  color: var(--ink); font-size: clamp(32px, 4vw, 52px);
+}
+.accent { color: var(--red); }
+.mono { font-family: 'JetBrains Mono', monospace; }
+input, button { font-family: inherit; }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-muted); font-weight: 500; margin-bottom: 18px;
+}
+.eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.eyebrow.red::before { background: var(--red); }
+
+/* ============================================================
+   FAQ SECTION (bg-soft — matches pricing section)
+   ============================================================ */
+.sx-faq { padding: 100px 0 60px; background: var(--bg-soft); }
+
+.sx-head {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: end; margin-bottom: 56px;
+}
+.sx-head h2 { max-width: 620px; }
+.sx-head p {
+  color: var(--ink-muted); font-size: 16px; line-height: 1.6;
+  max-width: 460px; padding-bottom: 6px;
+}
+.sx-head p a {
+  color: var(--ink); text-decoration: underline;
+  text-decoration-color: var(--hairline-strong); text-underline-offset: 3px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+.sx-head p a:hover { color: var(--red); text-decoration-color: var(--red); }
+
+/* ----- Two-column accordion ----- */
+.faq-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 0 60px; align-items: start;
+}
+
+.faq-item { border-top: 1px solid var(--hairline); }
+.faq-col > .faq-item:last-child { border-bottom: 1px solid var(--hairline); }
+
+.faq-q-btn {
+  width: 100%; background: none; border: none; cursor: pointer;
+  text-align: left; padding: 22px 0;
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 20px;
+  color: var(--ink); font-family: inherit;
+  font-size: 20px; font-weight: 500; letter-spacing: -0.012em;
+  line-height: 1.35;
+  transition: color 0.15s ease;
+}
+.faq-q-btn:hover { color: var(--red); }
+.faq-item.open .faq-q-btn { color: var(--red); }
+
+.faq-icon {
+  width: 18px; height: 18px; position: relative; flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+.faq-icon::before, .faq-icon::after {
+  content: ''; position: absolute;
+  background: var(--ink-muted);
+  top: 50%; left: 50%;
+  transition: background 0.2s ease, transform 0.3s ease;
+}
+.faq-icon::before { width: 12px; height: 1.5px; transform: translate(-50%, -50%); }
+.faq-icon::after  { width: 1.5px; height: 12px; transform: translate(-50%, -50%); }
+.faq-q-btn:hover .faq-icon::before,
+.faq-q-btn:hover .faq-icon::after { background: var(--red); }
+.faq-item.open .faq-icon::before,
+.faq-item.open .faq-icon::after { background: var(--red); }
+.faq-item.open .faq-icon::after { transform: translate(-50%, -50%) scaleY(0); }
+
+.faq-answer {
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+.faq-item.open .faq-answer { max-height: 500px; }
+.faq-answer-inner {
+  padding: 0 36px 24px 0;
+  font-size: 14.5px; color: var(--ink-muted); line-height: 1.65;
+}
+.faq-answer-inner strong { color: var(--ink); font-weight: 600; }
+.faq-answer-inner a {
+  color: var(--ink); text-decoration: underline;
+  text-decoration-color: var(--hairline-strong); text-underline-offset: 3px;
+}
+.faq-answer-inner a:hover { color: var(--red); text-decoration-color: var(--red); }
+
+/* ============================================================
+   PICK A LICENSE — dark card on bg-soft
+   ============================================================ */
+.sx-pricing { padding: 60px 0 100px; background: var(--bg-soft); }
+
+.pb-wrap {
+  background: var(--ink);
+  border-radius: 28px;
+  padding: 48px;
+  color: #FFFFFF;
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 56px;
+  position: relative;
+  overflow: hidden;
+}
+.pb-wrap::before {
+  content: "";
+  position: absolute;
+  top: -30%; right: -10%;
+  width: 60%; height: 160%;
+  background: radial-gradient(circle, rgba(236, 59, 61, 0.18), transparent 55%);
+  pointer-events: none;
+}
+
+/* LEFT */
+.pb-left { position: relative; }
+.pb-left .eyebrow { color: rgba(255, 255, 255, 0.55); }
+.pb-left .eyebrow::before { background: var(--red); }
+.pb-left h2 { color: #FFFFFF; margin-bottom: 18px; }
+.pb-left p.lede {
+  color: var(--ink-dim);
+  font-size: 15.5px; line-height: 1.6;
+  margin-bottom: 24px;
+  white-space: nowrap;
+}
+.pb-inc-list {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2px 16px;
+  margin-top: 4px; padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pb-inc-list .row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 12.5px; padding: 7px 8px; margin: 0 -8px;
+  gap: 10px; min-width: 0;
+  color: rgba(255, 255, 255, 0.85);
+  border-radius: 6px; text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.pb-inc-list a.row { cursor: pointer; }
+.pb-inc-list a.row:hover { background-color: rgba(255, 255, 255, 0.05); color: #fff; }
+.pb-inc-list a.row:hover .nm { color: #fff; }
+.pb-inc-list .row .nm {
+  display: block;
+  min-width: 0; line-height: 1.4;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pb-inc-list .row .nm::before {
+  content: ""; display: inline-block;
+  width: 4px; height: 4px;
+  border-radius: 50%; background: var(--red);
+  margin-right: 8px;
+  vertical-align: middle;
+  position: relative; top: -1px;
+}
+.pb-inc-list a.row .nm::after {
+  content: "→"; display: inline-block;
+  font-size: 11px; color: var(--red);
+  opacity: 0; margin-left: 4px;
+  vertical-align: middle;
+  transform: translateX(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.pb-inc-list a.row:hover .nm::after { opacity: 1; transform: translateX(0); }
+.pb-inc-list .row .v {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap; flex-shrink: 0;
+}
+.pb-inc-list .row .v.free { color: var(--green); }
+.pb-total-line {
+  margin-top: 18px; padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.pb-total-line .l {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(255, 255, 255, 0.55);
+}
+.pb-total-line .v {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px; font-weight: 600; color: #fff;
+}
+
+/* RIGHT */
+.pb-right { position: relative; display: flex; flex-direction: column; }
+.pb-tier-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.pb-tier-header .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.14em; color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+}
+.pb-tier-header .label::before {
+  content: "›"; margin-right: 6px; color: var(--red);
+}
+
+.pb-tier-slab {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+.pb-tier {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center; gap: 18px;
+  padding: 18px 22px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0;
+  position: relative;
+  transition: background 0.2s ease;
+}
+.pb-tier:last-child { border-bottom: none; }
+.pb-tier:hover { background: rgba(255, 255, 255, 0.03); }
+.pb-tier.featured { background: var(--red); border-color: transparent; }
+.pb-tier.featured + .pb-tier { border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.pb-tier.featured:hover { background: var(--red-hover); }
+.pb-tier .tier-name {
+  font-size: 18px; font-weight: 600; letter-spacing: -0.015em;
+  color: #FFFFFF; text-align: left;
+  display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.pb-tier .tier-price {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px; font-weight: 500;
+  color: #FFFFFF; text-align: right; white-space: nowrap;
+}
+
+.pb-tier .popular-inline {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #FFFFFF; color: var(--red);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 3px 9px; border-radius: 100px; line-height: 1;
+}
+.pb-tier .popular-inline::before { content: "★"; font-size: 10px; }
+
+.btn-tier {
+  padding: 10px 18px; font-size: 13px; font-weight: 500;
+  border-radius: 100px;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF; font-family: inherit; border: none;
+  white-space: nowrap; cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+}
+.btn-tier:hover { background: rgba(255, 255, 255, 0.2); }
+.pb-tier.featured .btn-tier { background: #FFFFFF; color: var(--ink); }
+.pb-tier.featured .btn-tier:hover { background: var(--bg-soft); }
+
+.tier-tooltip {
+  position: absolute;
+  bottom: calc(100% + 10px); left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #FFFFFF; color: var(--ink);
+  padding: 10px 14px; border-radius: 10px;
+  font-size: 12.5px; font-weight: 400; line-height: 1.4;
+  pointer-events: none;
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.35);
+  z-index: 50; white-space: nowrap; text-align: center;
+}
+.tier-tooltip strong { display: block; font-weight: 600; color: var(--ink); margin-bottom: 1px; }
+.tier-tooltip .light { color: var(--ink-muted); font-size: 12px; }
+.tier-tooltip::after {
+  content: ""; position: absolute;
+  top: 100%; left: 50%; transform: translateX(-50%);
+  border: 6px solid transparent; border-top-color: #FFFFFF;
+}
+.btn-tier:hover .tier-tooltip,
+.btn-tier:focus-visible .tier-tooltip,
+.btn-tier.tooltip-active .tier-tooltip {
+  opacity: 1; visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* DIVIDER */
+.pb-divider {
+  display: flex; align-items: center; gap: 14px;
+  margin: 28px 0 14px;
+}
+.pb-divider .line { flex: 1; height: 1px; }
+.pb-divider .line.l { background: linear-gradient(to right, transparent, rgba(236, 59, 61, 0.45)); }
+.pb-divider .line.r { background: linear-gradient(to left,  transparent, rgba(236, 59, 61, 0.45)); }
+.pb-divider .label {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--red); flex-shrink: 0;
+}
+.pb-divider .label svg { width: 13px; height: 13px; }
+
+.pb-paused-text {
+  font-size: 13px; color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5; margin-bottom: 12px;
+}
+.pb-paused-text strong { color: #fff; font-weight: 500; }
+
+/* WAITLIST FORM */
+.pb-form {
+  display: flex; gap: 8px; padding: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 100px;
+  align-items: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.pb-form:focus-within {
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 4px rgba(236, 59, 61, 0.15);
+}
+@keyframes pb-form-attention {
+  0%   { box-shadow: 0 0 0 0   rgba(236, 59, 61, 0);    border-color: rgba(255, 255, 255, 0.12); }
+  18%  { box-shadow: 0 0 0 9px rgba(236, 59, 61, 0.22); border-color: rgba(236, 59, 61, 0.65); }
+  55%  { box-shadow: 0 0 0 4px rgba(236, 59, 61, 0.10); border-color: rgba(236, 59, 61, 0.40); }
+  100% { box-shadow: 0 0 0 0   rgba(236, 59, 61, 0);    border-color: rgba(255, 255, 255, 0.12); }
+}
+.pb-form.attention { animation: pb-form-attention 1.8s ease-out; }
+.pb-form input {
+  flex: 1; border: none; outline: none; background: transparent;
+  padding: 12px 18px; font-size: 14px; color: #fff; min-width: 0;
+}
+.pb-form input::placeholder { color: rgba(255, 255, 255, 0.45); }
+.pb-form .btn-waitlist {
+  padding: 11px 20px; font-size: 13.5px;
+  background: var(--red); color: #fff;
+  border: none; border-radius: 100px;
+  font-family: inherit; font-weight: 500; cursor: pointer;
+  transition: background 0.2s ease; white-space: nowrap;
+}
+.pb-form .btn-waitlist:hover { background: var(--red-hover); }
+.pb-form .btn-waitlist:disabled { opacity: 0.6; cursor: not-allowed; }
+.pb-form .btn-waitlist:disabled:hover { background: var(--red); }
+.pb-form.is-invalid {
+  border-color: rgba(236, 59, 61, 0.6);
+  box-shadow: 0 0 0 4px rgba(236, 59, 61, 0.15);
+}
+.pb-form-status {
+  font-size: 13px; font-weight: 500;
+  margin-top: 10px; padding: 0 8px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0; max-height: 0; overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+.pb-form-status.is-visible { opacity: 1; max-height: 60px; }
+.pb-form-status.is-success { color: var(--green); }
+.pb-form-status.is-error   { color: var(--red); }
+
+/* ============================================================
+   RESPONSIVE LOCK — Wix breakpoints
+   mobile    ≤  750px
+   tablet    ≤ 1000px
+   desktop   ≥ 1001px
+   ============================================================ */
+
+/* -------- DESKTOP (≥1001px) — stable height: 1576px -------- */
+@media (min-width: 1001px) {
+  html, body { overflow-x: hidden; }
+
+  /* Lock inner content width — layout is identical at any desktop width */
+  .container {
+    width: 1240px;
+    max-width: 1240px;
+    padding: 0 40px;
+    margin: 0 auto;
+  }
+
+  /* Lock fluid type so width changes don't shift heights */
+  h2 { font-size: 50px; line-height: 1.05; }
+
+  .sx-faq      { padding: 100px 0 60px; }
+  .sx-pricing  { padding: 60px 0 100px; }
+
+  /* FAQ: 2-col header, 2-col grid */
+  .sx-head  { grid-template-columns: 1fr 1fr; gap: 60px; align-items: end; margin-bottom: 56px; }
+  .faq-grid { grid-template-columns: 1fr 1fr; gap: 0 60px; }
+
+  /* Pricing: 2-col card, 2-col inclusion list */
+  .pb-wrap     { grid-template-columns: 1.15fr 1fr; gap: 56px; padding: 48px; }
+  .pb-inc-list { grid-template-columns: 1fr 1fr; }
+}
+
+/* -------- TABLET (751–1000px) — suggested section height: 1900px -------- */
+@media (min-width: 751px) and (max-width: 1000px) {
+  html, body { overflow-x: hidden; }
+
+  .container {
+    width: 100%;
+    max-width: 920px;
+    padding: 0 32px;
+    margin: 0 auto;
+  }
+
+  h2 { font-size: 38px; line-height: 1.06; }
+
+  .sx-faq      { padding: 80px 0 48px; }
+  .sx-pricing  { padding: 48px 0 80px; }
+
+  /* FAQ header stacks; 2-col questions stay (room enough at 856px content) */
+  .sx-head  { grid-template-columns: 1fr; gap: 18px; align-items: start; margin-bottom: 44px; }
+  .sx-head p { padding-bottom: 0; }
+  .faq-grid { grid-template-columns: 1fr 1fr; gap: 0 44px; }
+
+  /* Pricing card stacks into 1-col */
+  .pb-wrap     { grid-template-columns: 1fr; gap: 36px; padding: 36px; border-radius: 24px; }
+  .pb-wrap::before {
+    top: -10%; right: -15%;
+    width: 70%; height: auto;
+    aspect-ratio: 1 / 1;
+  }
+  .pb-inc-list { grid-template-columns: 1fr 1fr; }
+}
+
+/* -------- MOBILE (≤750px) — suggested section height: 2400px -------- */
+@media (max-width: 750px) {
+  html, body { overflow-x: hidden; }
+
+  .container {
+    width: 100%;
+    max-width: 540px;
+    padding: 0 20px;
+    margin: 0 auto;
+  }
+
+  h2 { font-size: 30px; line-height: 1.08; }
+
+  .sx-faq      { padding: 60px 0 36px; }
+  .sx-pricing  { padding: 36px 0 60px; }
+
+  /* FAQ: full stack */
+  .sx-head  { grid-template-columns: 1fr; gap: 16px; align-items: start; margin-bottom: 32px; }
+  .sx-head p { padding-bottom: 0; font-size: 14.5px; }
+  .faq-grid { grid-template-columns: 1fr; gap: 0; }
+  /* Restore borders when single column */
+  .faq-col > .faq-item:last-child { border-bottom: none; }
+  .faq-col:last-child > .faq-item:last-child { border-bottom: 1px solid var(--hairline); }
+  .faq-q-btn { font-size: 15px; padding: 18px 0; }
+  .faq-answer-inner { padding: 0 0 20px 0; font-size: 14px; }
+
+  /* Pricing card: full stack */
+  .pb-wrap     { grid-template-columns: 1fr; gap: 28px; padding: 28px 22px; border-radius: 20px; }
+  .pb-wrap::before {
+    top: -8%; right: -15%;
+    width: 80%; height: auto;
+    aspect-ratio: 1 / 1;
+  }
+  .pb-left p.lede { white-space: normal; }
+  .pb-inc-list { grid-template-columns: 1fr; }
+
+  /* Tier rows: name + price in row 1, button full-width below */
+  .pb-tier { grid-template-columns: 1fr auto; gap: 12px; padding: 16px 18px; }
+  .pb-tier .btn-tier { grid-column: 1 / -1; justify-content: center; margin-top: 6px; }
+  .pb-tier .tier-name { font-size: 16px; }
+  .pb-tier .tier-price { font-size: 16px; }
+  .tier-tooltip { white-space: normal; max-width: 240px; min-width: 200px; }
+
+  /* Waitlist form: keep horizontal on most mobiles, but allow wrap on very narrow */
+  .pb-form input { padding: 11px 14px; font-size: 13.5px; }
+  .pb-form .btn-waitlist { padding: 10px 16px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     FAQ SECTION
+     ============================================================ -->
+<section class="sx-faq" id="faq">
+  <div class="container">
+    <div class="sx-head">
+      <div>
+        <span class="eyebrow">Asked &amp; answered</span>
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      <p>Answers to the questions members ask most. Have something else you want to know? Email Carl directly at <a href="mailto:carl@prorealalgos.com">carl@prorealalgos.com</a>.</p>
+    </div>
+    <div class="faq-grid">
+      <div class="faq-col" id="faq-col-left"></div>
+      <div class="faq-col" id="faq-col-right"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     PICK A LICENSE SECTION
+     ============================================================ -->
+<section class="sx-pricing" id="pricing">
+  <div class="container">
+    <div class="pb-wrap">
+
+      <!-- LEFT: heading + linked inclusions -->
+      <div class="pb-left">
+        <span class="eyebrow red">Pricing</span>
+        <h2>Pick a <span class="accent">License</span></h2>
+        <p class="lede">Same bundle for every license, the only difference is license duration.</p>
+
+        <div class="pb-inc-list">
+          <a class="row" href="https://www.prorealalgos.com/algos" target="_blank" rel="noopener noreferrer"><span class="nm">~20 plug-and-play algos</span><span class="v">€17,110</span></a>
+          <a class="row" href="https://www.prorealalgos.com/codes" target="_blank" rel="noopener noreferrer"><span class="nm">Core codes+ Code snippets</span><span class="v">€3,990</span></a>
+          <a class="row" href="https://www.prorealalgos.com/tradingedges" target="_blank" rel="noopener noreferrer"><span class="nm">Trading edges + Trading statistics</span><span class="v">€990</span></a>
+          <a class="row" href="https://www.prorealalgos.com/highprobablitytradingcourse" target="_blank" rel="noopener noreferrer"><span class="nm">High Probability trading course</span><span class="v">€990</span></a>
+          <a class="row" href="https://www.prorealalgos.com/indicators" target="_blank" rel="noopener noreferrer"><span class="nm">12 indicators</span><span class="v">€1,990</span></a>
+          <a class="row" href="https://www.prorealalgos.com/learning" target="_blank" rel="noopener noreferrer"><span class="nm">Algo development course</span><span class="v">€1,990</span></a>
+          <a class="row" href="https://www.prorealalgos.com/day-trading-system" target="_blank" rel="noopener noreferrer"><span class="nm">PPA Day Trading System</span><span class="v">€1,990</span></a>
+          <div class="row"><span class="nm">ProRealTime imports</span><span class="v">1x</span></div>
+          <a class="row" href="#climbing-club"><span class="nm">Capital Climbing Club</span><span class="v">Invitation</span></a>
+          <div class="row"><span class="nm">All updates</span><span class="v">Included</span></div>
+        </div>
+
+        <div class="pb-total-line">
+          <span class="l">Bundle value</span>
+          <span class="v">€29,050</span>
+        </div>
+      </div>
+
+      <!-- RIGHT: tier slab + divider + waitlist form -->
+      <div class="pb-right">
+        <div class="pb-tier-header">
+          <span class="label">Choose your license duration</span>
+        </div>
+
+        <div class="pb-tier-slab">
+          <div class="pb-tier">
+            <span class="tier-name">24 months</span>
+            <span class="tier-price">€2,990</span>
+            <button class="btn-tier" type="button" data-paused-cta>
+              Get license
+              <span class="tier-tooltip">
+                <strong>Sign-up is paused</strong>
+                <span class="light">Join the waitlist below</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="pb-tier featured">
+            <span class="tier-name">
+              48 months
+              <span class="popular-inline">Most popular</span>
+            </span>
+            <span class="tier-price">€4,590</span>
+            <button class="btn-tier" type="button" data-paused-cta>
+              Get license
+              <span class="tier-tooltip">
+                <strong>Sign-up is paused</strong>
+                <span class="light">Join the waitlist below</span>
+              </span>
+            </button>
+          </div>
+
+          <div class="pb-tier">
+            <span class="tier-name">Lifetime</span>
+            <span class="tier-price">€9,990</span>
+            <button class="btn-tier" type="button" data-paused-cta>
+              Get license
+              <span class="tier-tooltip">
+                <strong>Sign-up is paused</strong>
+                <span class="light">Join the waitlist below</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pb-divider">
+          <span class="line l"></span>
+          <span class="label">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+              <path d="M12 7v6M12 16.5v.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            Sign-up paused
+          </span>
+          <span class="line r"></span>
+        </div>
+
+        <p class="pb-paused-text">
+          <strong>All spots are filled.</strong> Leave your email and we'll reach out as slots open.
+        </p>
+
+        <form class="pb-form" id="waitlist-form" novalidate>
+          <input type="email" id="waitlist-email" placeholder="Your e-mail address" required autocomplete="email">
+          <button type="submit" class="btn-waitlist">Join waitlist</button>
+        </form>
+        <div class="pb-form-status" id="waitlist-status" aria-live="polite"></div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ============================================================
+   FAQ data
+   ============================================================ */
+const FAQS = [
+  { q: "How do I get started?",
+    a: `It's simple:<br><br><strong>1)</strong> Get a license<br><strong>2)</strong> Open a free trading account &amp; install ProRealTime™ on your computer (🇪🇺 Europe → IG · 🌍 Outside Europe → Interactive Brokers)<br><strong>3)</strong> Import the algos, decide how much you want to invest, and click Start.<br><br>The whole thing usually takes a few hours from license purchase to algos running live. We send full step-by-step instructions once you've got the license.` },
+  { q: "Do I need to set up anything on my end?",
+    a: `Not much. Once you've imported and started the algos in ProRealTime, they trade automatically through the ProRealTime cloud server, so you don't need to keep your computer on, your internet running, or anything like that.<br><br>The main thing you do need is enough capital in your IG or IBKR account to support the position sizes you've configured.` },
+  { q: "Do I need to be a trading expert to use this?",
+    a: `Not at all. That's kind of the whole point. You don't need to know how to read charts, understand technical analysis, or pick markets. We've built the logic, you just plug in and let it run.<br><br>That said, having a rough understanding of how the algos work helps a lot when there's a drawdown (which there will be). We cover all of that in the onboarding material.` },
+  { q: "Do I need to monitor it daily?",
+    a: `Nope. Entries, exits, risk.. the system handles all of it.<br><br>I'd still recommend checking in weekly or monthly just to see how the systems are behaving (and so you don't get surprised by a drawdown), but it doesn't need babysitting. That's kind of the whole point of automating it.` },
+  { q: "Can I run several algos at the same time?",
+    a: `Ofcourse, that's actually the recommended setup. We suggest running all ~20 algos simultaneously, since the whole point of the bundle is diversification across systems, markets, and timeframes.<br><br>One algo might be in drawdown while another is making money. Running them together smooths out the equity curve.` },
+  { q: "How much capital do I need to invest?",
+    a: `Up to you. With minimum position sizing, roughly $500 per system is enough to get going, so technically you could run a single algo on a few hundred bucks.<br><br>But most members start with around $10,000. That's enough to run several algos at minimum sizing and actually see meaningful results. Anything less and the position sizes get so small the math stops being interesting.` },
+  { q: "What's the minimum trade size?",
+    a: `Depends on the market and broker, but our systems are built around the minimum contract sizes available on IG and IBKR. So you won't end up in a situation where the algo wants to take a trade your account is too small for, it just sizes down to the minimum.<br><br>$500 per system generally covers it.` },
+  { q: "Can I test before going live?",
+    a: `No free trial im afraid. Once you've got the license though, you can backtest every system in ProRealTime to see exactly how it would have performed historically, before going live with real money.<br><br>We also publish a lot of the historic results publicly on the site and YouTube channel, so you can get a clear sense of what to expect before buying anything.` },
+  { q: "How do I track progress or view live trades?",
+    a: `Same as tracking any other trading on your account. The trade analytics section in IG or IBKR shows open positions, closed trades, P&amp;L, and the full history.<br><br>You can also follow along directly in ProRealTime, where you'll see the algo's entries and exits plotted on the chart in real time.` },
+  { q: "What if I want to withdraw money?",
+    a: `Easy-peasy. Log into IG or IBKR (desktop or mobile) and withdraw any available funds. Usually settles in a few business days.<br><br>Just keep in mind you need enough capital in the account to cover any open positions the algos are running. If you withdraw too much the broker will close positions to free up margin.<br><br>ProRealAlgos has no access to your account, you've got full autonomy there. We only provide the algorithms (that you decide how, when and if to run).` },
+  { q: "Is my money safe?",
+    a: `Your funds stay in your IG or IBKR account. We never see them or touch them.<br><br>Both are large, fully regulated brokers with segregated client accounts, meaning your money is held separately from the broker's own funds. Even in the worst-case scenario where the broker went bust, your money is still yours.` },
+  { q: "Can I stop a system any time?",
+    a: `Ofcourse. Pause or stop any system anytime, directly in ProRealTime.<br><br>One thing to note: stopping an algo doesn't close its open positions automatically. You can either let the algo close them naturally (recommended) or close them manually through your broker if you want out completely.` },
+  { q: "Can I run it on Mac or just Windows?",
+    a: `Both. ProRealTime works on Mac and Windows out of the box.<br><br>And once the algos are started they run on the ProRealTime cloud server anyway, so your computer doesn't actually need to stay on either way. There's no mobile version of ProRealTime, but you can always monitor open trades through the IG or IBKR mobile apps.` },
+  { q: "What markets do the algos trade?",
+    a: `Around 10 different markets, mostly major indices like Nasdaq, S&amp;P 500, and DAX, plus a few forex pairs and commodities.<br><br>We deliberately stick to highly liquid markets: low spreads, fast execution, no nasty surprises.` },
+  { q: "How are updates handled?",
+    a: `Whenever we release an update, the new version gets sent straight to your e-mail. You import it into ProRealTime the same way you imported the original. Takes about a minute per algo.<br><br>All updates are included for the duration of your license.` }
+];
+/* ============================================================
+   FAQ — two-column accordion, all closed by default
+   ============================================================ */
+(function () {
+  const left = document.getElementById('faq-col-left');
+  const right = document.getElementById('faq-col-right');
+  const split = Math.ceil(FAQS.length / 2);
+
+  FAQS.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'faq-item';
+    item.innerHTML = `
+      <button class="faq-q-btn" type="button" aria-expanded="false">
+        <span>${f.q}</span>
+        <span class="faq-icon" aria-hidden="true"></span>
+      </button>
+      <div class="faq-answer">
+        <div class="faq-answer-inner">${f.a}</div>
+      </div>
+    `;
+    item.querySelector('.faq-q-btn').addEventListener('click', () => {
+      const col = item.parentElement;
+      const wasOpen = item.classList.contains('open');
+      col.querySelectorAll('.faq-item.open').forEach(openItem => {
+        openItem.classList.remove('open');
+        openItem.querySelector('.faq-q-btn').setAttribute('aria-expanded', 'false');
+      });
+      if (!wasOpen) {
+        item.classList.add('open');
+        item.querySelector('.faq-q-btn').setAttribute('aria-expanded', 'true');
+      }
+    });
+    (i < split ? left : right).appendChild(item);
+  });
+})();
+
+/* ============================================================
+   Pick a License — paused CTA tooltip + form attention pulse
+   ============================================================ */
+(function () {
+  const ctaButtons = document.querySelectorAll('[data-paused-cta]');
+  const waitlistForm = document.getElementById('waitlist-form');
+
+  ctaButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      btn.classList.add('tooltip-active');
+      setTimeout(() => btn.classList.remove('tooltip-active'), 1800);
+
+      if (waitlistForm) {
+        waitlistForm.classList.remove('attention');
+        void waitlistForm.offsetWidth;
+        waitlistForm.classList.add('attention');
+        setTimeout(() => waitlistForm.classList.remove('attention'), 1900);
+      }
+    });
+  });
+})();
+
+/* ============================================================
+   Waitlist form — postMessage submission to parent Wix page (Velo)
+   ============================================================ */
+(function () {
+  const form = document.getElementById('waitlist-form');
+  if (!form) return;
+
+  const emailInput = document.getElementById('waitlist-email');
+  const submitBtn  = form.querySelector('.btn-waitlist');
+  const statusEl   = document.getElementById('waitlist-status');
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  function setStatus(message, kind) {
+    statusEl.textContent = message || '';
+    statusEl.classList.remove('is-success', 'is-error');
+    if (kind) statusEl.classList.add('is-' + kind);
+    statusEl.classList.toggle('is-visible', Boolean(message));
+  }
+
+  function setLoading(isLoading) {
+    submitBtn.disabled = isLoading;
+    submitBtn.textContent = isLoading ? 'Submitting…' : 'Join waitlist';
+  }
+
+  emailInput.addEventListener('input', () => {
+    form.classList.remove('is-invalid');
+    if (statusEl.classList.contains('is-error')) setStatus('', null);
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const email = emailInput.value.trim();
+
+    if (!EMAIL_RE.test(email)) {
+      form.classList.add('is-invalid');
+      setStatus('Please enter a valid email address.', 'error');
+      emailInput.focus();
+      return;
+    }
+
+    setLoading(true);
+    setStatus('', null);
+
+    window.parent.postMessage({
+      type: 'waitlistSubmit',
+      email: email
+    }, '*');
+  });
+
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+
+    if (data.type === 'waitlistResult') {
+      setLoading(false);
+
+      if (data.status === 'success') {
+        form.reset();
+        setStatus('You\u2019re on the list. We\u2019ll be in touch.', 'success');
+      } else {
+        setStatus(data.message || 'Something went wrong. Please try again.', 'error');
+      }
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

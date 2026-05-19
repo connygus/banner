@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProRealAlgos · Manifesto Section · Parallel signatures</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/pauline-signature">
+  <style>
+    /* Base / reset — remove these two rules when integrating into the live site */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { overflow: hidden; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+      color: #0F0F0F;
+      background: #FFFFFF;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* ========== MANIFESTO SECTION ========== */
+    .manifesto {
+      padding: 100px 32px;
+      background: #FFFFFF;
+      text-align: center;
+    }
+    .manifesto-inner {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .manifesto-eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #6B6B6B;
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .manifesto-lines {
+      margin-bottom: 45px;
+    }
+    .manifesto-line {
+      font-size: clamp(28px, 4.5vw, 52px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+      padding: 18px 0;
+      border-bottom: 1px solid #E5E5E5;
+      color: #0F0F0F;
+    }
+    .manifesto-line:last-child { border-bottom: none; }
+    .manifesto-line strong { font-weight: 600; }
+    .manifesto-footer {
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #6B6B6B;
+      font-weight: 500;
+      margin-bottom: 32px;
+    }
+
+    .manifesto-cta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+    }
+
+    /* ========== DUAL-SIGNATURE CTA — PARALLEL LAYOUT ========== */
+    .manifesto-btn {
+      display: inline-flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 56px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 8px;
+      font-family: 'Onest', sans-serif;
+    }
+    .dual-block {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      width: 280px;
+    }
+    .dual-sig {
+      display: block;
+      width: 260px;
+      height: auto;
+      margin: 0 auto 4px;
+      align-self: center;
+      overflow: visible;
+    }
+    .dual-empty-row {
+      height: 50px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: flex-end;
+      padding-left: 4px;
+    }
+    .dual-empty-x {
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #B0B0B5;
+      line-height: 1;
+      transition: color 0.25s ease;
+    }
+    .dual-line {
+      height: 1.5px;
+      background: #0F0F0F;
+      width: 100%;
+    }
+    .dual-empty-line {
+      height: 1.5px;
+      width: 100%;
+      background: repeating-linear-gradient(to right, #B0B0B5 0 6px, transparent 6px 12px);
+      transition: background 0.25s ease;
+    }
+    .dual-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: #6B6B72;
+      font-weight: 700;
+      margin-top: 10px;
+      text-align: left;
+      padding-left: 2px;
+    }
+    .dual-empty-meta {
+      color: #B0B0B5;
+      transition: color 0.25s ease;
+    }
+    .manifesto-btn:hover .dual-empty-line {
+      background: #0F0F0F;
+    }
+    .manifesto-btn:hover .dual-empty-x,
+    .manifesto-btn:hover .dual-empty-meta {
+      color: #0F0F0F;
+    }
+
+    /* ========== POPOVER (anchored to trigger button, no backdrop) ========== */
+    .manifesto-popover {
+      position: fixed;
+      z-index: 9999;
+      width: 400px;
+      max-width: calc(100vw - 24px);
+      background: #FFFFFF;
+      border: 1px solid #D8D8DB;
+      border-radius: 14px;
+      padding: 18px 18px 16px;
+      box-shadow:
+        0 16px 40px rgba(8, 8, 14, 0.16),
+        0 2px 8px rgba(8, 8, 14, 0.06);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      text-align: left;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(6px);
+      transition:
+        opacity 0.18s ease,
+        transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0s linear 0.24s;
+    }
+    .manifesto-popover.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0);
+      transition:
+        opacity 0.18s ease,
+        transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0s linear 0s;
+    }
+
+    .manifesto-close {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      color: #6B6B72;
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .manifesto-close:hover { background: #F1F1F3; color: #0E0E10; }
+    .manifesto-close svg { width: 14px; height: 14px; }
+
+    .manifesto-form-title {
+      font-family: 'Onest', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: #0E0E10;
+      margin: 0;
+      padding-right: 32px;
+    }
+
+    .manifesto-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #FDECEC;
+      border: 1px solid #F9D3D4;
+      border-radius: 10px;
+    }
+    .manifesto-alert-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      color: #EC3B3D;
+      margin-top: 1px;
+    }
+    .manifesto-alert-text {
+      font-family: 'Onest', sans-serif;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #0E0E10;
+    }
+    .manifesto-alert-text strong { display: block; font-weight: 700; margin-bottom: 2px; }
+    .manifesto-alert-text span { display: block; color: #1F1F22; font-weight: 400; }
+
+    .manifesto-input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+      margin-top: 2px;
+    }
+    .manifesto-email {
+      width: 100%;
+      height: 44px;
+      padding: 0 14px;
+      background: #FFFFFF;
+      border: 1px solid #D8D8DB;
+      border-radius: 10px;
+      font-family: 'Onest', sans-serif;
+      font-size: 14px;
+      color: #0E0E10;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .manifesto-email::placeholder { color: #9B9BA0; }
+    .manifesto-email:focus {
+      border-color: #0E0E10;
+      box-shadow: 0 0 0 3px rgba(14, 14, 16, 0.06);
+    }
+    .manifesto-email.is-invalid {
+      border-color: #EC3B3D;
+      box-shadow: 0 0 0 3px rgba(236, 59, 61, 0.10);
+    }
+
+    .manifesto-submit {
+      width: 100%;
+      height: 44px;
+      padding: 0 16px;
+      background: #0E0E10;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Onest', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.005em;
+      cursor: pointer;
+      transition: background-color 0.18s ease, transform 0.08s ease;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .manifesto-submit:hover { background: #EC3B3D; }
+    .manifesto-submit:active { transform: translateY(1px); }
+    .manifesto-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+    .manifesto-submit:disabled:hover { background: #0E0E10; }
+
+    .manifesto-status {
+      font-family: 'Onest', sans-serif;
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1.4;
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: opacity 0.2s ease, max-height 0.2s ease;
+    }
+    .manifesto-status.is-visible { opacity: 1; max-height: 60px; }
+    .manifesto-status.is-success { color: #1a8a4a; }
+    .manifesto-status.is-error   { color: #EC3B3D; }
+
+    /* ============================================================
+       RESPONSIVE — Wix breakpoints
+       ============================================================ */
+
+    /* -------- DESKTOP (≥1001px) -------- */
+    @media (min-width: 1001px) {
+      html, body { overflow-x: hidden; }
+      .manifesto { padding: 120px 32px 80px; }
+      .manifesto-inner { max-width: 760px; margin: 0 auto; }
+      .manifesto-line { font-size: 44px; line-height: 1.3; padding: 14px 0; }
+      .manifesto-eyebrow { margin-bottom: 14px; }
+      .manifesto-lines   { margin-bottom: 45px; }
+      .manifesto-footer  { margin-bottom: 32px; }
+    }
+
+    /* -------- TABLET (751–1000px) -------- */
+    @media (min-width: 751px) and (max-width: 1000px) {
+      html, body { overflow-x: hidden; }
+      .manifesto { padding: 72px 32px; }
+      .manifesto-inner { max-width: 680px; margin: 0 auto; }
+      .manifesto-line   { font-size: 42px; line-height: 1.3; padding: 16px 0; }
+      .manifesto-eyebrow { margin-bottom: 20px; }
+      .manifesto-lines   { margin-bottom: 38px; }
+      .manifesto-footer  { margin-bottom: 28px; }
+
+      .manifesto-btn { gap: 40px; }
+      .dual-block { width: 240px; }
+      .dual-sig { width: 220px; }
+      .dual-empty-row { height: 44px; }
+    }
+
+    /* -------- MOBILE (≤750px) — stack columns -------- */
+    @media (max-width: 750px) {
+      html, body { overflow-x: hidden; }
+      .manifesto { padding: 64px 22px 72px; }
+      .manifesto-inner { max-width: 540px; margin: 0 auto; }
+      .manifesto-line   { font-size: 28px; line-height: 1.28; padding: 13px 0; }
+      .manifesto-eyebrow { margin-bottom: 24px; font-size: 11px; }
+      .manifesto-lines   { margin-bottom: 32px; }
+      .manifesto-footer  { margin-bottom: 24px; font-size: 11px; }
+
+      .manifesto-btn {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 24px;
+        padding: 4px;
+        width: 100%;
+        max-width: 320px;
+      }
+      .dual-block { width: 100%; }
+      .dual-sig { width: 240px; }
+      .dual-empty-row { height: 44px; }
+      .dual-meta { font-size: 9.5px; }
+
+      .manifesto-form-title { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<section class="manifesto">
+  <div class="manifesto-inner">
+    <p class="manifesto-eyebrow">The ProRealAlgos Manifesto</p>
+    <div class="manifesto-lines">
+      <p class="manifesto-line">We don't sell to thousands.</p>
+      <p class="manifesto-line">We commit to <strong>a few</strong>.</p>
+      <p class="manifesto-line">We lose together.</p>
+      <p class="manifesto-line">We win together.</p>
+      <p class="manifesto-line">We trade side by side.</p>
+      <p class="manifesto-line">We compound <strong>net worth</strong>.</p>
+      <p class="manifesto-line">We invest <strong>a decade</strong> with you.</p>
+    </div>
+    <div class="manifesto-footer-cta">
+      <p class="manifesto-footer">This is the Capital Climb Club</p>
+
+      <div class="manifesto-cta">
+        <button type="button" class="manifesto-btn" id="manifestoTrigger" aria-label="Add your signature to join">
+          <span class="dual-block">
+            <svg class="dual-sig" viewBox="0 0 320 60" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Carl C.G. Eriksson signature">
+              <defs>
+                <filter id="manifesto-ink-flow" x="-5%" y="-5%" width="110%" height="110%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="11" result="noise"/>
+                  <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6"/>
+                </filter>
+              </defs>
+              <text x="160" y="44" text-anchor="middle" font-family="'Pauline Signature', cursive" font-size="46" fill="#1a1a1a" filter="url(#manifesto-ink-flow)">Carl C.G. Eriksson</text>
+            </svg>
+            <span class="dual-line"></span>
+            <span class="dual-meta">Founder · ProRealAlgos · 05.2026</span>
+          </span>
+          <span class="dual-block">
+            <span class="dual-empty-row"><span class="dual-empty-x">×</span></span>
+            <span class="dual-empty-line"></span>
+            <span class="dual-meta dual-empty-meta">Your name · Pending</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="manifesto-popover" id="manifestoPopover" role="dialog" aria-labelledby="manifestoFormTitle">
+  <button type="button" class="manifesto-close" id="manifestoClose" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  <h3 class="manifesto-form-title" id="manifestoFormTitle">Join the ProRealAlgos Community!</h3>
+  <div class="manifesto-alert">
+    <svg class="manifesto-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <div class="manifesto-alert-text">
+      <strong>Sign up is paused. All spots are currently filled.</strong>
+      <span>Leave your email and we'll reach out as slots open.</span>
+    </div>
+  </div>
+  <form class="manifesto-input-row" id="manifestoEmailForm" novalidate>
+    <input type="email" class="manifesto-email" id="manifestoEmail" name="email" placeholder="your@email.com" required autocomplete="email">
+    <button type="submit" class="manifesto-submit" id="manifestoSubmit">Join waitlist</button>
+  </form>
+  <div class="manifesto-status" id="manifestoStatus" aria-live="polite"></div>
+</div>
+
+<script>
+  (function () {
+    var trigger    = document.getElementById('manifestoTrigger');
+    var popover    = document.getElementById('manifestoPopover');
+    var closeBtn   = document.getElementById('manifestoClose');
+    var emailForm  = document.getElementById('manifestoEmailForm');
+    var emailInput = document.getElementById('manifestoEmail');
+    var submitBtn  = document.getElementById('manifestoSubmit');
+    var statusEl   = document.getElementById('manifestoStatus');
+
+    if (!trigger || !popover) return;
+
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    var EDGE_PAD = 12;
+    var GAP      = 8;
+    var lastFocus = null;
+    var isOpen    = false;
+
+    function setStatus(message, kind) {
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('is-success', 'is-error');
+      if (kind) statusEl.classList.add('is-' + kind);
+      statusEl.classList.toggle('is-visible', Boolean(message));
+    }
+
+    function setLoading(isLoading) {
+      submitBtn.disabled = isLoading;
+      submitBtn.textContent = isLoading ? 'Submitting…' : 'Join waitlist';
+    }
+
+    function positionPopover() {
+      var rect = trigger.getBoundingClientRect();
+      var bottom = window.innerHeight - rect.top + GAP;
+      var right = window.innerWidth - rect.right;
+      if (right < EDGE_PAD) right = EDGE_PAD;
+      popover.style.bottom = bottom + 'px';
+      popover.style.right = right + 'px';
+      popover.style.top = '';
+      popover.style.left = '';
+    }
+
+    function onDocClick(e) {
+      if (popover.contains(e.target)) return;
+      if (e.target === trigger || trigger.contains(e.target)) return;
+      closePopover();
+    }
+
+    function openPopover() {
+      if (isOpen) return;
+      isOpen = true;
+      lastFocus = document.activeElement;
+      positionPopover();
+      requestAnimationFrame(function () {
+        popover.classList.add('is-open');
+      });
+      requestAnimationFrame(function () {
+        document.addEventListener('click', onDocClick, true);
+      });
+      window.addEventListener('resize', positionPopover);
+      window.addEventListener('scroll', positionPopover, true);
+      setTimeout(function () { emailInput.focus(); }, 240);
+    }
+
+    function closePopover() {
+      if (!isOpen) return;
+      isOpen = false;
+      popover.classList.remove('is-open');
+      setStatus('', null);
+      setLoading(false);
+      document.removeEventListener('click', onDocClick, true);
+      window.removeEventListener('resize', positionPopover);
+      window.removeEventListener('scroll', positionPopover, true);
+      if (lastFocus && typeof lastFocus.focus === 'function') {
+        lastFocus.focus();
+      }
+    }
+
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (isOpen) closePopover();
+      else openPopover();
+    });
+
+    closeBtn.addEventListener('click', closePopover);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isOpen) closePopover();
+    });
+
+    emailInput.addEventListener('input', function () {
+      emailInput.classList.remove('is-invalid');
+      if (statusEl.classList.contains('is-error')) setStatus('', null);
+    });
+
+    emailForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = emailInput.value.trim();
+      if (!EMAIL_RE.test(email)) {
+        emailInput.classList.add('is-invalid');
+        setStatus('Please enter a valid email address.', 'error');
+        emailInput.focus();
+        return;
+      }
+      setLoading(true);
+      setStatus('', null);
+      window.parent.postMessage({ type: 'waitlistSubmit', email: email }, '*');
+    });
+
+    window.addEventListener('message', function (event) {
+      var data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'waitlistResult') {
+        setLoading(false);
+        if (data.status === 'success') {
+          emailForm.reset();
+          setStatus('You’re on the list. We’ll be in touch.', 'success');
+        } else {
+          setStatus(data.message || 'Something went wrong. Please try again.', 'error');
+        }
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>

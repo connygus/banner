@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ProRealAlgos · Philosophy Banner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+  :root {
+    --ink: #0E0E10;
+    --ink-soft: #1F1F22;
+    --ink-muted: #6B6B72;
+    --ink-dim: rgba(255, 255, 255, 0.55);
+    --red: #EC3B3D;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Onest', sans-serif;
+    color: var(--ink);
+    background: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+    
+    html { overflow: hidden; }
+
+  /* ===== VIDEO COMPONENT (16:9) ===== */
+  .video-frame {
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    background: #0A0A0C;
+    cursor: pointer;
+  }
+  .video-frame video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Subtle gradient at the bottom so meta text stays legible */
+  .video-frame::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 22%;
+    background: linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Sound toggle button */
+  .sound-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(14, 14, 16, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+    z-index: 6;
+    color: #FFFFFF;
+  }
+  .sound-btn:hover {
+    background: rgba(14, 14, 16, 0.8);
+    transform: scale(1.06);
+  }
+  .sound-btn svg { width: 18px; height: 18px; display: block; }
+  .sound-btn .icon-unmuted { display: none; }
+  .sound-btn.is-unmuted .icon-muted { display: none; }
+  .sound-btn.is-unmuted .icon-unmuted { display: block; }
+
+  /* "Tap for sound" hint that fades after a couple seconds */
+  .sound-hint {
+    position: absolute;
+    top: 22px;
+    right: 64px;
+    padding: 8px 12px;
+    background: rgba(14, 14, 16, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #FFFFFF;
+    white-space: nowrap;
+    z-index: 6;
+    pointer-events: none;
+    opacity: 0;
+    animation: hintFade 4.5s ease forwards;
+    animation-delay: 0.8s;
+  }
+  @keyframes hintFade {
+    0% { opacity: 0; transform: translateX(4px); }
+    15% { opacity: 1; transform: translateX(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .video-meta {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.75);
+    z-index: 6;
+    pointer-events: none;
+  }
+
+/* Top-left "Watch outtakes" badge */
+.video-label-top {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 8px 12px;
+  background: rgba(14, 14, 16, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  z-index: 6;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+.video-label-top .red-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  margin-right: 8px;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+  .video-meta .red-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--red);
+    margin-right: 6px;
+    vertical-align: 1px;
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ===== SECTION ===== */
+  .philosophy-banner {
+    background: var(--ink);
+    color: #FFFFFF;
+    padding: 100px 0 100px;
+    position: relative;
+    overflow: hidden;
+  }
+  .philosophy-banner::before {
+    content: "";
+    position: absolute;
+    top: -30%;
+    right: -15%;
+    width: 65%;
+    height: 160%;
+    background: radial-gradient(circle, rgba(236, 59, 61, 0.18), transparent 55%);
+    pointer-events: none;
+  }
+  .pb-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 56px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 56px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  .pb-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .pb-label .red-bar {
+    display: inline-block;
+    width: 32px;
+    height: 2px;
+    background: var(--red);
+  }
+  .pb-quote {
+    font-family: 'Onest', sans-serif;
+    font-size: clamp(22px, 2.2vw, 32px);
+    font-weight: 500;
+    line-height: 1.22;
+    letter-spacing: -0.02em;
+    color: #FFFFFF;
+    margin-bottom: 28px;
+  }
+  .pb-quote .accent { color: var(--red); font-style: italic; font-weight: 400; }
+  .pb-quote .mark {
+    color: var(--red);
+    font-size: 1.3em;
+    font-weight: 300;
+    line-height: 0;
+    vertical-align: top;
+  }
+  .pb-quote .mark-close {
+  color: var(--red);
+  font-size: 1.3em;
+  font-weight: 300;
+  line-height: 0;
+  vertical-align: -0.02em;
+}
+  .pb-author {
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+  .pb-author strong { color: #FFFFFF; font-weight: 500; }
+
+  /* ============================================================
+     RESPONSIVE LOCK — Wix breakpoints
+     mobile    ≤  750px
+     tablet    ≤ 1000px
+     desktop   ≥ 1001px
+     ============================================================ */
+
+  /* -------- DESKTOP (≥1001px) — stable height: 476px -------- */
+  @media (min-width: 1001px) {
+    html, body { overflow-x: hidden; }
+
+    .philosophy-banner { padding: 72px 0 76px; }
+
+    /* Lock inner content width — layout is identical at any desktop width */
+    .pb-inner {
+      width: 1240px;
+      max-width: 1240px;
+      padding: 0 56px;
+      margin: 0 auto;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+
+    /* Lock fluid quote font so width changes don't shift heights */
+    .pb-quote { font-size: 30px; line-height: 1.22; }
+  }
+
+  /* -------- TABLET (751–1000px) — suggested section height: 440px -------- */
+  @media (min-width: 751px) and (max-width: 1000px) {
+    html, body { overflow-x: hidden; }
+
+    .philosophy-banner { padding: 56px 0 60px; }
+
+    .pb-inner {
+      width: 100%;
+      max-width: 920px;
+      padding: 0 32px;
+      margin: 0 auto;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: center;
+    }
+
+    .pb-label   { margin-bottom: 16px; }
+    .pb-quote   { font-size: 22px; line-height: 1.25; margin-bottom: 20px; }
+    .pb-author  { padding-top: 14px; font-size: 12px; }
+  }
+
+  /* -------- MOBILE (≤750px) — suggested section height: 700px -------- */
+  @media (max-width: 750px) {
+    html, body { overflow-x: hidden; }
+
+    .philosophy-banner { padding: 44px 0 48px; }
+
+    .pb-inner {
+      width: 100%;
+      max-width: 540px;
+      padding: 0 22px;
+      margin: 0 auto;
+      grid-template-columns: 1fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .pb-label   { margin-bottom: 14px; font-size: 10px; }
+    .pb-quote   { font-size: 20px; line-height: 1.3; margin-bottom: 20px; }
+    .pb-author  { padding-top: 14px; font-size: 12px; gap: 10px; }
+
+    /* Video chrome: scale the overlays down to fit a smaller frame */
+    .sound-btn { width: 34px; height: 34px; top: 10px; right: 10px; }
+    .sound-btn svg { width: 15px; height: 15px; }
+    .sound-hint { top: 16px; right: 52px; font-size: 9px; padding: 6px 10px; }
+    .video-label-top { top: 10px; left: 10px; font-size: 8.5px; padding: 6px 10px; }
+    .video-meta { bottom: 12px; left: 12px; right: 12px; font-size: 8.5px; }
+  }
+  </style>
+</head>
+<body>
+
+<section class="philosophy-banner">
+  <div class="pb-inner">
+    <div>
+      <div class="pb-label">
+        <span class="red-bar"></span>
+        THE PHILOSOPHY · §01
+      </div>
+      <div class="pb-quote">
+        <span class="mark">"</span>Most retail traders lose money because they're <span class="accent">emotionally invested in every candle.</span> The edge isn't another indicator. The edge is getting your hands off the keyboard.<span class="mark-close">"</span>
+      </div>
+      <div class="pb-author">
+        <span>—</span>
+        <span><strong>Carl C.G Eriksson</strong> &nbsp;·&nbsp; from <em>"Trading After Hours"</em>, podcast 2026</span>
+      </div>
+    </div>
+
+    <div class="video-frame" id="videoFrame">
+      <video
+        id="philosophyVideo"
+        src="https://video.wixstatic.com/video/616050_43127afefbe54a7abf74822aec2ff8ee/1080p/mp4/file.mp4"
+        autoplay
+        loop
+        muted
+        playsinline
+        preload="auto"
+      ></video>
+
+      <div class="sound-hint">Tap for sound</div>
+
+      <button class="sound-btn" id="soundBtn" aria-label="Unmute video" type="button">
+        <!-- Muted icon (speaker with X) -->
+        <svg class="icon-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon>
+          <line x1="22" y1="9" x2="16" y2="15"></line>
+          <line x1="16" y1="9" x2="22" y2="15"></line>
+        </svg>
+        <!-- Unmuted icon (speaker with waves) -->
+        <svg class="icon-unmuted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+      </button>
+
+<div class="video-label-top">
+  <span class="red-dot"></span>WATCH OUTTAKES
+</div>
+
+<div class="video-meta">
+  <span><span id="videoTime">0:00</span> / <span id="videoDuration">--:--</span></span>
+  <span>EP 03 / FULL EPISODE ↗</span>
+</div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    const video = document.getElementById('philosophyVideo');
+    const btn = document.getElementById('soundBtn');
+    const frame = document.getElementById('videoFrame');
+
+    function setMuted(muted) {
+      video.muted = muted;
+      btn.classList.toggle('is-unmuted', !muted);
+      btn.setAttribute('aria-label', muted ? 'Unmute video' : 'Mute video');
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setMuted(!video.muted);
+      if (!video.muted && video.paused) video.play();
+    });
+
+    // Click anywhere on the video toggles sound too
+    frame.addEventListener('click', function () {
+      setMuted(!video.muted);
+      if (!video.muted && video.paused) video.play();
+    });
+    const timeEl = document.getElementById('videoTime');
+const durEl = document.getElementById('videoDuration');
+
+function fmt(t) {
+  if (!isFinite(t)) return '--:--';
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60).toString().padStart(2, '0');
+  return m + ':' + s;
+}
+
+video.addEventListener('loadedmetadata', () => { durEl.textContent = fmt(video.duration); });
+video.addEventListener('timeupdate', () => { timeEl.textContent = fmt(video.currentTime); });
+
+// In case metadata is already available (cached load)
+if (video.readyState >= 1) durEl.textContent = fmt(video.duration);
+  })();
+</script>
+
+</body>
+</html>
