@@ -1,0 +1,4561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isometric Trading Chart + Algo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    width: 100%;
+  }
+  body {
+    position: relative;
+    overflow-x: hidden;
+  }
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Hero contains the floating chart overlays. The 3D canvas lives at the
+     body level (above), not inside the hero — but visually the chart
+     occupies the top viewport thanks to the camera frustum. */
+  .hero {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    /* Three sections share the iframe height, with a 150px gap between
+       sections 2 and 3. Each section = (iframe - 150) / 3. For a
+       2350px iframe that comes out to ~733px per section. Capped at
+       900px so the hero stays reasonable in a direct browser viewing. */
+    height: min(calc((100vh - 150px) / 3), 900px);
+  }
+
+  .panel {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(0, 0, 0, 0.85);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    pointer-events: none;
+    user-select: none;
+  }
+  .panel-stack {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 14px;
+    z-index: 10;
+  }
+  #overlay { min-width: 200px; }
+  #algo    { min-width: 220px; }
+
+  /* LEFT SIDE: banner content — replace inner HTML with your own */
+  .banner-content {
+    position: fixed;
+    top: 50%;
+    left: 6%;
+    transform: translateY(-50%);
+    width: 44%;
+    max-width: 620px;
+    z-index: 10;
+    pointer-events: auto;
+  }
+  /* Eyebrow / brand mark above the headline */
+  .banner-content .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #FF4F55;
+    margin-bottom: 18px;
+  }
+  .banner-content h1 {
+    font-size: clamp(30px, 3.6vw, 46px);
+    font-weight: 800;
+    line-height: 1.08;
+    margin: 0 0 22px 0;
+    color: #333;
+    letter-spacing: -1.0px;
+    max-width: 540px;
+  }
+  .banner-content h1 .tm {
+    font-size: 0.48em;
+    font-weight: 600;
+    vertical-align: super;
+    color: #888;
+    margin-left: 2px;
+  }
+  .banner-content p.ingress {
+    font-size: clamp(14px, 1.1vw, 16px);
+    line-height: 1.6;
+    margin: 0 0 14px 0;
+    color: #555;
+    max-width: 500px;
+  }
+  .banner-content p.compat {
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0 0 28px 0;
+    color: #888;
+    max-width: 500px;
+  }
+  .banner-content p.compat strong {
+    color: #666;
+    font-weight: 600;
+  }
+
+  /* CTA base (used by the waitlist join button) */
+  .cta {
+    padding: 13px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border-radius: 10px;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+  .cta:hover { transform: translateY(-1px); }
+  .cta-primary {
+    background: #51C951;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(81, 201, 81, 0.22);
+  }
+  .cta-primary:hover {
+    background: #46b546;
+    box-shadow: 0 6px 18px rgba(81, 201, 81, 0.30);
+  }
+
+  /* Waitlist — boxless, inline typographic layout. */
+  .waitlist {
+    max-width: 460px;
+    margin-top: 8px;
+  }
+  .waitlist-head { margin-bottom: 18px; }
+  .waitlist-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #FF4F55;
+    margin-bottom: 6px;
+  }
+  .waitlist-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #333;
+    letter-spacing: -0.4px;
+  }
+  .countdown {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .countdown-timer {
+    font-size: 34px;
+    font-weight: 800;
+    color: #333;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.8px;
+    line-height: 1;
+  }
+  .countdown-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #888;
+  }
+  .countdown-label sup {
+    font-size: 0.75em;
+    font-weight: 600;
+  }
+  .waitlist-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    max-width: 420px;
+  }
+  .waitlist-input {
+    flex: 1;
+    padding: 11px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1px solid rgba(51, 51, 51, 0.18);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    min-width: 0;
+  }
+  .waitlist-input::placeholder { color: #aaa; }
+  .waitlist-input:focus {
+    outline: none;
+    border-color: #51C951;
+    box-shadow: 0 0 0 3px rgba(81, 201, 81, 0.15);
+  }
+  .waitlist-form .cta {
+    padding: 11px 18px;
+    white-space: nowrap;
+  }
+  .waitlist-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+  }
+  .waitlist-meta strong { color: #333; font-weight: 700; }
+  .waitlist-meta .subtle { color: #999; }
+  .waitlist-meta .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #51C951;
+    box-shadow: 0 0 0 3px rgba(81, 201, 81, 0.18);
+    flex-shrink: 0;
+  }
+  .waitlist-joined {
+    padding: 12px 16px;
+    color: #fff;
+    font-weight: 600;
+    background: #51C951;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    max-width: 420px;
+  }
+
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  #price {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #111;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .replay-title {
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    line-height: 1.25;
+  }
+  .replay-title .rt-main {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111;
+    letter-spacing: -0.4px;
+  }
+  .replay-title .rt-range {
+    font-size: 13px;
+    font-weight: 600;
+    color: #444;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .replay-title .rt-sub {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+    margin-top: 2px;
+  }
+  .replay-title .asterisk { color: #bbb; }
+  .bar-time {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+  }
+  #latentGain {
+    font-size: 28px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+    margin-top: 4px;
+  }
+  .latent-block {
+    padding-top: 4px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    margin-top: 8px;
+  }
+  .top-right-stack {
+    position: absolute;
+    top: 88px;
+    right: 32px;
+    z-index: 20;
+    pointer-events: none;
+    user-select: none;
+    text-align: right;
+    /* Scale overlay to match the ~33% reduction of the Three.js scene below.
+       Transform origin = top-right so the block still hugs the top-right
+       corner after scaling. */
+    transform: scale(0.75);
+    transform-origin: top right;
+  }
+  .replay-title-floating {
+    line-height: 1.25;
+  }
+  .replay-title-floating .rt-main {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111;
+    letter-spacing: -0.4px;
+  }
+  .replay-title-floating .rt-range {
+    font-size: 18px;
+    font-weight: 600;
+    color: #444;
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .replay-title-floating .rt-sub {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+    margin-top: 2px;
+  }
+  .replay-title-floating .asterisk { color: #bbb; }
+
+  .recent-trades-floating {
+    margin-top: 16px;
+    text-align: right;
+  }
+  .rt-trades-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .recent-trades-floating #recentTradesList {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+  }
+
+  /* Matrix-style pseudo-code stream — sits under the replay title. Lines
+     appear at the bottom and scroll up as more come in; oldest ones fade. */
+  .codestream {
+    margin-top: 12px;
+    text-align: right;
+    width: 280px;
+  }
+  .codestream-lines {
+    height: 110px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    font-family: "SF Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    padding-bottom: 4px;
+    box-sizing: border-box;
+    position: relative;
+    /* Short top fade — only the very top few pixels fade; rest is full. */
+    -webkit-mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(0,0,0,0.6) 8%,
+      #000 14%);
+    mask-image: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(0,0,0,0.6) 8%,
+      #000 14%);
+  }
+  .cs-line {
+    color: #333;  /* brand dark grey, not green — only event lines are colored */
+    white-space: nowrap;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(3px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    font-variant-numeric: tabular-nums;
+  }
+  .cs-line.show { opacity: 1; transform: translateY(0); }
+  .cs-line .prompt { color: #888; margin-right: 4px; }
+  .cs-line .kw { color: #555; }
+  .cs-line .num { color: #333; font-weight: 600; }
+
+  /* Trade event lines — bright green for long, bright red for short. */
+  .cs-line.event-long {
+    color: #2f9b2f;
+    font-weight: 700;
+    background: rgba(81, 201, 81, 0.08);
+    padding: 1px 6px;
+    margin: 1px -6px;
+    border-left: 2px solid #51C951;
+  }
+  .cs-line.event-long .prompt { color: #51C951; }
+  .cs-line.event-short {
+    color: #d03a3f;
+    font-weight: 700;
+    background: rgba(255, 79, 85, 0.08);
+    padding: 1px 6px;
+    margin: 1px -6px;
+    border-left: 2px solid #FF4F55;
+  }
+  .cs-line.event-short .prompt { color: #FF4F55; }
+  .cs-line.event-win {
+    color: #2f9b2f;
+    font-weight: 700;
+  }
+  .cs-line.event-loss {
+    color: #d03a3f;
+    font-weight: 700;
+  }
+
+  .latent-block-top {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .recent-trades {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  #recentTradesList {
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .trade-row {
+    display: inline-grid;
+    grid-template-columns: auto auto auto;
+    gap: 8px;
+    align-items: center;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    transition: opacity 1.1s ease, transform 1.1s ease;
+  }
+  .trade-row-entering {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  .trade-row-leaving {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .trade-side {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+  .trade-side.long  { background: rgba(81, 201, 81, 0.18); color: #2f9b2f; }
+  .trade-side.short { background: rgba(255, 79, 85, 0.18); color: #d03a3f; }
+  .trade-time { color: #999; font-size: 10px; }
+  .trade-pnl  { font-weight: 600; }
+  .trade-pnl.up   { color: #2f9b2f; }
+  .trade-pnl.down { color: #d03a3f; }
+  .no-trades { color: #bbb; font-size: 12px; font-style: italic; }
+  .ohlc {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 18px;
+    font-size: 12px;
+    color: #555;
+    font-variant-numeric: tabular-nums;
+  }
+  .ohlc div b {
+    color: #aaa;
+    font-weight: 600;
+    margin-right: 6px;
+    display: inline-block;
+    width: 10px;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 12px;
+    gap: 24px;
+    font-variant-numeric: tabular-nums;
+  }
+  .row > span:first-child {
+    color: #888;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+  .row > span:last-child {
+    font-weight: 600;
+    color: #333;
+  }
+  #algoStatus {
+    font-size: 10px;
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.05);
+    color: #666 !important;
+    letter-spacing: 0.5px;
+  }
+  #algoStatus.active {
+    background: rgba(81, 201, 81, 0.18);
+    color: #2f9b2f !important;
+  }
+  #algoStatus.active.short {
+    background: rgba(255, 79, 85, 0.18);
+    color: #d03a3f !important;
+  }
+
+  #hint {
+    position: fixed;
+    bottom: 20px;
+    right: 24px;
+    font-size: 11px;
+    color: #bbb;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Loading state — small corner pill instead of a full-screen overlay so
+     the skeleton grid stays visible behind it while data loads. */
+  #loading {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px 9px 11px;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    z-index: 100;
+    opacity: 0;
+    animation: loadingPillIn 0.5s ease-out 0.2s forwards;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+    user-select: none;
+  }
+  #loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  @keyframes loadingPillIn { to { opacity: 1; } }
+  .loading-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(0, 0, 0, 0.08);
+    border-top-color: #51C951;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-size: 10px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+
+  /* ============ HOW IT WORKS SECTION ============ */
+  /* Transparent so the 3D grid floor (rendered on the canvas behind)
+     shows through. Content lives in a narrow column pinned to the RIGHT
+     side of the page. */
+  .how-it-works {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+    /* 60px narrower than .performance. With margin-left:auto and the
+       fixed margin-right below, the right edge is anchored — narrowing
+       the section pulls the LEFT edge inward (to the right), keeping
+       the position relative to the page right side. */
+    width: min(580px, 92vw) !important;
+    margin-left: auto;
+    /* +90px = same 30px right-shift as .performance PLUS an extra 60px
+       to compensate for being 60px narrower than .performance. The
+       result is that BOTH sections share the same LEFT edge; the
+       narrower .how-it-works just ends 60px earlier on the right. */
+    margin-right: calc(clamp(20px, 6vw, 96px) + 90px) !important;
+    margin-top: 0;
+    padding: 30px 0;
+    /* Same per-section height formula as .hero — see comment there. */
+    min-height: calc((100vh - 150px) / 3);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .hiw-title {
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: #1a1a1a;
+    margin: 0 0 14px;
+    line-height: 1.1;
+  }
+  .hiw-intro {
+    font-family: 'Onest', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: clamp(13px, 1vw, 15px);
+    line-height: 1.55;
+    color: #6B6B72;
+    margin: 0 0 18px;
+    max-width: 640px;
+  }
+  .hiw-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .hiw-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    align-items: center;
+    gap: 18px;
+    padding: 22px 26px 22px 30px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  /* Colored left edge accent — matches the number color of each step,
+     fills the visual space that the old CTA button occupied and gives
+     the card a clearer "this is step N" anchor. */
+  .hiw-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 5px;
+    background: currentColor;
+    opacity: 0.85;
+  }
+  .hiw-card.red   { color: #FF4F55; }
+  .hiw-card.green { color: #51C951; }
+  .hiw-card.dark  { color: #1a1a1a; }
+  .hiw-num {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Monaco, "Courier New", monospace;
+    font-size: 46px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -2px;
+    font-variant-numeric: slashed-zero tabular-nums;
+  }
+  .hiw-num.red   { color: #FF4F55; }
+  .hiw-num.green { color: #51C951; }
+  .hiw-num.dark  { color: #1a1a1a; }
+  .hiw-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .hiw-card-title {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: #1a1a1a;
+    line-height: 1.2;
+  }
+  .hiw-card-title .red   { color: #FF4F55; }
+  .hiw-card-title .green { color: #51C951; }
+  .hiw-card-title .tm {
+    font-size: 0.55em;
+    font-weight: 700;
+    vertical-align: super;
+    color: #51C951;
+    margin-left: 1px;
+  }
+  .hiw-card-title em {
+    font-style: italic;
+    font-weight: 800;
+    color: #999;
+  }
+  .hiw-card-desc {
+    font-size: 13px;
+    color: #777;
+    line-height: 1.4;
+  }
+  .hiw-btn {
+    font-family: inherit;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    padding: 11px 20px;
+    border-radius: 999px;
+    border: 1.5px solid #1a1a1a;
+    background: rgba(255, 255, 255, 0.85);
+    color: #1a1a1a;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    display: inline-block;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .hiw-btn:hover {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  @media (max-width: 720px) {
+    .how-it-works {
+      width: 92vw;
+      margin: 0 4vw 0 auto;
+      padding: 48px 0 80px;
+    }
+    .hiw-card {
+      grid-template-columns: 64px 1fr;
+      grid-template-rows: auto auto;
+      gap: 10px 16px;
+      padding: 20px 20px;
+    }
+    .hiw-num { font-size: 40px; }
+    .hiw-card-title { font-size: 17px; }
+    .hiw-card-desc { font-size: 13px; }
+    .hiw-btn {
+      grid-column: 1 / -1;
+      justify-self: start;
+      padding: 10px 18px;
+    }
+  }
+
+
+  /* ============ PERFORMANCE SECTION ============
+     Third content block, same right-column width as the "How it works"
+     cards. Section is transparent so the 3D grid floor shows through;
+     the chart card itself stays opaque-white for legibility. Class names
+     mirror the standalone "ProRealAlgos · Performance vs Benchmarks"
+     page so its JS works unchanged here. */
+  .performance {
+    position: relative;
+    z-index: 1;
+    background: transparent;
+    /* 640 wide — 60px wider than .how-it-works (now back to 580). */
+    width: min(640px, 92vw);
+    margin-left: auto;
+    /* Original margin + 30px = section sits 30px LEFT of the original
+       right-aligned position. (Was +60px; user moved it 30px back to
+       the right.) */
+    margin-right: calc(clamp(20px, 6vw, 96px) + 30px) !important;
+    /* 150px gap between the cards section and this one. Combined with
+       the (100vh - 150px) / 3 section heights below, the totals add up
+       to exactly the iframe height. */
+    margin-top: 150px;
+    padding: 30px 0;
+    font-family: 'Onest', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: #0E0E10;
+    min-height: calc((100vh - 150px) / 3);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .pra-hero {
+    margin: 0 0 22px;
+  }
+  .pra-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 1.9px;
+    color: #616161;
+    margin-bottom: 12px;
+  }
+  .pra-eyebrow-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #3DC574;
+  }
+  .pra-title {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: clamp(28px, 3vw, 40px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px;
+    color: #0E0E10;
+    white-space: nowrap;
+  }
+  .pra-title-italic {
+    font-family: 'Onest', sans-serif;
+    font-style: italic;
+    font-weight: 500;
+    color: #8A8A93;
+  }
+  .pra-title-green { color: #3DC574; }
+  .pra-subtitle {
+    font-size: clamp(13px, 1vw, 15px);
+    line-height: 1.55;
+    color: #6B6B72;
+    margin: 0;
+  }
+
+  .pra-card {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    padding: 16px 16px 14px;
+    position: relative;
+    overflow: visible;
+  }
+
+  /* Toggle area: PRA/SPX/DAX pills in row 1, Reinvest switch sits in row
+     2 left-aligned — visually placing it directly under the PRA pill
+     (which is the first toggle, leftmost). Right padding leaves a
+     clearance zone for the absolutely-positioned range pills above. */
+  .pra-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: -8px;
+    padding-right: 130px;
+  }
+  .pra-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pra-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #F2F2F5;
+    border: 1.5px solid transparent;
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #0E0E10;
+    cursor: pointer;
+    transition: all 0.16s ease;
+    user-select: none;
+  }
+  .pra-pill:hover { background: #E8E8EC; }
+  .pra-pill.is-active {
+    background: #fff;
+    border-color: #E8E8EC;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .pra-pill.is-inactive {
+    background: transparent;
+    color: #8A8A93;
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .pra-pill-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .pra-pill.is-inactive .pra-pill-dot { background: #8A8A93 !important; }
+  .pra-pill-dash {
+    width: 14px;
+    height: 2px;
+    flex-shrink: 0;
+    border-radius: 1px;
+    background-image: linear-gradient(to right, currentColor 60%, transparent 40%);
+    background-size: 5px 2px;
+    background-repeat: repeat-x;
+  }
+  .pra-pill.is-inactive .pra-pill-dash { color: #8A8A93 !important; }
+
+  .pra-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    padding: 5px 8px;
+    border-radius: 999px;
+    transition: background 0.16s ease;
+    flex-shrink: 0;
+  }
+  .pra-switch:hover { background: #F2F2F5; }
+  .pra-switch input { display: none; }
+  .pra-switch-label {
+    font-family: 'Onest', sans-serif;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #4A4A52;
+    transition: color 0.16s ease;
+  }
+  .pra-switch input:checked ~ .pra-switch-label {
+    color: #0E0E10;
+    font-weight: 600;
+  }
+  .pra-switch-track {
+    position: relative;
+    width: 28px;
+    height: 16px;
+    background: #E8E8EC;
+    border-radius: 999px;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+  }
+  .pra-switch-track::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .pra-switch input:checked + .pra-switch-track { background: #3DC574; }
+  .pra-switch input:checked + .pra-switch-track::after { transform: translateX(12px); }
+
+  .pra-range-pills {
+    position: absolute;
+    /* Match the card's own padding (16px top / 16px right) so the
+       range pills align with the toggle pills' visual inset. */
+    top: 16px;
+    right: 16px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: #F2F2F5;
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .pra-range-pills button {
+    font-family: 'Onest', sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 6px 11px;
+    border: none;
+    background: transparent;
+    color: #4A4A52;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .pra-range-pills button:hover { color: #0E0E10; }
+  .pra-range-pills button.active {
+    background: #0E0E10;
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+
+  .pra-chart-area {
+    width: 100%;
+    height: 340px;
+    position: relative;
+    margin: 0 -6px 0 -6px;
+  }
+
+  .pra-disclaimer {
+    margin: 2px 4px 0;
+    font-size: 10.5px;
+    color: #8A8A93;
+    line-height: 1.55;
+  }
+
+  .pra-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.92);
+    z-index: 10;
+    flex-direction: column;
+    gap: 14px;
+    backdrop-filter: blur(4px);
+    border-radius: 12px;
+  }
+  .pra-loading.is-hidden { display: none; }
+  .pra-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2.5px solid #E8E8EC;
+    border-top-color: #3DC574;
+    border-radius: 50%;
+    animation: praSpin 0.8s linear infinite;
+  }
+  @keyframes praSpin { to { transform: rotate(360deg); } }
+  .pra-loading-text {
+    font-size: 12px;
+    color: #4A4A52;
+    font-weight: 500;
+  }
+  .pra-loading-error {
+    max-width: 320px;
+    text-align: center;
+    font-size: 12px;
+    color: #EC3B3D;
+    line-height: 1.5;
+  }
+
+  .pra-tooltip {
+    background: #0E0E10;
+    color: #fff;
+    padding: 9px 11px;
+    border-radius: 10px;
+    font-family: 'Onest', sans-serif;
+    font-size: 11.5px;
+    box-shadow: 0 12px 40px rgba(14, 14, 16, 0.18);
+    pointer-events: none;
+    min-width: 168px;
+  }
+  .pra-tooltip-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 7px;
+    letter-spacing: 0.02em;
+  }
+  .pra-tooltip-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 0;
+  }
+  .pra-tooltip-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+  }
+  .pra-tooltip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .pra-tooltip-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 11.5px;
+  }
+
+  .pra-chart-area .highcharts-container { font-family: 'Onest', sans-serif !important; }
+  .pra-chart-area .highcharts-credits { display: none !important; }
+  .pra-chart-area,
+  .pra-chart-area .highcharts-container,
+  .pra-chart-area .highcharts-root,
+  .pra-chart-area svg { overflow: visible !important; }
+
+  @media (max-width: 720px) {
+    .performance {
+      width: 92vw;
+      margin: 0 4vw 0 auto;
+      padding: 24px 0 80px;
+    }
+    .pra-chart-area { height: 300px; }
+    .pra-card { padding: 14px 12px 12px; }
+  }
+
+  /* ============ SIGNUP CTA ============
+     Left-pointing arrow + "signup" label, positioned to the LEFT of the
+     performance content (right: 100% pushes it just past the section's
+     left edge, into the empty space the 3D grid floor occupies). Links
+     back to the LICENSE button in the cards section. Hidden on narrow
+     viewports — there's no room beside the column. */
+  .signup-cta {
+    position: absolute;
+    right: 100%;
+    top: 38%;
+    transform: translateY(-50%);
+    margin-right: clamp(24px, 5vw, 80px);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-decoration: none;
+    color: #1a1a1a;
+    z-index: 2;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+  }
+  .signup-cta:hover { transform: translate(-8px, -50%); }
+  .signup-cta-arrow {
+    width: clamp(70px, 7vw, 110px);
+    height: auto;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.08));
+  }
+  .signup-cta-text {
+    font-family: 'Onest', -apple-system, sans-serif;
+    font-style: italic;
+    font-weight: 700;
+    font-size: clamp(22px, 2.8vw, 38px);
+    letter-spacing: -0.025em;
+    color: #1a1a1a;
+  }
+  @media (max-width: 1100px) {
+    .signup-cta { display: none; }
+  }
+
+  /* ============ TABLET / MOBILE LAYOUT (≤ 1000px) ============
+     Page anatomy below 1000px (all top values measured from the body):
+        0   – 740px : empty
+       740  – 800px : replay title + date range (just above the chart)
+       800  – 1200px: 3D candlestick chart canvas (400px tall band)
+                      with the execution log overlaid on its top-right
+       1220 – 1340px: recent trades list (3 rows, full width)
+       1370+        : how-it-works section, then performance section
+     The desktop left-side banner is hidden so the chart and metadata can
+     span the full width. Each metadata element is positioned absolutely
+     within the .hero box (which now stretches to 1340px to contain them).
+     The JS twin of this breakpoint lives in isMobileLayout() /
+     computeFrustum() / getCanvasHeight() below — keep the 1000px
+     threshold in sync. Desktop layout (>1000px) is untouched. */
+  @media (max-width: 1000px) {
+    .hero {
+      height: 1280px;
+      min-height: 1280px;
+      overflow: hidden;
+    }
+    body > canvas {
+      top: 660px !important;
+    }
+
+    /* No left column on mobile — chart and metadata get the full width. */
+    .banner-content {
+      display: none;
+    }
+
+    /* Expand the floating stack to fill the hero so its children can be
+       positioned individually in hero coordinates rather than stacked. */
+    .top-right-stack {
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      max-width: none;
+      transform: none;
+      text-align: initial;
+      display: block;
+    }
+
+    /* "Replay of S&P 500 algo" + date range, overlaid on the chart's
+       top-left corner (mirrors the codestream on the top-right). */
+    .replay-title-floating {
+      position: absolute;
+      top: 680px;
+      left: 4vw;
+      right: auto;
+      text-align: left;
+    }
+    .replay-title-floating .rt-main {
+      font-size: 22px;
+      font-weight: 700;
+      color: #111;
+    }
+    .replay-title-floating .rt-range {
+      font-size: 13px;
+      color: #555;
+      margin-top: 4px;
+    }
+
+    /* Execution log: overlaid on the chart's top-right corner with a much
+       smaller font than desktop. */
+    .codestream {
+      position: absolute;
+      top: 680px;
+      right: 4vw;
+      width: 180px;
+      margin: 0;
+      text-align: right;
+    }
+    .codestream-lines {
+      height: 90px;
+      font-size: 9.5px;
+      line-height: 1.5;
+    }
+
+    /* Recent trades: below the chart, full-width rows. The chart canvas
+       extends past this region so the 3D grid floor shows through the
+       translucent card background. */
+    .recent-trades-floating {
+      position: absolute;
+      top: 1080px;
+      left: 4vw;
+      right: 4vw;
+      margin: 0;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 14px;
+      padding: 14px 16px 6px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+    }
+    .rt-trades-label {
+      text-align: left;
+      margin-bottom: 8px;
+      font-size: 11px;
+      letter-spacing: 1.2px;
+    }
+    .recent-trades-floating #recentTradesList {
+      align-items: stretch;
+      width: 100%;
+      gap: 0;
+    }
+    .recent-trades-floating .trade-row {
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      width: 100%;
+      padding: 10px 4px;
+      gap: 14px;
+      font-size: 14px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      align-items: center;
+    }
+    .recent-trades-floating .trade-row:last-child {
+      border-bottom: none;
+    }
+    .recent-trades-floating .trade-side {
+      font-size: 10.5px;
+      padding: 4px 0;
+      text-align: center;
+    }
+    .recent-trades-floating .trade-time {
+      font-size: 12px;
+      color: #888;
+      justify-self: start;
+    }
+    .recent-trades-floating .trade-pnl {
+      font-size: 15px;
+      justify-self: end;
+    }
+
+    /* Hide the performance chart's dark hover tooltip on small screens —
+       the box overlaps the small chart and gets in the way of touch. The
+       crosshair and point highlight still work; only the dark panel is
+       suppressed. */
+    .pra-tooltip {
+      display: none !important;
+    }
+
+    /* Sections: centered with width-based side padding, no min-height,
+       minimal margins. The performance gap is the tightest because the
+       user flagged it specifically. */
+    .how-it-works {
+      width: 92vw !important;
+      max-width: 92vw !important;
+      margin: 80px auto 0 !important;
+      padding: 24px 0 !important;
+      min-height: auto !important;
+    }
+    .performance {
+      width: 92vw !important;
+      max-width: 92vw !important;
+      margin: 30px auto 0 !important;
+      padding: 24px 0 !important;
+      min-height: auto !important;
+    }
+  }
+
+  /* Phone-specific (≤ 720px): shrink the codestream overlay so it doesn't
+     hog the chart's right side on narrow viewports, and shift the chart
+     stack up an additional 40px (120px total vs. desktop). */
+  @media (max-width: 720px) {
+    .hero {
+      height: 1240px;
+      min-height: 1240px;
+    }
+    body > canvas {
+      top: 620px !important;
+    }
+    .replay-title-floating {
+      top: 640px;
+    }
+    .codestream {
+      top: 640px;
+      width: 130px;
+    }
+    .codestream-lines {
+      height: 78px;
+      font-size: 8.5px;
+    }
+    .replay-title-floating .rt-main { font-size: 20px; }
+    .replay-title-floating .rt-range { font-size: 12px; }
+    .recent-trades-floating {
+      top: 1040px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO: 3D chart + floating panels, locked to 100vh. Three.js canvas is
+     appended into this container by the script below. -->
+<div id="hero" class="hero">
+
+  <!-- Floating top-right corner: title + recent trades (no box). -->
+  <div id="topRight" class="top-right-stack">
+    <div id="replayTitle" class="replay-title-floating">
+      <div class="rt-main">Replay S&amp;P 500 <span style="font-weight: 600; color: #777777;">(30x speed)</span></div>
+      <div class="rt-range" id="replayRange">(30x speed)&nbsp;</div>
+    </div>
+    <!-- Matrix-style pseudo-code stream. Continuously prints lines; entries
+         and exits are highlighted in brand colors. -->
+    <div class="codestream">
+      <div id="codeStream" class="codestream-lines"></div>
+    </div>
+
+    <div class="recent-trades-floating">
+      <div class="rt-trades-label">Recent Trades</div>
+      <div id="recentTradesList"><div class="no-trades">No closed trades yet</div></div>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading S&amp;P 500 data…</div>
+  </div>
+
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how-it-works">
+  <h2 class="hiw-title">How does it work?</h2>
+  <p class="hiw-intro">Three steps to become an quant trader with fully hands-off automated execution. No discretionary input, no babysitting.</p>
+
+  <div class="hiw-cards">
+    <div class="hiw-card red">
+      <div class="hiw-num red">01</div>
+      <div class="hiw-body">
+        <div class="hiw-card-title">Join the <span class="red">community</span></div>
+        <div class="hiw-card-desc">Sign up for a license — multiple pricing alternatives.</div>
+      </div>
+    </div>
+
+    <div class="hiw-card green">
+      <div class="hiw-num green">02</div>
+      <div class="hiw-body">
+        <div class="hiw-card-title">Install <span class="green">ProRealTime<span class="tm">™</span></span></div>
+        <div class="hiw-card-desc">Open a free broker account &amp; install ProRealTime™.</div>
+      </div>
+    </div>
+
+    <div class="hiw-card dark">
+      <div class="hiw-num dark">03</div>
+      <div class="hiw-body">
+        <div class="hiw-card-title">Plug and <em>play</em> the algos</div>
+        <div class="hiw-card-desc">Import the ~20 algos, set position sizing &amp; click Start.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PERFORMANCE: 360-day benchmark comparison chart. Class names mirror the
+     standalone "ProRealAlgos · Performance vs Benchmarks" page so its boot
+     script (further below) wires up the same DOM. -->
+<section class="performance">
+  <header class="pra-hero">
+    <h2 class="pra-title">
+      Outperform <span class="pra-title-italic">or don&rsquo;t</span> <span class="pra-title-green">bother</span>.
+    </h2>
+    <p class="pra-subtitle">
+      Most people would do better to invest into an index fund. Three benchmarks. One portfolio of 20 trading algorithms that outperforms them all.
+    </p>
+  </header>
+
+  <div class="pra-card">
+    <!-- Range pills floated to the top-right corner of the card. -->
+    <div class="pra-range-pills" id="pra-range-pills"></div>
+
+    <div class="pra-controls">
+      <div class="pra-toggles" id="pra-toggles"></div>
+      <label class="pra-switch">
+        <input type="checkbox" id="pra-reinvest-switch">
+        <span class="pra-switch-track"></span>
+        <span class="pra-switch-label">Reinvest profits</span>
+      </label>
+    </div>
+
+    <div class="pra-chart-area" id="pra-chart">
+      <div class="pra-loading" id="pra-loading">
+        <div class="pra-loading-spinner"></div>
+        <div class="pra-loading-text" id="pra-loading-text">Loading market data…</div>
+      </div>
+    </div>
+
+    <p class="pra-disclaimer">
+      The "Reinvest profits" line models a 5% quarterly position size increase.
+    </p>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+  // ============ SCENE ============
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xffffff);
+
+  let aspect = window.innerWidth / window.innerHeight;
+  // Frustum scaled up so the chart renders ~25% smaller on screen. The
+  // orthographic camera now captures more world content per screen pixel,
+  // which scales down all candles, planes, labels, and markers uniformly.
+  const frustumSize = 43;
+  // Design viewport height the chart was tuned for. If the actual viewport
+  // is taller (e.g. 150vh in Wix), the frustum extends downward into more
+  // grid floor while everything else stays positioned identically.
+  const DESIGN_VIEWPORT_HEIGHT = 1000;
+  // Chart is biased slightly to the right of center. 0 = centered,
+  // 0.25 = chart in right half, negative = bias left.
+  const RIGHT_HALF_PAN = 0.17;
+
+  // Mobile breakpoint — paired with the @media (max-width: 1000px) block in
+  // CSS. Below this width the canvas drops to MOBILE_CANVAS_HEIGHT (positioned
+  // by CSS at top:800px) and the frustum tightens via FRUSTUM_SIZE_MOBILE so
+  // each candle takes up a meaningful slice of the band. The canvas is
+  // intentionally taller than the chart visual itself — the candles still
+  // sit anchored near the top (see the asymmetric frustum in computeFrustum),
+  // and the extra height extends the 3D grid floor down behind the recent
+  // trades card. MOBILE_CHART_EXTENT pins the chart's vertical range so each
+  // candle's pixel height doesn't change as the canvas grows.
+  const MOBILE_MAX_WIDTH         = 1000;
+  const MOBILE_CANVAS_HEIGHT     = 600;
+  const FRUSTUM_SIZE_MOBILE      = 60;
+  const MOBILE_CHART_EXTENT      = 18;
+  // Pixel offset from the canvas top where the chart's world origin (y=0)
+  // should render — keeps the candles in the same on-screen spot when the
+  // canvas height changes.
+  const MOBILE_CHART_ANCHOR_PX   = 200;
+  function isMobileLayout() {
+    return window.innerWidth <= MOBILE_MAX_WIDTH;
+  }
+
+  // Canvas spans the FULL scrollable document (hero + arrows + how-it-works
+   // + performance) on desktop. The chart renders at the top; the frustum
+   // extends down through the rest, which is just 3D grid floor — that's what
+   // shows through every transparent section below the hero. Sums the heights
+   // of all in-flow body children, ignoring the canvas itself and any fixed /
+   // absolute overlays.
+   //
+   // On tablet/mobile the canvas is fixed at MOBILE_CANVAS_HEIGHT instead —
+   // the chart sits in its own 300px band and the rest of the page renders
+   // on plain white.
+  function getCanvasHeight() {
+    if (isMobileLayout()) return MOBILE_CANVAS_HEIGHT;
+    let total = 0;
+    for (const child of document.body.children) {
+      if (child.tagName === 'CANVAS') continue;
+      const cs = window.getComputedStyle(child);
+      if (cs.position === 'absolute' || cs.position === 'fixed') continue;
+      total += child.offsetHeight;
+    }
+    return total || window.innerHeight;
+  }
+
+  function computeFrustum(canvasH) {
+    canvasH = canvasH != null ? canvasH : getCanvasHeight();
+    const mobile = isMobileLayout();
+    // Use a wider frustum on mobile so the 40-world-unit-tall chart still
+    // fits inside the shorter 300px canvas. The horizontal scale follows
+    // the same units-per-pixel, so candles also appear proportionally
+    // smaller — which is what "compress the chart" calls for.
+    const size = mobile ? FRUSTUM_SIZE_MOBILE : frustumSize;
+    const unitsPerPx = size / DESIGN_VIEWPORT_HEIGHT;
+    const totalH_world = canvasH * unitsPerPx;
+    let top, bottom;
+    if (mobile) {
+      // Anchor the chart's world origin (y=0) to MOBILE_CHART_ANCHOR_PX from
+      // the top of the canvas. When the canvas is taller than the chart's
+      // visual band (it is — see MOBILE_CANVAS_HEIGHT), the extra height
+      // hangs off the bottom as grid-floor behind the recent-trades card,
+      // and the candles stay in the same on-screen spot regardless.
+      top    =  MOBILE_CHART_ANCHOR_PX * unitsPerPx;
+      bottom =  top - totalH_world;
+    } else {
+      const halfH_design = size / 2;
+      // Top stays at the design-height top (+21.5). Bottom drops as far as
+      // the canvas height demands — extending into grid floor below the chart.
+      top    =  halfH_design;
+      bottom =  halfH_design - totalH_world;
+    }
+    const halfW  = window.innerWidth * unitsPerPx / 2;
+    // Drop the right-side bias on mobile — with the left banner hidden,
+    // the chart should sit centered in the viewport rather than nudged
+    // toward the right edge.
+    const panFactor = mobile ? 0 : RIGHT_HALF_PAN;
+    const pan = window.innerWidth * unitsPerPx * panFactor;
+    return {
+      left:  -halfW - pan,
+      right:  halfW - pan,
+      top, bottom,
+    };
+  }
+
+  const initialCanvasH = getCanvasHeight();
+  const f0 = computeFrustum(initialCanvasH);
+  const camera = new THREE.OrthographicCamera(
+    f0.left, f0.right, f0.top, f0.bottom, -200, 1000
+  );
+  // More 3D (~35° elevation, ~33° azimuth). Higher Y reveals more of the
+  // top face of each candle, reading as more 3D without flattening the
+  // diagonal sweep.
+  camera.position.set(17, 22, 26);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, initialCanvasH);
+  document.body.appendChild(renderer.domElement);
+
+  function applyCanvasSize() {
+    const ch = getCanvasHeight();
+    aspect = window.innerWidth / ch;
+    const f = computeFrustum(ch);
+    camera.left   = f.left;
+    camera.right  = f.right;
+    camera.top    = f.top;
+    camera.bottom = f.bottom;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, ch);
+  }
+  window.addEventListener('resize', applyCanvasSize);
+  // Re-measure after fonts/layout settle (image-less page, but cards reflow
+  // can still shift the section height a hair).
+  window.addEventListener('load', applyCanvasSize);
+
+
+  // ============ LIGHTING ============
+  // Higher directional / lower ambient gives more visible top-vs-side
+  // shading contrast, which is especially helpful for darker colors like
+  // the brand red (#FF4F55) where flat lighting reads as flat-looking.
+  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+  const dir1 = new THREE.DirectionalLight(0xffffff, 0.7);
+  dir1.position.set(15, 30, 15);
+  scene.add(dir1);
+  const dir2 = new THREE.DirectionalLight(0xffffff, 0.25);
+  dir2.position.set(-15, 10, -20);
+  scene.add(dir2);
+
+  // ============ GROUPS ============
+  const rotationGroup = new THREE.Group();
+  scene.add(rotationGroup);
+
+  // Grid lives directly on the scene — it's the static floor and should not
+  // translate down with the chart as the baseline rises.
+  // Grid is oversized on purpose — with mouse tilt + uptrend lift + wide
+  // aspect ratios, a small grid's edge can creep into view. 300 world units
+  // wide is safely larger than any visible extent we can reach.
+  const grid = new THREE.GridHelper(300, 150, 0xd6d6d6, 0xdddddd);
+  grid.position.y = -12;
+  grid.material.opacity = 0.6;
+  grid.material.transparent = true;
+  // Force the grid into the very-first render slot AND turn off depth
+  // testing/writing on it. With renderOrder = -1000 it draws before any
+  // candle. With depthTest = false it never wins a depth comparison
+  // against later draws — the candle pixels drawn after will overwrite
+  // its lines in the framebuffer. depthWrite = false keeps the grid's
+  // line depth out of the buffer so it can't interfere with the candles'
+  // own depth-tests against each other.
+  grid.material.depthTest  = false;
+  grid.material.depthWrite = false;
+  grid.renderOrder = -1000;
+  rotationGroup.add(grid);
+
+  // ============ MOUSE TILT (declared early so the skeleton loop reacts) ============
+  // Base Y rotation matches what the chart looks like with the mouse at the
+  // far-left edge of the page — i.e. the value targetRotY would have taken
+  // at clientX = 0: (0 - 0.5) * 0.45 = -0.225 rad (~-13°). The mouse tilt now
+  // offsets from this baseline so the chart reads as more 3D by default.
+  const BASE_TILT_Y = -0.225;
+  let targetRotY = BASE_TILT_Y, targetRotX = 0;
+  rotationGroup.rotation.y = BASE_TILT_Y;
+  window.addEventListener('mousemove', (e) => {
+    targetRotY =  ((e.clientX / window.innerWidth)  - 0.5) * 0.45 + BASE_TILT_Y;
+    targetRotX = -((e.clientY / window.innerHeight) - 0.5) * 0.18;
+  });
+  window.addEventListener('mouseleave', () => {
+    targetRotY = BASE_TILT_Y; targetRotX = 0;
+  });
+
+  // ============ SKELETON LOAD ============
+  // Show the grid right away so the canvas isn't blank during the data fetch.
+  // The grid material fades in from 0 → 0.6 opacity over ~1 second, and mouse
+  // tilt is wired up so the floor responds to motion. This loop stops as soon
+  // as the main animate() loop takes over (skeletonAlive = false in init()).
+  grid.material.opacity = 0;
+  let skeletonAlive = true;
+  let chartAppearStart = 0;
+  const skeletonStart = performance.now();
+  const SKELETON_FADE_MS = 1000;
+  const CHART_APPEAR_MS = 500;
+  function skeletonFrame() {
+    if (!skeletonAlive) return;
+    requestAnimationFrame(skeletonFrame);
+    const t = Math.min((performance.now() - skeletonStart) / SKELETON_FADE_MS, 1);
+    // ease-out cubic — fast at first, settling gently into the final value.
+    const eased = 1 - Math.pow(1 - t, 3);
+    grid.material.opacity = 0.6 * eased;
+    rotationGroup.rotation.y += (targetRotY - rotationGroup.rotation.y) * 0.06;
+    rotationGroup.rotation.x += (targetRotX - rotationGroup.rotation.x) * 0.06;
+    renderer.render(scene, camera);
+  }
+  skeletonFrame();
+
+  // ============ ROUNDED-BOX HELPER ============
+  // r128 has no RoundedBoxGeometry — build one from an extruded rounded-rect shape.
+  function makeRoundedBox(width, height, depth, radius, smoothness = 3) {
+    const r = Math.min(radius, width / 2 - 0.001, depth / 2 - 0.001);
+    if (height < r * 2 + 0.001) {
+      return new THREE.BoxGeometry(width, height, depth);
+    }
+    const shape = new THREE.Shape();
+    const w = width / 2 - r;
+    const d = depth / 2 - r;
+    shape.absarc( w,  d, r, 0, Math.PI / 2, false);
+    shape.absarc(-w,  d, r, Math.PI / 2, Math.PI, false);
+    shape.absarc(-w, -d, r, Math.PI, Math.PI * 1.5, false);
+    shape.absarc( w, -d, r, Math.PI * 1.5, Math.PI * 2, false);
+
+    const geom = new THREE.ExtrudeGeometry(shape, {
+      depth: height - r * 2,
+      bevelEnabled: true,
+      bevelSegments: smoothness,
+      steps: 1,
+      bevelSize: r,
+      bevelThickness: r,
+      curveSegments: smoothness
+    });
+    geom.center();
+    geom.rotateX(-Math.PI / 2); // stand it up so Y = height
+    return geom;
+  }
+
+  // ============ CONSTANTS ============
+  const GREEN_HEX = 0x51C951;
+  const RED_HEX   = 0xFF4F55;
+  // Wick colors — darker shades of the body colors.
+  const WICK_GREEN_HEX = 0x2E7D32;
+  const WICK_RED_HEX   = 0x8B2F33;
+
+  const CANDLE_W    = 0.95;
+  const CANDLE_D    = 0.95;
+  const BODY_RADIUS = 0.22;
+  const WICK_W      = 0.105;
+
+  const SPACING         = 1.22;
+  // PRICE_SCALE and BASE_PRICE are recomputed once real data loads, so the
+  // chart auto-fits to whatever the actual S&P price range is.
+  let   PRICE_SCALE     = 1.5;
+  let   BASE_PRICE      = 100;
+  // Y position for time-axis slabs on the floor. Computed from the first
+  // ~45 bars after real data loads, so labels sit at an aesthetic distance
+  // below the opening candles (what most users see first).
+  let   TIME_SLAB_Y     = -13.5;
+  const CANDLE_DURATION = 2000;
+  const MAX_CANDLES     = 32;
+  const LATEST_X        = 13;
+
+  const priceToY = p => (p - BASE_PRICE) * PRICE_SCALE;
+
+  // ============ CANDLE ============
+  class Candle {
+    constructor(open) {
+      this.open  = open;
+      this.high  = open;
+      this.low   = open;
+      this.close = open;
+      this.isGreen = true;
+      this.markers = [];
+
+      this.group = new THREE.Group();
+
+      // Wicks: TWO cylinders — one above the body, one below the body.
+      // Splitting them prevents the wick from showing through the body during
+      // the transparent fade-out on the chart's left edge.
+      this.wickMat = new THREE.MeshLambertMaterial({ color: WICK_GREEN_HEX,
+        transparent: true, opacity: 1 });
+      this.wickUp = new THREE.Mesh(
+        new THREE.CylinderGeometry(WICK_W / 2, WICK_W / 2, 1, 12),
+        this.wickMat
+      );
+      this.wickDn = new THREE.Mesh(
+        new THREE.CylinderGeometry(WICK_W / 2, WICK_W / 2, 1, 12),
+        this.wickMat
+      );
+      this.group.add(this.wickUp, this.wickDn);
+
+      // Body: CAPSULE — cylinder middle + two TRUE hemispheres for the caps.
+      // Hemispheres are proper half-globes (full SphereGeometry slice from
+      // pole to equator), giving a uniformly rounded top and bottom rather
+      // than an extruded elliptical dome.
+      this.bodyMat = new THREE.MeshLambertMaterial({ color: GREEN_HEX,
+        transparent: true, opacity: 1 });
+      const R = CANDLE_W / 2;
+      this.bodyCyl = new THREE.Mesh(
+        new THREE.CylinderGeometry(R, R, 1, 32),
+        this.bodyMat
+      );
+      // Top half-globe.
+      this.bodyTop = new THREE.Mesh(
+        new THREE.SphereGeometry(R, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+        this.bodyMat
+      );
+      // Bottom half-globe.
+      this.bodyBot = new THREE.Mesh(
+        new THREE.SphereGeometry(R, 32, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+        this.bodyMat
+      );
+      this.body = new THREE.Group();
+      this.body.add(this.bodyCyl, this.bodyTop, this.bodyBot);
+      this.group.add(this.body);
+      // Keep R around for the update method.
+      this.bodyR = R;
+
+      this.update(open);
+    }
+
+    // Set opacity on all materials under this candle (wick, body, markers,
+    // text sprites). Used by the scroll loop to fade old candles away.
+    setOpacity(o) {
+      this.wickMat.opacity = o;
+      this.bodyMat.opacity = o;
+      for (const m of this.markers) {
+        if (m.material) m.material.opacity = o;
+      }
+    }
+
+    update(price) {
+      this.close = price;
+      if (price > this.high) this.high = price;
+      if (price < this.low)  this.low  = price;
+
+      const newIsGreen = this.close >= this.open;
+      if (newIsGreen !== this.isGreen) {
+        this.isGreen = newIsGreen;
+        const hex     = newIsGreen ? GREEN_HEX      : RED_HEX;
+        const wickHex = newIsGreen ? WICK_GREEN_HEX : WICK_RED_HEX;
+        this.bodyMat.color.setHex(hex);
+        this.wickMat.color.setHex(wickHex);
+      }
+
+      // Compute price → world Y for the candle's key levels first; the body
+      // boundaries drive where the upper and lower wicks stop/start.
+      const highY  = priceToY(this.high);
+      const lowY   = priceToY(this.low);
+      const openY  = priceToY(this.open);
+      const closeY = priceToY(this.close);
+      const bTop = Math.max(openY, closeY);
+      const bBot = Math.min(openY, closeY);
+
+      // Account for the body's actual rendered Y-extent (capsule rounds out
+      // slightly beyond bTop/bBot when H < 2R due to cap squashing). For the
+      // simple case (H >= 2R) the visible body sits exactly in [bBot, bTop].
+      // Upper wick: from bTop up to high.
+      const wickUpH = Math.max(highY - bTop, 0.001);
+      this.wickUp.scale.y = wickUpH;
+      this.wickUp.position.y = (bTop + highY) / 2;
+      this.wickUp.visible = highY > bTop + 0.005;
+      // Lower wick: from low up to bBot.
+      const wickDnH = Math.max(bBot - lowY, 0.001);
+      this.wickDn.scale.y = wickDnH;
+      this.wickDn.position.y = (lowY + bBot) / 2;
+      this.wickDn.visible = bBot > lowY + 0.005;
+
+      // Body: capsule with true hemisphere caps. The cylinder takes
+      // H - 2*R of the total height; each hemisphere contributes R.
+      // If H < 2*R, the cylinder collapses and hemispheres squash to
+      // make the body's Y-extent equal H exactly.
+      const H     = Math.max(bTop - bBot, 0.05);
+      const R     = this.bodyR;
+      const useFull = H >= 2 * R;
+      const cylH  = useFull ? H - 2 * R : 0.001;
+      const capSy = useFull ? 1 : H / (2 * R);
+      this.bodyCyl.scale.y    = cylH;
+      this.bodyCyl.position.y = 0;
+      this.bodyTop.position.y =  cylH / 2;
+      this.bodyBot.position.y = -cylH / 2;
+      this.bodyTop.scale.y = capSy;
+      this.bodyBot.scale.y = capSy;
+      this.body.position.y = (bTop + bBot) / 2;
+    }
+
+    dispose() {
+      this.wickUp.geometry.dispose();
+      this.wickDn.geometry.dispose();
+      this.bodyCyl.geometry.dispose();
+      this.bodyTop.geometry.dispose();
+      this.bodyBot.geometry.dispose();
+      this.wickMat.dispose();
+      this.bodyMat.dispose();
+      for (const m of this.markers) {
+        if (m.geometry) m.geometry.dispose();
+        if (m.material) {
+          if (m.material.map) m.material.map.dispose();
+          m.material.dispose();
+        }
+      }
+    }
+  }
+
+  // ============ PRICE SIMULATION ============
+  let currentPrice = BASE_PRICE;
+
+  // Wave is a sequence of randomly-sized swings (no fixed cycle, never repeats).
+  // Up swings: 4-12 candles, ~0.85-1.40 price/candle.
+  // Down swings: 3-8 candles, ~0.65-1.10 price/candle (smaller per candle than
+  // up, AND fewer candles on average → strong net uptrend).
+  const UP_LEN_MIN   = 4,   UP_LEN_MAX   = 12;
+  const DOWN_LEN_MIN = 3,   DOWN_LEN_MAX = 8;
+  const UP_AMP_MIN   = 0.85, UP_AMP_MAX   = 1.40; // per candle
+  const DOWN_AMP_MIN = 0.65, DOWN_AMP_MAX = 1.10; // per candle
+
+  const swings = [];
+
+  function rand(min, max) { return min + Math.random() * (max - min); }
+
+  // Seedable PRNG for DETERMINISTIC algo decisions — so trade entries/exits
+  // happen at the same candles on every reload. mulberry32 is tiny and fast.
+  // Only used for algo cooldown jitter and fake-trade P&L variation; real
+  // price data stays untouched and is already deterministic.
+  function makeSeededRng(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  // Fixed seed → deterministic sequence. Reload = same trade timing.
+  let algoRng = makeSeededRng(0xC0FFEE);
+  function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+
+  function generateNextSwing() {
+    const last = swings[swings.length - 1];
+    const startTime  = last ? last.endTime  : 0;
+    const startPrice = last ? last.endPrice : BASE_PRICE;
+    // Alternate direction. First swing is up.
+    const direction = (!last || last.direction === 'down') ? 'up' : 'down';
+
+    let candleCount, delta;
+    if (direction === 'up') {
+      candleCount = randInt(UP_LEN_MIN, UP_LEN_MAX);
+      delta =  candleCount * rand(UP_AMP_MIN, UP_AMP_MAX);
+    } else {
+      candleCount = randInt(DOWN_LEN_MIN, DOWN_LEN_MAX);
+      delta = -candleCount * rand(DOWN_AMP_MIN, DOWN_AMP_MAX);
+    }
+
+    swings.push({
+      startTime,
+      endTime: startTime + candleCount * CANDLE_DURATION,
+      startPrice,
+      endPrice: startPrice + delta,
+      direction,
+    });
+  }
+
+  // Find (or generate) the swing containing simulated time t.
+  function getSwingAt(t) {
+    while (!swings.length || swings[swings.length - 1].endTime <= t) {
+      generateNextSwing();
+    }
+    for (let i = swings.length - 1; i >= 0; i--) {
+      const s = swings[i];
+      if (s.startTime <= t && t < s.endTime) return s;
+    }
+    return swings[0];
+  }
+
+  // Smoothed EMA of actual price — used for chart positioning since the rise
+  // rate is variable now. Tracks the real trend instead of a fixed formula.
+  let smoothedTrendline = BASE_PRICE;
+  // Estimated long-run rise rate (price units / second), used only to size
+  // the static UPTREND_LIFT — not for anything live.
+  const ESTIMATED_RISE_PER_SECOND = 0.18;
+
+  const PREFILL_COUNT = MAX_CANDLES - 1;
+  // UPTREND_LIFT shifts the chart upward so the latest candle sits near the
+  // top of view and the oldest near the bottom — producing a clear diagonal.
+  // Mutable: recomputed once the real-data scale is known.
+  let UPTREND_LIFT = ESTIMATED_RISE_PER_SECOND * MAX_CANDLES *
+                     (CANDLE_DURATION / 1000) * 0.5 * PRICE_SCALE;
+  // simStartTime is shifted into the past so the chart loads already "full".
+  // Mutable: shifted forward on loop wrap in real-data mode.
+  let simStartTime = performance.now() - PREFILL_COUNT * CANDLE_DURATION;
+
+  // virtualNow overrides the clock during prefill so swing / algo decisions
+  // evaluate at historical timestamps.
+  let virtualNow = null;
+  const nowMs = () => (virtualNow !== null ? virtualNow : performance.now());
+  const getBaseline = () => smoothedTrendline;
+
+  // ============ REAL-DATA LAYER ============
+  // dataMode: 'real' once Yahoo bars load; 'synthetic' if fetch fails.
+  let dataMode = 'synthetic';
+  let bars = null;            // loaded array of {time, open, high, low, close}
+  let dataSwings = null;      // pre-computed swing extrema for algo lookahead
+  let realSymbol = '';        // '^GSPC' or 'SPY'
+  // Timestamps of the hour range we're replaying — displayed in the title.
+  let replayWindowStart = 0, replayWindowEnd = 0;
+  // start playback at the bar after the prefilled history, so we always have
+  // PREFILL_COUNT bars of "past" to render and plenty of "future" to look ahead.
+  let dataStartBarIdx = 0;
+  // LOOP_LENGTH: how many bars we cycle through. Set at init time to the
+  // smaller of ~60 (1 hour of data) or whatever fits the buffer.
+  let LOOP_LENGTH = 60;
+
+  // Fetch SPY/^GSPC 1-minute bars via Yahoo Finance (routed through a CORS
+  // proxy because Yahoo doesn't allow direct browser requests). Tries multiple
+  // symbols and proxies — returns null if everything fails.
+  async function fetchMarketBars() {
+    const symbols = [
+      { code: '%5EGSPC', label: 'S&P 500 (^GSPC)' },
+      { code: 'SPY',     label: 'SPY (S&P 500 ETF)' },
+    ];
+    const proxies = [
+      // Primary: user's own Cloudflare Worker — reliable, no public rate limits.
+      url => `https://snowy-paper-7a2f.yellow-bonus-7895.workers.dev/?url=${encodeURIComponent(url)}`,
+      // Fallback if the Worker is down.
+      url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+    ];
+
+    // Helper: fetch a single symbol/proxy and return parsed bars (or null).
+    async function tryFetch(sym, proxy) {
+      try {
+        // range=2d gives us ~800 bars — enough for "previous day" + prefill,
+        // half the payload of range=5d.
+        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym.code}?interval=1m&range=2d`;
+        const proxiedUrl = proxy(yahooUrl);
+        // Use the browser's default cache (Yahoo's CDN sets short TTLs anyway).
+        // This makes back/forward navigation effectively instant.
+        const res = await fetch(proxiedUrl);
+        if (!res.ok) return null;
+        const j = await res.json();
+        const r = j?.chart?.result?.[0];
+        if (!r || !r.timestamp || !r.indicators?.quote?.[0]) return null;
+        const ts = r.timestamp;
+        const q  = r.indicators.quote[0];
+        const out = [];
+        for (let i = 0; i < ts.length; i++) {
+          if (q.open[i] == null || q.high[i] == null ||
+              q.low[i]  == null || q.close[i] == null) continue;
+          out.push({
+            time:  ts[i] * 1000,
+            open:  q.open[i],
+            high:  q.high[i],
+            low:   q.low[i],
+            close: q.close[i],
+          });
+        }
+        if (out.length > MAX_CANDLES + 10) {
+          return { bars: out, symbol: sym.label };
+        }
+      } catch (e) { /* try next */ }
+      return null;
+    }
+
+    // Fire ALL symbol/proxy combinations in parallel; use the FIRST result
+    // that comes back. This is much faster than sequential fallback.
+    const attempts = [];
+    for (const sym of symbols) {
+      for (const proxy of proxies) {
+        attempts.push(tryFetch(sym, proxy));
+      }
+    }
+    // Wait for the first successful fetch, or all to fail.
+    return new Promise((resolve) => {
+      let pending = attempts.length;
+      let resolved = false;
+      attempts.forEach(p => p.then(result => {
+        if (resolved) return;
+        if (result) {
+          resolved = true;
+          resolve(result);
+        } else if (--pending === 0) {
+          resolve(null);
+        }
+      }));
+    });
+  }
+
+  // Zigzag-style swing detection: walks bars and records confirmed extrema
+  // whenever price reverses by at least `threshold` from the running extreme.
+  function computeSwings(bars, threshold = 0.0008) {
+    const out = [];
+    if (bars.length === 0) return out;
+    let dir = null;
+    let extIdx   = 0;
+    let extPrice = bars[0].close;
+    for (let i = 1; i < bars.length; i++) {
+      const p = bars[i].close;
+      if (dir === null) {
+        if ((p - extPrice) / extPrice >=  threshold) {
+          out.push({ barIdx: extIdx, price: extPrice, type: 'low' });
+          dir = 'up'; extIdx = i; extPrice = p;
+        } else if ((extPrice - p) / extPrice >= threshold) {
+          out.push({ barIdx: extIdx, price: extPrice, type: 'high' });
+          dir = 'down'; extIdx = i; extPrice = p;
+        }
+      } else if (dir === 'up') {
+        if (p > extPrice) { extIdx = i; extPrice = p; }
+        else if ((extPrice - p) / extPrice >= threshold) {
+          out.push({ barIdx: extIdx, price: extPrice, type: 'high' });
+          dir = 'down'; extIdx = i; extPrice = p;
+        }
+      } else { // 'down'
+        if (p < extPrice) { extIdx = i; extPrice = p; }
+        else if ((p - extPrice) / extPrice >= threshold) {
+          out.push({ barIdx: extIdx, price: extPrice, type: 'low' });
+          dir = 'up'; extIdx = i; extPrice = p;
+        }
+      }
+    }
+    return out;
+  }
+
+  // Find swings as simple local extrema: a bar is a "high" if its close is
+  // greater than every close within `radius` bars on each side, and a "low"
+  // if strictly less. Guaranteed to find something in any non-flat window.
+  function findLocalExtrema(bars, startIdx, endIdx, radius = 4) {
+    const out = [];
+    let lastType = null;
+    for (let i = startIdx + radius; i < endIdx - radius; i++) {
+      let isHigh = true, isLow = true;
+      for (let j = 1; j <= radius; j++) {
+        if (bars[i - j].close >= bars[i].close || bars[i + j].close > bars[i].close) isHigh = false;
+        if (bars[i - j].close <= bars[i].close || bars[i + j].close < bars[i].close) isLow  = false;
+        if (!isHigh && !isLow) break;
+      }
+      if (isHigh && lastType !== 'high') {
+        out.push({ barIdx: i, price: bars[i].close, type: 'high' });
+        lastType = 'high';
+      } else if (isLow && lastType !== 'low') {
+        out.push({ barIdx: i, price: bars[i].close, type: 'low' });
+        lastType = 'low';
+      }
+    }
+    return out;
+  }
+
+  // Smoothly interpolate within a bar:
+  //   open → first extreme → second extreme → close.
+  // Green bar follows open → low → high → close (typical bullish path).
+  // Red bar follows  open → high → low → close.
+  function interpolateBar(bar, t) {
+    const goesUp = bar.close >= bar.open;
+    const w = [
+      { t: 0.00, p: bar.open },
+      { t: 0.30, p: goesUp ? bar.low  : bar.high },
+      { t: 0.70, p: goesUp ? bar.high : bar.low  },
+      { t: 1.00, p: bar.close },
+    ];
+    let i = 0;
+    while (i < w.length - 1 && t > w[i + 1].t) i++;
+    const a = w[i], b = w[i + 1] || w[i];
+    if (a.t === b.t) return a.p;
+    const u = (t - a.t) / (b.t - a.t);
+    const eased = u * u * (3 - 2 * u); // smoothstep
+    return a.p + (b.p - a.p) * eased;
+  }
+
+  // Given simulated time t, what's the bar index we're playing?
+  function getBarIdxAt(t) {
+    return dataStartBarIdx + Math.floor(t / CANDLE_DURATION);
+  }
+
+  // Wrap a raw bar index into our loop window. Prefill bars (before the loop
+  // window) use their actual historical index; live playback past the end of
+  // the window cycles back to dataStartBarIdx.
+  function wrapBarIdx(idx) {
+    if (idx < dataStartBarIdx) return idx; // prefill: actual historical bar
+    const offset = idx - dataStartBarIdx;
+    return dataStartBarIdx + (offset % LOOP_LENGTH);
+  }
+
+  // Find the next swing after a given bar index, wrapping around the loop
+  // window if no forward swing remains — so the algo always has a target.
+  function findNextSwingAfter(barIdx) {
+    if (!dataSwings || dataSwings.length === 0) return null;
+    for (const s of dataSwings) if (s.barIdx > barIdx) return s;
+    return dataSwings[0]; // wrap to first
+  }
+
+  // Sine-eased target price within the current swing. Smooth bodies, no kinks
+  // at swing boundaries since each swing's endPrice = next swing's startPrice.
+  function priceAtSimTime(t) {
+    if (dataMode === 'real') {
+      const idxFloat = dataStartBarIdx + t / CANDLE_DURATION;
+      const idx = Math.floor(idxFloat);
+      const localT = idxFloat - idx;
+      const safeIdx = wrapBarIdx(idx);
+      return interpolateBar(bars[safeIdx], localT);
+    }
+    const s = getSwingAt(t);
+    const p = (t - s.startTime) / (s.endTime - s.startTime);
+    return s.startPrice + (s.endPrice - s.startPrice) * 0.5 * (1 - Math.cos(p * Math.PI));
+  }
+
+  // Small smoothed noise for organic wick texture — kept low so candle
+  // direction stays unambiguous against the wave move.
+  let noiseState = 0;
+
+  function tickPrice() {
+    const t = nowMs() - simStartTime;
+    const target = priceAtSimTime(t);
+    // Real bars have natural texture, so add only minimal noise. Synthetic
+    // wave is smooth, so it benefits from a touch more wiggle.
+    const noiseAmp = dataMode === 'real' ? 0.0 : 0.10;
+    noiseState = noiseState * 0.88 + (Math.random() - 0.5) * noiseAmp;
+    currentPrice = target + noiseState;
+    smoothedTrendline += (currentPrice - smoothedTrendline) * 0.005;
+  }
+
+  // ============ CHART STATE ============
+  const candles = [];
+  let currentCandle = null;
+  let candleStartTime = performance.now();
+
+  // Attach a small time label as a flat slab on the chart floor — same
+  // orientation as the SL/TP/Entry planes. Runs if the bar timestamp falls
+  // on a 5-minute boundary.
+  const TIME_LABEL_INTERVAL_MIN = 5;
+  function maybeAttachTimeLabel(candle) {
+    if (dataMode !== 'real' || !bars) return;
+    const t = nowMs() - simStartTime;
+    const barIdx = wrapBarIdx(getBarIdxAt(t));
+    const ts = bars[barIdx].time;
+    const TZ = 'America/New_York';
+    // Minutes in NY — check the 5-min boundary using NY time, not browser local.
+    const nyMinutes = parseInt(
+      new Date(ts).toLocaleString('en-US', { minute: 'numeric', timeZone: TZ }),
+      10,
+    );
+    if (nyMinutes % TIME_LABEL_INTERVAL_MIN !== 0) return;
+    const text = new Date(ts).toLocaleTimeString('en-GB', {
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ,
+    });
+
+    // Draw text onto a canvas. The canvas becomes the TOP face texture of a
+    // thin horizontal slab (same orientation as the SL/TP/Entry planes).
+    const DPR = 2;
+    const FONT = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const measureCtx = document.createElement('canvas').getContext('2d');
+    measureCtx.font = FONT;
+    const textW = Math.ceil(measureCtx.measureText(text).width);
+    const textH = 34;
+    const PAD = 16;
+    const canvas = document.createElement('canvas');
+    canvas.width  = (textW + PAD * 2) * DPR;
+    canvas.height = (textH + PAD * 2) * DPR;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+    // Transparent background — just the text pixels.
+    ctx.font = FONT;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#aaa';
+    ctx.fillText(text, (textW + PAD * 2) / 2, PAD);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    tex.anisotropy = 8;
+
+    // Slab dimensions in world units — same aspect as the text canvas,
+    // same thin-box orientation as the SL/TP planes.
+    const WORLD_PER_PX = 0.02;
+    const slabW = (canvas.width  / DPR) * WORLD_PER_PX;   // X dimension
+    const slabD = (canvas.height / DPR) * WORLD_PER_PX;   // Z dimension
+    const slabT = 0.05;                                    // Y (thin)
+
+    // Build a box that shows the texture ONLY on its top (+Y) face. The
+    // other faces get an empty transparent material so we only see the
+    // text from above. Easier: one MeshBasicMaterial with the texture, set
+    // transparent. The sides are narrow enough that the stretched pixels
+    // on them aren't visible from our camera angle.
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+    });
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(slabW, slabT, slabD), mat);
+    // Position: all time slabs at the SAME fixed Y so they're coplanar,
+    // like time-axis labels painted on a single horizontal floor plane.
+    // TIME_SLAB_Y is computed from the first 45 bars of the session so
+    // labels are visually anchored below the opening candles.
+    slab.position.y = TIME_SLAB_Y;
+    slab.position.x = 0;
+    slab.position.z = 0;
+    slab.renderOrder = 4;
+    candle.group.add(slab);
+    candle.markers.push(slab);
+  }
+
+  function startCandle() {
+    // Real-data loop wrap: when we've played through the whole window, shift
+    // simStartTime forward so the mapping resets to dataStartBarIdx and we
+    // start the replay over.
+    if (dataMode === 'real') {
+      const t = nowMs() - simStartTime;
+      const rawIdx = getBarIdxAt(t);
+      if (rawIdx >= dataStartBarIdx + LOOP_LENGTH) {
+        simStartTime += LOOP_LENGTH * CANDLE_DURATION;
+        // The previous cycle's trades are now "from the future" relative to
+        // the replay time — clear them and reset the algo so the new cycle
+        // starts fresh.
+        if (algo.position !== 0) {
+          // Realize the P&L but skip the exit marker (candle context is gone).
+          const side = algo.position;
+          const priceMove = side === 1
+            ? currentPrice - algo.entryPrice
+            : algo.entryPrice - currentPrice;
+          const pnl = priceMove * POSITION_SIZE;
+          algo.totalPnL += pnl;
+          algo.totalTrades++;
+          if (pnl > 0) algo.wins++; else algo.losses++;
+          algo.position = 0;
+          algo.entryPrice = 0;
+          closeTradeViz();
+        }
+        recentTrades.length = 0;
+        // Re-seed fake trades so the list always has 5 entries — avoids the
+        // "No closed trades yet" placeholder flashing during loop wraps.
+        seedFakeTrades();
+        // Reset the seeded PRNG so trade timing is identical across loops.
+        algoRng = makeSeededRng(0xC0FFEE);
+        algo.cooldownUntilCandle = candleCounter + ENTRY_COOLDOWN_MIN;
+      }
+    }
+
+    // The just-finalized candle is a closing event for the algo.
+    if (currentCandle) algoOnCandleClose();
+
+    const c = new Candle(currentPrice);
+    rotationGroup.add(c.group);
+    candles.push(c);
+    currentCandle = c;
+    candleStartTime = performance.now();
+    maybeAttachTimeLabel(c);
+
+    while (candles.length > MAX_CANDLES) {
+      const old = candles.shift();
+      rotationGroup.remove(old.group);
+      old.dispose();
+    }
+  }
+
+  // ============ TRADING ALGORITHM ============
+  // Swing trader synced to the wave:
+  //   On a swing flip the algo closes the current position and waits through
+  //   a cooldown period before opening the opposite direction. This produces
+  //   distinct exit + entry markers rather than a single swap.
+  const algo = {
+    position: 0,        // -1 = short, 0 = flat, 1 = long
+    entryPrice: 0,
+    stopLoss: 0,        // price level that would stop the trade out
+    takeProfit: 0,      // price level where we expect the trade to exit
+    totalTrades: 0,
+    wins: 0,
+    losses: 0,
+    totalPnL: 0,
+    cooldownUntilCandle: 0, // candle count at which new entries are allowed
+  };
+  let algoSwing = null;       // last swing the algo acted on
+  let candleCounter = 0;      // incremented each time a candle closes
+  // Position size in units (a "100x" notional makes $1 price move = $100 P&L).
+  const POSITION_SIZE = 100;
+  // Look back this many recent candles to find a structural swing low/high
+  // that anchors the stop-loss just beyond it. Shorter lookback = closer SL.
+  const SL_LOOKBACK_CANDLES = 5;
+  // Small buffer added beyond the structural extreme.
+  const SL_BUFFER_PCT = 0.00015;
+
+  // Stop loss sits just beyond a recent structural low (long) or high (short)
+  // — tighter than a fixed-percentage stop and anchored in actual structure.
+  function computeStopLoss(side) {
+    const N = Math.min(SL_LOOKBACK_CANDLES, candles.length);
+    if (N === 0) return currentPrice * (1 - side * SL_BUFFER_PCT);
+    const recent = candles.slice(-N);
+    if (side === 1) {
+      let lo = Infinity;
+      for (const c of recent) if (c.low < lo) lo = c.low;
+      return lo * (1 - SL_BUFFER_PCT);
+    } else {
+      let hi = -Infinity;
+      for (const c of recent) if (c.high > hi) hi = c.high;
+      return hi * (1 + SL_BUFFER_PCT);
+    }
+  }
+
+  // Minimum reward-to-risk ratio. Trades where the potential profit isn't
+  // at least 1.3× the potential loss are skipped. (Was 1.5 — too restrictive
+  // for intraday S&P swings; 1.3 keeps selectivity but lets more setups
+  // through.)
+  const MIN_RR_RATIO = 1.3;
+
+  // Take profit is placed at the next swing extreme — the algo will exit
+  // around that price since that's where the swing flips. Always clamped to
+  // the correct side of entry with a minimum distance.
+  const MIN_TP_DIST_PCT = 0.0006; // TP at least 0.06% away from entry
+  function computeTakeProfit(side) {
+    let rawTP = null;
+    if (dataMode === 'real') {
+      const t = nowMs() - simStartTime;
+      const idx = wrapBarIdx(getBarIdxAt(t));
+      const next = findNextSwingAfter(idx);
+      if (next) rawTP = next.price;
+    } else {
+      const t = nowMs() - simStartTime;
+      const swing = getSwingAt(t);
+      rawTP = swing.endPrice;
+    }
+    const entry = currentPrice;
+    // Force TP on the correct side with a minimum distance.
+    if (side === 1) {
+      const minTP = entry * (1 + MIN_TP_DIST_PCT);
+      return rawTP !== null ? Math.max(rawTP, minTP) : minTP * 1.5;
+    } else {
+      const maxTP = entry * (1 - MIN_TP_DIST_PCT);
+      return rawTP !== null ? Math.min(rawTP, maxTP) : maxTP * 0.997;
+    }
+  }
+
+  // Check whether a trade on `side` has acceptable R:R. Uses the SL and TP
+  // that would be set at the current price; returns true if reward ≥ 1.5×risk.
+  function hasFavorableRR(side) {
+    const sl = computeStopLoss(side);
+    const tp = computeTakeProfit(side);
+    const risk   = Math.abs(currentPrice - sl);
+    const reward = Math.abs(tp - currentPrice);
+    if (risk <= 0) return false;
+    return (reward / risk) >= MIN_RR_RATIO;
+  }
+
+  // Wait 4-5 candles (~8-10 seconds) after an exit before opening a new trade.
+  const ENTRY_COOLDOWN_MIN = 4;
+  const ENTRY_COOLDOWN_MAX = 5;
+
+  // Recent closed trades (newest first). Rendered in the right-side panel.
+  const recentTrades = [];
+  let tradesVersion = 0;  // bump on every close so UI re-renders
+
+  // Track chart markers (cones + sprites) belonging to the current open/most-
+  // recent trade. When a NEW entry fires, these get demoted to "previous" and
+  // scheduled for a dissolve animation after 2 candle closes.
+  let currentTradeMarkers = [];   // [{obj, candle}, ...]
+  let previousTradeMarkers = [];
+  let previousTradeRemoveAtCandle = Infinity;
+  // Markers currently dissolving (fading opacity → 0 over DISSOLVE_DURATION).
+  const dissolvingMarkers = [];   // [{obj, candle, dissolveStart}, ...]
+  const DISSOLVE_DURATION = 1000; // ms
+
+  // Called by attachTradeMarker to register each cone/sprite against the
+  // current trade lifecycle.
+  function trackMarker(obj, candle) {
+    currentTradeMarkers.push({ obj, candle });
+  }
+
+  // Demote current → previous and schedule removal. Called from algoBuy/Short
+  // when a new entry opens.
+  function rolloverTradeMarkers() {
+    if (currentTradeMarkers.length === 0) return;
+    // Any existing "previous" batch that hasn't started dissolving yet — kick
+    // it straight into the dissolve queue so we don't pile up batches.
+    startDissolve(previousTradeMarkers);
+    previousTradeMarkers = [];
+    previousTradeMarkers = currentTradeMarkers;
+    currentTradeMarkers = [];
+    previousTradeRemoveAtCandle = candleCounter + 2;
+  }
+
+  // Move a batch of markers into the dissolving state. Each marker is detached
+  // from its candle's markers array so the candle's own fade logic doesn't
+  // override the dissolve opacity curve.
+  function startDissolve(markerList) {
+    if (markerList.length === 0) return;
+    const now = performance.now();
+    for (const m of markerList) {
+      if (m.candle) {
+        const idx = m.candle.markers.indexOf(m.obj);
+        if (idx >= 0) m.candle.markers.splice(idx, 1);
+      }
+      // Capture the current opacity as the starting point of the dissolve so
+      // markers already partially faded (because their candle was aging out)
+      // don't suddenly snap back to full opacity.
+      const startOpacity = m.obj.material ? m.obj.material.opacity : 1;
+      dissolvingMarkers.push({
+        obj: m.obj,
+        candle: m.candle,
+        dissolveStart: now,
+        startOpacity,
+      });
+    }
+  }
+
+  // Called on every candle close — starts the dissolve when the 2-candle
+  // window has elapsed.
+  function tickPreviousTradeMarkers() {
+    if (previousTradeMarkers.length === 0) return;
+    if (candleCounter >= previousTradeRemoveAtCandle) {
+      startDissolve(previousTradeMarkers);
+      previousTradeMarkers = [];
+      previousTradeRemoveAtCandle = Infinity;
+    }
+  }
+
+  // Called every frame — advances the dissolve and disposes fully-faded markers.
+  function updateDissolvingMarkers() {
+    if (dissolvingMarkers.length === 0) return;
+    const now = performance.now();
+    for (let i = dissolvingMarkers.length - 1; i >= 0; i--) {
+      const m = dissolvingMarkers[i];
+      const t = (now - m.dissolveStart) / DISSOLVE_DURATION;
+      if (t >= 1) {
+        // Done — remove from the scene and free resources.
+        if (m.candle && m.candle.group) {
+          m.candle.group.remove(m.obj);
+        }
+        if (m.obj.geometry) m.obj.geometry.dispose();
+        if (m.obj.material) {
+          if (m.obj.material.map) m.obj.material.map.dispose();
+          m.obj.material.dispose();
+        }
+        dissolvingMarkers.splice(i, 1);
+      } else if (m.obj.material) {
+        m.obj.material.opacity = m.startOpacity * (1 - t);
+      }
+    }
+  }
+
+  // Populate the Recent Trades list with 5 plausible trades (4W 1L) from the
+  // hour preceding the replay window. Times are spread across that hour;
+  // prices are in the same range as the replay data.
+  function seedFakeTrades() {
+    if (!bars || !replayWindowStart) return;
+    const hourBefore = replayWindowStart - 3600000;
+    // Use a price level near the opening of the replay for realism.
+    const refPrice = bars[dataStartBarIdx].open;
+    // 5 entries, newest first (index 0 is most recent).
+    const seeds = [
+      { offsetMin: 54, side: 'Long',  pnl:  140 },
+      { offsetMin: 42, side: 'Short', pnl:  -65 },
+      { offsetMin: 30, side: 'Long',  pnl:  225 },
+      { offsetMin: 18, side: 'Short', pnl:   90 },
+      { offsetMin:  5, side: 'Long',  pnl:  180 },
+    ];
+    for (const s of seeds) {
+      const t = hourBefore + s.offsetMin * 60000;
+      const timeStr = new Date(t).toLocaleTimeString('en-GB', {
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
+      });
+      // Fake entry/exit prices consistent with the P&L (not displayed, but
+      // kept for data completeness). P&L was computed with POSITION_SIZE=100,
+      // so price move = pnl / 100.
+      const move = s.pnl / POSITION_SIZE;
+      const entry = refPrice + (Math.random() - 0.5) * 2;
+      const exit  = s.side === 'Long' ? entry + move : entry - move;
+      recentTrades.push({
+        side: s.side, pnl: s.pnl, time: timeStr, entry, exit,
+      });
+    }
+    tradesVersion++;
+  }
+
+  // Active SL/TP monitoring: exit the moment price touches either level.
+  function algoOnTick() {
+    if (algo.position === 0) return;
+    const p = currentPrice;
+    if (algo.position === 1) {
+      // Long: TP is above, SL below.
+      if (p >= algo.takeProfit) algoClose();
+      else if (p <= algo.stopLoss) algoClose();
+    } else {
+      // Short: TP is below, SL above.
+      if (p <= algo.takeProfit) algoClose();
+      else if (p >= algo.stopLoss) algoClose();
+    }
+  }
+
+  // ============ MATRIX-STYLE CODE STREAM ============
+  // Continuously prints dim pseudo-code lines. Trade entries/exits inject
+  // bright green (long/win) or red (short/loss) lines into the stream.
+  const codeStreamEl = document.getElementById('codeStream');
+  const STREAM_MAX_LINES = 7;
+  const STREAM_MIN_INTERVAL = 700;  // ms between background lines
+  const STREAM_MAX_INTERVAL = 1400;
+  let lastStreamLineAt = 0;
+  let nextStreamLineDelay = STREAM_MIN_INTERVAL;
+  let streamRotationIdx = 0;
+
+  // Pool of trader-thought lines. Each line is tagged with state conditions
+  // it's valid in ('up', 'down', 'range', 'long', 'short', 'flat', 'any').
+  // streamBackgroundLine() evaluates current market state from recent candles
+  // and picks only lines consistent with that state. Keeps the feed feeling
+  // responsive — no "higher_high confirmed" during a red streak.
+  function getMarketState() {
+    const state = {
+      isUp: false, isDown: false, isRange: true,
+      recentHigh: currentPrice + 2, recentLow: currentPrice - 2,
+      inTrade: algo.position !== 0,
+      isLong: algo.position === 1,
+      isShort: algo.position === -1,
+      isFlat: algo.position === 0,
+    };
+    // Analyze the last 5 candles (if we have them).
+    const N = Math.min(5, candles.length);
+    if (N >= 3) {
+      let greens = 0, reds = 0;
+      let hi = -Infinity, lo = Infinity;
+      const sample = candles.slice(-N);
+      for (const c of sample) {
+        if (c.close >= c.open) greens++; else reds++;
+        if (c.high > hi) hi = c.high;
+        if (c.low  < lo) lo = c.low;
+      }
+      const firstClose = sample[0].close;
+      const lastClose  = sample[sample.length - 1].close;
+      const delta = lastClose - firstClose;
+      const range = Math.max(hi - lo, 0.01);
+      // Declare a trend only if BOTH candle majority AND net price movement agree.
+      if (greens >= 3 && delta > range * 0.2) state.isUp = true;
+      else if (reds >= 3 && delta < -range * 0.2) state.isDown = true;
+      if (state.isUp || state.isDown) state.isRange = false;
+      state.recentHigh = hi;
+      state.recentLow  = lo;
+    }
+    return state;
+  }
+
+  function streamBackgroundLine() {
+    const s = getMarketState();
+    // Each entry: [predicate_key, renderer_fn]. 'any' always passes.
+    const pool = [
+      // Always-valid lines (generic trader talk).
+      ['any',   () => `<span class="prompt">&gt;</span> check rr_ratio`],
+      ['any',   () => `<span class="prompt">&gt;</span> vwap = <span class="num">${fmtPrice1(currentPrice)}</span>`],
+      ['any',   () => `<span class="prompt">&gt;</span> <span class="kw">if</span> rr &lt; <span class="num">1.3</span>: skip`],
+      ['any',   () => `<span class="prompt">&gt;</span> liquidity check`],
+      ['any',   () => `<span class="prompt">&gt;</span> order_book = clean`],
+      ['any',   () => `<span class="prompt">&gt;</span> spread = tight`],
+      ['any',   () => `<span class="prompt">&gt;</span> session vol = <span class="num">${(Math.abs(currentPrice - BASE_PRICE)).toFixed(1)}pt</span>`],
+      ['any',   () => `<span class="prompt">&gt;</span> time-in-force = day`],
+      ['any',   () => `<span class="prompt">&gt;</span> tick_size = 0.25`],
+
+      // Uptrend — trend intact, longs favored.
+      ['up',    () => `<span class="prompt">&gt;</span> higher_high confirmed`],
+      ['up',    () => `<span class="prompt">&gt;</span> uptrend intact`],
+      ['up',    () => `<span class="prompt">&gt;</span> bullish momentum`],
+      ['up',    () => `<span class="prompt">&gt;</span> buyers in control`],
+      ['up',    () => `<span class="prompt">&gt;</span> pullback @ <span class="num">${fmtPrice1(s.recentLow)}</span>?`],
+      ['up',    () => `<span class="prompt">&gt;</span> bid_aggression rising`],
+      ['up',    () => `<span class="prompt">&gt;</span> dip_buyers active`],
+      ['up',    () => `<span class="prompt">&gt;</span> breakout watch`],
+      ['up',    () => `<span class="prompt">&gt;</span> favor long bias`],
+
+      // Downtrend — trend intact, shorts favored.
+      ['down',  () => `<span class="prompt">&gt;</span> lower_low forming`],
+      ['down',  () => `<span class="prompt">&gt;</span> downtrend intact`],
+      ['down',  () => `<span class="prompt">&gt;</span> bearish momentum`],
+      ['down',  () => `<span class="prompt">&gt;</span> sellers in control`],
+      ['down',  () => `<span class="prompt">&gt;</span> bounce @ <span class="num">${fmtPrice1(s.recentHigh)}</span>?`],
+      ['down',  () => `<span class="prompt">&gt;</span> offer_pressure rising`],
+      ['down',  () => `<span class="prompt">&gt;</span> rally_sellers active`],
+      ['down',  () => `<span class="prompt">&gt;</span> breakdown watch`],
+      ['down',  () => `<span class="prompt">&gt;</span> favor short bias`],
+
+      // Range / low-conviction.
+      ['range', () => `<span class="prompt">&gt;</span> range_bound`],
+      ['range', () => `<span class="prompt">&gt;</span> momentum = neutral`],
+      ['range', () => `<span class="prompt">&gt;</span> awaiting confirmation`],
+      ['range', () => `<span class="prompt">&gt;</span> chop detected`],
+      ['range', () => `<span class="prompt">&gt;</span> setup invalid`],
+      ['range', () => `<span class="prompt">&gt;</span> low_conviction`],
+      ['range', () => `<span class="prompt">&gt;</span> indecision`],
+      ['range', () => `<span class="prompt">&gt;</span> volume = thin`],
+      ['range', () => `<span class="prompt">&gt;</span> no directional edge`],
+
+      // Structural levels — dynamic from recent bars.
+      ['any',   () => `<span class="prompt">&gt;</span> recent_high = <span class="num">${fmtPrice1(s.recentHigh)}</span>`],
+      ['any',   () => `<span class="prompt">&gt;</span> recent_low  = <span class="num">${fmtPrice1(s.recentLow)}</span>`],
+      ['up',    () => `<span class="prompt">&gt;</span> support @ <span class="num">${fmtPrice1(s.recentLow)}</span>`],
+      ['down',  () => `<span class="prompt">&gt;</span> resistance @ <span class="num">${fmtPrice1(s.recentHigh)}</span>`],
+      ['range', () => `<span class="prompt">&gt;</span> balance @ <span class="num">${fmtPrice1((s.recentHigh + s.recentLow) / 2)}</span>`],
+
+      // In-trade — long.
+      ['long',  () => `<span class="prompt">&gt;</span> holding LONG`],
+      ['long',  () => `<span class="prompt">&gt;</span> monitor SL / TP`],
+      ['long',  () => `<span class="prompt">&gt;</span> unrealized_pnl &gt; 0?`],
+      ['long',  () => `<span class="prompt">&gt;</span> trail_stop eligible?`],
+      ['long',  () => `<span class="prompt">&gt;</span> let_winners_run`],
+      ['long',  () => `<span class="prompt">&gt;</span> respecting structure`],
+
+      // In-trade — short.
+      ['short', () => `<span class="prompt">&gt;</span> holding SHORT`],
+      ['short', () => `<span class="prompt">&gt;</span> monitor SL / TP`],
+      ['short', () => `<span class="prompt">&gt;</span> unrealized_pnl &gt; 0?`],
+      ['short', () => `<span class="prompt">&gt;</span> trail_stop eligible?`],
+      ['short', () => `<span class="prompt">&gt;</span> let_winners_run`],
+      ['short', () => `<span class="prompt">&gt;</span> respecting structure`],
+
+      // Flat / hunting for a setup.
+      ['flat',  () => `<span class="prompt">&gt;</span> scanning structure`],
+      ['flat',  () => `<span class="prompt">&gt;</span> no setup`],
+      ['flat',  () => `<span class="prompt">&gt;</span> waiting for entry`],
+      ['flat',  () => `<span class="prompt">&gt;</span> patience`],
+      ['flat',  () => `<span class="prompt">&gt;</span> sitting on hands`],
+      ['flat',  () => `<span class="prompt">&gt;</span> next_setup?`],
+    ];
+
+    // Build active-state set.
+    const active = new Set(['any']);
+    if (s.isUp)    active.add('up');
+    if (s.isDown)  active.add('down');
+    if (s.isRange) active.add('range');
+    if (s.isLong)  active.add('long');
+    if (s.isShort) active.add('short');
+    if (s.isFlat)  active.add('flat');
+
+    // Filter pool by active states.
+    const valid = pool.filter(([key]) => active.has(key));
+    // Pick deterministically-rotating through the valid subset so we don't
+    // spam the same line twice in a row.
+    const pick = valid[streamRotationIdx % valid.length][1]();
+    streamRotationIdx++;
+    return pick;
+  }
+
+  function appendStreamLine(html, extraClass) {
+    if (!codeStreamEl) return;
+    const div = document.createElement('div');
+    div.className = 'cs-line' + (extraClass ? ' ' + extraClass : '');
+    div.innerHTML = html;
+    codeStreamEl.appendChild(div);
+    // Reveal on next frame so CSS transition fires.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => div.classList.add('show'));
+    });
+    // Prune oldest lines — flex-end alignment means DOM order matters:
+    // oldest lines are at the top and get cut off by the mask gradient;
+    // we physically remove them when count exceeds the cap.
+    while (codeStreamEl.children.length > STREAM_MAX_LINES) {
+      codeStreamEl.removeChild(codeStreamEl.firstChild);
+    }
+  }
+
+  function tickCodeStream() {
+    const now = performance.now();
+    if (now - lastStreamLineAt < nextStreamLineDelay) return;
+    lastStreamLineAt = now;
+    // Randomize next interval so the stream doesn't tick mechanically.
+    nextStreamLineDelay = STREAM_MIN_INTERVAL +
+      Math.random() * (STREAM_MAX_INTERVAL - STREAM_MIN_INTERVAL);
+    appendStreamLine(streamBackgroundLine());
+  }
+
+  // Log a trade event (entry or exit) as a cluster of 3-4 highlighted lines.
+  function logStreamEvent(kind, side, extra) {
+    const sideStr = side === 1 ? 'LONG' : 'SHORT';
+    const evtClass = side === 1 ? 'event-long' : 'event-short';
+    if (kind === 'entry') {
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> entry_conditions: <strong>PASS</strong>`, evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> SL=${fmtPrice1(extra.sl)} · TP=${fmtPrice1(extra.tp)}`, evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> → Entering ${sideStr} @ ${fmtPrice1(extra.entryPrice)}`, evtClass);
+    } else if (kind === 'exit') {
+      const pnl = extra.pnl;
+      const hit = extra.hit; // 'target' | 'stop'
+      const pnlClass = pnl >= 0 ? 'event-win' : 'event-loss';
+      const sign = pnl >= 0 ? '+' : '−';
+      const abs = Math.abs(Math.round(pnl));
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> ${hit === 'target' ? 'target hit' : 'stop hit'}`,
+        evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> closing ${sideStr} @ ${fmtPrice1(extra.exitPrice)}`,
+        evtClass);
+      appendStreamLine(
+        `<span class="prompt">&gt;</span> P&L: ${sign}$${abs}`, pnlClass);
+    }
+  }
+
+  // Determine the algo's desired position given the current time.
+  // Real mode: look at the next swing; synthetic: current swing direction.
+  function desiredPosition() {
+    if (dataMode === 'real') {
+      const t = nowMs() - simStartTime;
+      const idx = wrapBarIdx(getBarIdxAt(t));
+      const next = findNextSwingAfter(idx);
+      if (!next) return 0;
+      return next.type === 'high' ? 1 : -1;
+    }
+    const t = nowMs() - simStartTime;
+    const swing = getSwingAt(t);
+    return swing.direction === 'up' ? 1 : -1;
+  }
+
+  function algoOnCandleClose() {
+    candleCounter++;
+    tickPreviousTradeMarkers();
+    // Exits are handled intra-tick by algoOnTick (SL/TP checks). This function
+    // only handles ENTRIES now.
+    if (algo.position !== 0) return;
+    const desired = desiredPosition();
+    if (desired === 0) return;
+    if (candleCounter < algo.cooldownUntilCandle) return;
+    // Only enter if the reward-to-risk ratio is at least 1.5:1 — this filters
+    // out setups where the stop would be too far or the target too close.
+    if (!hasFavorableRR(desired)) return;
+    if (desired === 1) algoBuy();
+    else               algoShort();
+  }
+
+  function algoBuy() {
+    rolloverTradeMarkers();
+    algo.position = 1;
+    algo.entryPrice = currentPrice;
+    algo.stopLoss = computeStopLoss(1);
+    algo.takeProfit = computeTakeProfit(1);
+    attachTradeMarker(currentCandle, 'long_entry', undefined, algo.stopLoss);
+    openTradeViz(currentCandle, algo.stopLoss, algo.takeProfit);
+    logStreamEvent('entry', 1, {
+      entryPrice: algo.entryPrice, sl: algo.stopLoss, tp: algo.takeProfit,
+    });
+  }
+
+  function algoShort() {
+    rolloverTradeMarkers();
+    algo.position = -1;
+    algo.entryPrice = currentPrice;
+    algo.stopLoss = computeStopLoss(-1);
+    algo.takeProfit = computeTakeProfit(-1);
+    attachTradeMarker(currentCandle, 'short_entry', undefined, algo.stopLoss);
+    openTradeViz(currentCandle, algo.stopLoss, algo.takeProfit);
+    logStreamEvent('entry', -1, {
+      entryPrice: algo.entryPrice, sl: algo.stopLoss, tp: algo.takeProfit,
+    });
+  }
+
+  function algoClose() {
+    const side = algo.position;
+    const priceMove = side === 1
+      ? currentPrice - algo.entryPrice
+      : algo.entryPrice - currentPrice;
+    const pnl = priceMove * POSITION_SIZE;
+    algo.totalTrades++;
+    if (pnl > 0) algo.wins++; else algo.losses++;
+    algo.totalPnL += pnl;
+
+    // Record the closed trade for the recent-trades list.
+    let timeStr;
+    if (dataMode === 'real' && bars) {
+      const t = nowMs() - simStartTime;
+      const idx = wrapBarIdx(getBarIdxAt(t));
+      timeStr = new Date(bars[idx].time).toLocaleTimeString('en-GB', {
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
+      });
+    } else {
+      timeStr = new Date().toLocaleTimeString('en-GB', {
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
+      });
+    }
+    recentTrades.unshift({
+      side: side === 1 ? 'Long' : 'Short',
+      pnl,
+      time: timeStr,
+      entry: algo.entryPrice,
+      exit:  currentPrice,
+    });
+    if (recentTrades.length > 5) recentTrades.length = 5;
+    tradesVersion++;
+
+    attachTradeMarker(currentCandle,
+      side === 1 ? 'long_exit' : 'short_exit', pnl);
+    // Detect whether this was a target hit or a stop hit (based on direction
+    // and which level price crossed).
+    const hit = pnl >= 0 ? 'target' : 'stop';
+    logStreamEvent('exit', side, { pnl, hit, exitPrice: currentPrice });
+    // Flash all candles from entry to exit in black, win or loss.
+    if (activeTradeViz && activeTradeViz.entryCandle) {
+      flashCandleRange(activeTradeViz.entryCandle, currentCandle, 0x111111);
+    }
+    closeTradeViz();
+    algo.position = 0;
+    algo.entryPrice = 0;
+    algo.cooldownUntilCandle = candleCounter +
+      ENTRY_COOLDOWN_MIN + Math.floor(algoRng() *
+        (ENTRY_COOLDOWN_MAX - ENTRY_COOLDOWN_MIN + 1));
+  }
+
+  // Build a text label as a canvas-backed sprite. Sprites always face the
+  // camera, so labels stay readable at any tilt. Returns a THREE.Sprite.
+  function makeTextSprite(lines, defaultColor = '#111', options = {}) {
+    const PAD_X = 9, PAD_Y = 8;
+    const noBox = !!options.noBox;
+    const FONT_TITLE = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const FONT_SUB   = '600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    // Line-height per font size (rough rule: fontSize * 1.33).
+    const fontLineHeight = f => {
+      const m = f.match(/(\d+)px/);
+      return m ? Math.round(parseInt(m[1], 10) * 1.33) : 22;
+    };
+    // Normalize: strings become default-style objects.
+    const items = lines.map((ln, i) => {
+      if (typeof ln === 'string') {
+        return {
+          text: ln,
+          font: i === 0 ? FONT_TITLE : FONT_SUB,
+          color: i === 0 ? defaultColor : '#333',
+        };
+      }
+      return {
+        text: ln.text,
+        font: ln.font || (i === 0 ? FONT_TITLE : FONT_SUB),
+        color: ln.color || (i === 0 ? defaultColor : '#333'),
+      };
+    });
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    // Icon width (relative to font size). The token "[CLK]" in any line is
+    // replaced visually by a flat 2D clock icon of this width.
+    const CLOCK_TOKEN = '[CLK]';
+    const ICON_W_RATIO = 0.95; // icon width ≈ fontSize * ratio
+    const pxFor = font => {
+      const m = font.match(/(\d+)px/);
+      return m ? parseInt(m[1], 10) : 14;
+    };
+    function measureLineWithIcon(text, font) {
+      ctx.font = font;
+      const parts = text.split(CLOCK_TOKEN);
+      const iconW = pxFor(font) * ICON_W_RATIO;
+      let w = 0;
+      for (let i = 0; i < parts.length; i++) {
+        w += ctx.measureText(parts[i]).width;
+        if (i < parts.length - 1) w += iconW;
+      }
+      return w;
+    }
+
+    // Measure each line with its own font.
+    let maxW = 0;
+    for (const it of items) {
+      const w = measureLineWithIcon(it.text, it.font);
+      if (w > maxW) maxW = w;
+    }
+    // Sum line heights to get total content height.
+    const lineHeights = items.map(it => fontLineHeight(it.font));
+    const totalLineH = lineHeights.reduce((a, b) => a + b, 0);
+
+    const DPR = 2;
+    canvas.width  = Math.ceil((maxW + PAD_X * 2) * DPR);
+    canvas.height = Math.ceil((totalLineH + PAD_Y * 2) * DPR);
+    ctx.scale(DPR, DPR);
+    const W = canvas.width / DPR, H = canvas.height / DPR;
+    // Rounded-rect background with a black border (uniform across all labels).
+    // Suppress entirely for simple text-only labels (e.g., time axis marks).
+    if (!noBox) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = 1.5;
+      const r = 8;
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.lineTo(W - r, 0);
+      ctx.quadraticCurveTo(W, 0, W, r);
+      ctx.lineTo(W, H - r);
+      ctx.quadraticCurveTo(W, H, W - r, H);
+      ctx.lineTo(r, H);
+      ctx.quadraticCurveTo(0, H, 0, H - r);
+      ctx.lineTo(0, r);
+      ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    // Render each line at its own height offset. Lines containing the
+    // [CLK] token get a flat 2D clock icon drawn in that position.
+    ctx.textBaseline = 'middle';
+    let y = PAD_Y;
+    for (let i = 0; i < items.length; i++) {
+      ctx.font = items[i].font;
+      ctx.fillStyle = items[i].color;
+      const fontPx = pxFor(items[i].font);
+      const iconW  = fontPx * ICON_W_RATIO;
+      const iconR  = iconW * 0.42; // icon radius relative to its cell
+      const parts  = items[i].text.split(CLOCK_TOKEN);
+      const cy     = y + lineHeights[i] / 2;
+      let x = PAD_X;
+      for (let j = 0; j < parts.length; j++) {
+        ctx.font = items[i].font;
+        ctx.fillStyle = items[i].color;
+        ctx.fillText(parts[j], x, cy);
+        x += ctx.measureText(parts[j]).width;
+        if (j < parts.length - 1) {
+          // Draw a flat 2D clock: circle outline + hour hand + minute hand.
+          const cxIcon = x + iconW / 2;
+          ctx.save();
+          ctx.strokeStyle = items[i].color;
+          ctx.fillStyle   = items[i].color;
+          ctx.lineWidth = Math.max(1, fontPx * 0.09);
+          ctx.lineCap = 'round';
+          // Circle outline.
+          ctx.beginPath();
+          ctx.arc(cxIcon, cy, iconR, 0, Math.PI * 2);
+          ctx.stroke();
+          // Center dot.
+          ctx.beginPath();
+          ctx.arc(cxIcon, cy, Math.max(0.5, fontPx * 0.05), 0, Math.PI * 2);
+          ctx.fill();
+          // Minute hand — points to 12 (straight up), length 0.7 of radius.
+          ctx.beginPath();
+          ctx.moveTo(cxIcon, cy);
+          ctx.lineTo(cxIcon, cy - iconR * 0.70);
+          ctx.stroke();
+          // Hour hand — points to 3 (right), length 0.45 of radius.
+          ctx.beginPath();
+          ctx.moveTo(cxIcon, cy);
+          ctx.lineTo(cxIcon + iconR * 0.45, cy);
+          ctx.stroke();
+          ctx.restore();
+          x += iconW;
+        }
+      }
+      y += lineHeights[i];
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 1,
+      depthTest: false });
+    const sprite = new THREE.Sprite(mat);
+    // World size scales with canvas content size so text stays at a consistent
+    // per-line visual size. 0.027 = 1.5x the previous 0.018.
+    const WORLD_PER_PX = 0.027;
+    const worldH = (canvas.height / DPR) * WORLD_PER_PX;
+    const worldW = (canvas.width  / DPR) * WORLD_PER_PX;
+    sprite.scale.set(worldW, worldH, 1);
+    return sprite;
+  }
+
+  // Attach a cone + text label for a single trade event.
+  //   pnl      (exits only): realized P&L, shown as a 3rd line.
+  //   stopLoss (entries only): SL price level, shown as a 3rd line AND as a
+  //                            thin red horizontal bar on the chart.
+  function attachTradeMarker(candle, type, pnl, stopLoss) {
+    const isEntry = type === 'long_entry'  || type === 'short_entry';
+    const isLong  = type === 'long_entry'  || type === 'long_exit';
+    const pointsUp = isLong === isEntry;  // long entry & short exit point up
+    const color = isLong ? GREEN_HEX : RED_HEX;
+    const colorCss = isLong ? '#2f9b2f' : '#d03a3f';
+
+    // --- Cone ---
+    const coneGeom = new THREE.ConeGeometry(0.3, 0.55, 10);
+    const coneMat = new THREE.MeshLambertMaterial({ color,
+      transparent: true, opacity: 1 });
+    const cone = new THREE.Mesh(coneGeom, coneMat);
+    const baseY = pointsUp
+      ? priceToY(candle.low) - 0.9
+      : priceToY(candle.high) + 0.9;
+    cone.position.y = baseY;
+    if (!pointsUp) cone.rotation.x = Math.PI;
+    candle.group.add(cone);
+    candle.markers.push(cone);
+    trackMarker(cone, candle);
+    cone.scale.set(0.01, 0.01, 0.01);
+    cone.userData.bornAt = performance.now();
+
+    // --- Text label ---
+    const titleMap = {
+      long_entry:  'Long entry',
+      long_exit:   'Long exit',
+      short_entry: 'Short entry',
+      short_exit:  'Short exit',
+    };
+    // Time: if we have real data, use the bar timestamp; else use wall clock.
+    // 24-hour clock in New York time (native S&P trading timezone).
+    let timeStr;
+    if (dataMode === 'real' && bars) {
+      const t = nowMs() - simStartTime;
+      const idx = wrapBarIdx(getBarIdxAt(t));
+      timeStr = new Date(bars[idx].time).toLocaleTimeString('en-GB', {
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
+      });
+    } else {
+      timeStr = new Date().toLocaleTimeString('en-GB', {
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'America/New_York',
+      });
+    }
+    const priceLine = isEntry
+      ? `@ ${fmtPrice1(currentPrice)}  [CLK] ${timeStr}`
+      : `${fmtPrice1(currentPrice)}  [CLK] ${timeStr}`;
+    const lines = [
+      titleMap[type],
+      priceLine,
+    ];
+    // Exit labels: P&L as a prominent colored line, "$" prefix, no decimals.
+    if (pnl !== undefined) {
+      lines.push({
+        text: signedDollar(pnl),
+        font: 'bold 22px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        color: pnl >= 0 ? '#2f9b2f' : '#d03a3f',
+      });
+    }
+    // (stopLoss is no longer added to entry labels — it's shown on-chart only.)
+    const sprite = makeTextSprite(lines, colorCss);
+    // Capture full scale for positioning BEFORE we scale it down for pop-in.
+    const labelHalfH = sprite.scale.y / 2;
+    // Position the label on the outer side of the cone, offset so the label's
+    // inner edge sits just past the cone tip.
+    sprite.position.y = pointsUp
+      ? baseY - labelHalfH - 0.4
+      : baseY + labelHalfH + 0.4;
+    sprite.position.x = 0;
+    sprite.position.x = 0;
+    // Sprite must render on top of the cone. renderOrder fires after other
+    // meshes, and depthTest:false (already set in makeTextSprite) prevents
+    // the cone from z-culling the sprite.
+    sprite.renderOrder = 10;
+    candle.group.add(sprite);
+    candle.markers.push(sprite);
+    trackMarker(sprite, candle);
+    sprite.scale.multiplyScalar(0.01);
+    sprite.userData.bornAt = performance.now();
+    sprite.userData.fullScale = sprite.scale.clone().multiplyScalar(100);
+  }
+
+  // ============ ACTIVE TRADE VISUALIZATION (SL + TP planes + labels) ============
+  let activeTradeViz = null;
+
+  function makeLevelPlane(color) {
+    const plane = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 0.08, CANDLE_D * 1.3),
+      new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.45,
+      })
+    );
+    plane.renderOrder = 5;
+    return plane;
+  }
+
+  function makeLevelLabel(text, color) {
+    const label = makeTextSprite([{
+      text,
+      font: 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      color,
+    }]);
+    label.renderOrder = 21;
+    return label;
+  }
+
+  const REVEAL_DURATION = 1000; // ms — planes grow from entry to future
+  const LABEL_FADE_IN_MS = 300; // ms — labels fade in after reveal
+
+  function openTradeViz(entryCandle, slPrice, tpPrice) {
+    const entryPrice = algo.entryPrice;
+    const enPlane = makeLevelPlane(0x888888);
+    const slPlane = makeLevelPlane(0xFF4F55);
+    const tpPlane = makeLevelPlane(0x51C951);
+    const enLabel = makeLevelLabel(`Entry @ ${fmtPrice1(entryPrice)}`, '#444');
+    const slLabel = makeLevelLabel(`SL @ ${fmtPrice1(slPrice)}`, '#d03a3f');
+    const tpLabel = makeLevelLabel(`TP @ ${fmtPrice1(tpPrice)}`, '#2f9b2f');
+    // Start with labels invisible — they fade in after reveal completes.
+    for (const lbl of [enLabel, slLabel, tpLabel]) lbl.material.opacity = 0;
+    rotationGroup.add(enPlane, slPlane, tpPlane, enLabel, slLabel, tpLabel);
+    activeTradeViz = {
+      enPlane, slPlane, tpPlane, enLabel, slLabel, tpLabel,
+      entryCandle, entryPrice, slPrice, tpPrice,
+      revealStart: performance.now(),
+    };
+  }
+
+  function updateActiveTradeViz() {
+    if (!activeTradeViz || !currentCandle) return;
+    const { enPlane, slPlane, tpPlane, enLabel, slLabel, tpLabel,
+            entryCandle, entryPrice, slPrice, tpPrice, revealStart } = activeTradeViz;
+    const entryX  = entryCandle.group.position.x;
+    const latestX = currentCandle.group.position.x;
+    const fullFutureX = latestX + SPACING * 3;
+    const entryOpacity = entryCandle.bodyMat.opacity;
+
+    // Reveal animation: grow rightward from entry candle's left edge.
+    // Left edge is anchored; right edge sweeps from entryX → fullFutureX.
+    const elapsed = performance.now() - revealStart;
+    const revealT = Math.min(elapsed / REVEAL_DURATION, 1);
+    const eased = 1 - Math.pow(1 - revealT, 3); // ease-out cubic
+    const leftEdge  = entryX - CANDLE_W * 0.4;
+    const fullRight = fullFutureX + CANDLE_W * 0.4;
+    const currRight = leftEdge + (fullRight - leftEdge) * eased;
+    const width     = Math.max(currRight - leftEdge, 0.001);
+    const centerX   = (leftEdge + currRight) / 2;
+    const labelX    = fullRight + SPACING * 0.3; // sits just past the right edge
+
+    // Labels fade in starting when reveal is ~85% done.
+    const labelFadeT = Math.max(0, Math.min(
+      (elapsed - REVEAL_DURATION * 0.85) / LABEL_FADE_IN_MS, 1));
+
+    // Entry (grey).
+    enPlane.position.x = centerX;
+    enPlane.position.y = priceToY(entryPrice);
+    enPlane.scale.x = width;
+    enPlane.material.opacity = 0.40 * entryOpacity;
+    enLabel.position.x = labelX;
+    enLabel.position.y = priceToY(entryPrice);
+    enLabel.material.opacity = entryOpacity * labelFadeT;
+
+    // SL.
+    slPlane.position.x = centerX;
+    slPlane.position.y = priceToY(slPrice);
+    slPlane.scale.x = width;
+    slPlane.material.opacity = 0.45 * entryOpacity;
+    slLabel.position.x = labelX;
+    slLabel.position.y = priceToY(slPrice);
+    slLabel.material.opacity = entryOpacity * labelFadeT;
+
+    // TP.
+    tpPlane.position.x = centerX;
+    tpPlane.position.y = priceToY(tpPrice);
+    tpPlane.scale.x = width;
+    tpPlane.material.opacity = 0.45 * entryOpacity;
+    tpLabel.position.x = labelX;
+    tpLabel.position.y = priceToY(tpPrice);
+    tpLabel.material.opacity = entryOpacity * labelFadeT;
+  }
+
+  function closeTradeViz() {
+    if (!activeTradeViz) return;
+    const { enPlane, slPlane, tpPlane, enLabel, slLabel, tpLabel } = activeTradeViz;
+    for (const obj of [enPlane, slPlane, tpPlane, enLabel, slLabel, tpLabel]) {
+      rotationGroup.remove(obj);
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (obj.material.map) obj.material.map.dispose();
+        obj.material.dispose();
+      }
+    }
+    activeTradeViz = null;
+  }
+
+  // ============ CANDLE FLASH (trade-close emphasis) ============
+  // When a trade closes, briefly tint all candles between the entry and exit
+  // black, then fade back to natural color. Same color for wins and losses.
+  const FLASH_DURATION = 1500; // ms — lingers long enough to be clearly felt
+
+  function flashCandleRange(fromCandle, toCandle, flashHex) {
+    const fromIdx = candles.indexOf(fromCandle);
+    const toIdx   = candles.indexOf(toCandle);
+    if (fromIdx < 0 || toIdx < 0) return;
+    const start = Math.min(fromIdx, toIdx);
+    const end   = Math.max(fromIdx, toIdx);
+    const now = performance.now();
+    for (let i = start; i <= end; i++) {
+      candles[i].flashColor = flashHex;
+      candles[i].flashUntil = now + FLASH_DURATION;
+    }
+  }
+
+  // Called every frame. Overrides candle body/wick color during active flash.
+  const _flashNaturalColor = new THREE.Color();
+  const _flashHexColor     = new THREE.Color();
+
+  function updateCandleFlashes() {
+    const now = performance.now();
+    for (const c of candles) {
+      if (!c.flashUntil) continue;
+      const remaining = c.flashUntil - now;
+      const natural = c.isGreen ? GREEN_HEX : RED_HEX;
+      if (remaining <= 0) {
+        // Flash done — restore body to natural color. Wick color is managed
+        // separately in update() so it stays in its dark-green/red state.
+        c.flashUntil = undefined;
+        c.bodyMat.color.setHex(natural);
+      } else {
+        // Ease body from flash color back to natural.
+        const t = 1 - (remaining / FLASH_DURATION);
+        _flashHexColor.setHex(c.flashColor);
+        _flashNaturalColor.setHex(natural);
+        _flashHexColor.lerp(_flashNaturalColor, t);
+        c.bodyMat.color.copy(_flashHexColor);
+      }
+    }
+  }
+
+  // ============ ON-CHART PRICE LABEL ============
+  // Follows the current candle, shows symbol + current price. Canvas is
+  // reused across frames; only the texture is re-uploaded when it changes.
+  let chartPriceCanvas = null, chartPriceCtx = null, chartPriceTex = null,
+      chartPriceSprite = null, chartPriceLastText = '';
+
+  function initChartPriceLabel() {
+    const DPR = 2;
+    // Keep original text size; just trim trailing whitespace on the right.
+    const W_CSS = 128, H_CSS = 64;
+    chartPriceCanvas = document.createElement('canvas');
+    chartPriceCanvas.width  = W_CSS * DPR;
+    chartPriceCanvas.height = H_CSS * DPR;
+    chartPriceCtx = chartPriceCanvas.getContext('2d');
+    chartPriceTex = new THREE.CanvasTexture(chartPriceCanvas);
+    chartPriceTex.needsUpdate = true;
+    const mat = new THREE.SpriteMaterial({
+      map: chartPriceTex,
+      transparent: true,
+      depthTest: false,
+    });
+    chartPriceSprite = new THREE.Sprite(mat);
+    chartPriceSprite.renderOrder = 50;
+    const WORLD_PER_PX = 0.022;
+    chartPriceSprite.scale.set(W_CSS * WORLD_PER_PX, H_CSS * WORLD_PER_PX, 1);
+    rotationGroup.add(chartPriceSprite);
+  }
+
+  function redrawChartPriceLabel() {
+    if (!chartPriceCtx || !currentCandle) return;
+    const symbol = 'S&P 500';
+    const priceText = fmtPrice(displayedPrice);
+    const fullText = symbol + '|' + priceText;
+    if (fullText === chartPriceLastText) return;
+    chartPriceLastText = fullText;
+
+    const ctx = chartPriceCtx;
+    const DPR = 2;
+    const W = chartPriceCanvas.width / DPR;
+    const H = chartPriceCanvas.height / DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    // Medium-dark grey background (softer than near-black).
+    ctx.fillStyle = 'rgba(58, 58, 62, 0.96)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.lineWidth = 1.2;
+    const r = 7;
+    ctx.beginPath();
+    ctx.moveTo(r, 0);
+    ctx.lineTo(W - r, 0);
+    ctx.quadraticCurveTo(W, 0, W, r);
+    ctx.lineTo(W, H - r);
+    ctx.quadraticCurveTo(W, H, W - r, H);
+    ctx.lineTo(r, H);
+    ctx.quadraticCurveTo(0, H, 0, H - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // Symbol label — white.
+    const PAD = 8;
+    ctx.textBaseline = 'top';
+    ctx.font = '700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(symbol, PAD, PAD);
+    // Price — white, bigger.
+    ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(priceText, PAD, PAD + 20);
+    chartPriceTex.needsUpdate = true;
+  }
+
+  function updateChartPriceLabel() {
+    if (!chartPriceSprite || !currentCandle) return;
+    redrawChartPriceLabel();
+    // Position to the right of the current candle so it doesn't overlap.
+    chartPriceSprite.position.x =
+      currentCandle.group.position.x + SPACING * 3.2;
+    chartPriceSprite.position.y =
+      priceToY(currentCandle.close) + chartPriceSprite.scale.y * 0.35;
+  }
+
+  function updateMarkerAnimations() {
+    const now = performance.now();
+    for (const c of candles) {
+      for (const m of c.markers) {
+        const born = m.userData.bornAt;
+        if (born === undefined) continue;
+        const t = (now - born) / 260;
+        // Sprites store their target scale (non-uniform) in userData.fullScale;
+        // cones/meshes target uniform scale (1,1,1).
+        const full = m.userData.fullScale;
+        if (t >= 1) {
+          if (full) m.scale.copy(full);
+          else      m.scale.set(1, 1, 1);
+          delete m.userData.bornAt;
+        } else {
+          const eased = 1 - Math.pow(1 - t, 3);
+          const overshoot = 1 + Math.sin(t * Math.PI) * 0.35;
+          const s = eased * overshoot;
+          if (full) m.scale.set(full.x * s, full.y * s, full.z * s);
+          else      m.scale.set(s, s, s);
+        }
+      }
+    }
+  }
+
+  // ============ UI ============
+  const recentTradesListEl = document.getElementById('recentTradesList');
+
+  // Format a price with thousands separators when the magnitude warrants it.
+  const fmtPrice = p => p.toLocaleString('en-US', {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  });
+  const signed = v => (v >= 0 ? '+' : '−') + fmtPrice(Math.abs(v));
+  // Signed dollar amount with no decimals: "+$500" / "−$65".
+  const signedDollar = v => {
+    const sign = v >= 0 ? '+' : '−';
+    const abs = Math.abs(Math.round(v));
+    return `${sign}$${abs.toLocaleString('en-US')}`;
+  };
+  // One-decimal price formatter for SL/TP levels.
+  const fmtPrice1 = p => p.toLocaleString('en-US', {
+    minimumFractionDigits: 1, maximumFractionDigits: 1,
+  });
+
+  // Throttled, tick-quantized price for display.
+  const DISPLAY_TICK = 0.05;
+  const DISPLAY_THROTTLE_MS = 120;
+  let displayedPrice = BASE_PRICE;
+  let lastDisplayedPriceMs = 0;
+  function updateDisplayedPrice() {
+    const now = performance.now();
+    if (now - lastDisplayedPriceMs < DISPLAY_THROTTLE_MS) return;
+    lastDisplayedPriceMs = now;
+    displayedPrice = Math.round(currentPrice / DISPLAY_TICK) * DISPLAY_TICK;
+  }
+
+  function updateUI() {
+    // Bottom panels are gone; all that's left is the Recent Trades list.
+    renderRecentTrades();
+  }
+
+  // Animated render. Each trade row is keyed by trade.time + pnl so we can
+  // diff DOM against `recentTrades`: new rows animate in from the top, rows
+  // that exist on both sides stay put (CSS transitions handle their shift
+  // down via the new sibling pushing them), and removed rows fade out.
+  let lastTradesVersionRendered = -1;
+  // Mobile shows 3 rows; desktop keeps the original 5.
+  function getRenderedMax() {
+    return window.innerWidth <= 1000 ? 3 : 5;
+  }
+  // Force a re-render after a resize so the row count adapts when crossing
+  // the 1000px breakpoint live (e.g. rotating a tablet).
+  window.addEventListener('resize', () => { lastTradesVersionRendered = -1; });
+  function tradeKey(tr) {
+    // time+side+pnl is unique enough for our short list.
+    return `${tr.time}|${tr.side}|${Math.round(tr.pnl)}`;
+  }
+  function buildTradeRow(tr) {
+    const row = document.createElement('div');
+    row.className = 'trade-row';
+    row.dataset.key = tradeKey(tr);
+    const side = document.createElement('span');
+    side.className = 'trade-side ' + tr.side.toLowerCase();
+    side.textContent = tr.side;
+    const time = document.createElement('span');
+    time.className = 'trade-time';
+    time.textContent = tr.time;
+    const pnl = document.createElement('span');
+    pnl.className = 'trade-pnl ' + (tr.pnl >= 0 ? 'up' : 'down');
+    pnl.textContent = signedDollar(tr.pnl);
+    row.append(side, time, pnl);
+    return row;
+  }
+
+  function renderRecentTrades() {
+    if (tradesVersion === lastTradesVersionRendered) return;
+    lastTradesVersionRendered = tradesVersion;
+
+    // Empty-list placeholder.
+    if (recentTrades.length === 0) {
+      recentTradesListEl.innerHTML = '<div class="no-trades">No closed trades yet</div>';
+      return;
+    }
+    // If this is the first render (placeholder present), wipe and insert all
+    // rows without animation so the initial fake-seeded list doesn't flicker.
+    const hasPlaceholder = recentTradesListEl.querySelector('.no-trades');
+    if (hasPlaceholder) {
+      recentTradesListEl.innerHTML = '';
+      for (const tr of recentTrades.slice(0, getRenderedMax())) {
+        recentTradesListEl.appendChild(buildTradeRow(tr));
+      }
+      return;
+    }
+
+    // Diff: collect existing keys in DOM vs desired keys in recentTrades.
+    const existingRows = Array.from(recentTradesListEl.children);
+    const existingKeys = existingRows.map(r => r.dataset.key);
+    const desired = recentTrades.slice(0, getRenderedMax());
+    const desiredKeys = desired.map(tradeKey);
+
+    // FLIP step 1: capture current positions of rows that will survive, so
+    // we can animate them smoothly to their new positions after DOM changes.
+    const surviving = existingRows.filter(r =>
+      desiredKeys.includes(r.dataset.key) && !r.classList.contains('trade-row-leaving'));
+    const firstRects = new Map();
+    for (const row of surviving) {
+      firstRects.set(row, row.getBoundingClientRect());
+    }
+
+    // Remove rows whose key no longer appears (oldest trade that got pushed
+    // out by new ones). Fade them out downward, then remove.
+    for (const row of existingRows) {
+      if (!desiredKeys.includes(row.dataset.key)) {
+        row.classList.add('trade-row-leaving');
+        setTimeout(() => { if (row.parentNode) row.parentNode.removeChild(row); }, 1150);
+      }
+    }
+
+    // Insert new rows at their correct positions (newest first).
+    for (let i = 0; i < desired.length; i++) {
+      const key = desiredKeys[i];
+      if (existingKeys.includes(key)) continue;
+      const row = buildTradeRow(desired[i]);
+      row.classList.add('trade-row-entering');
+      const refNode = recentTradesListEl.children[i] || null;
+      recentTradesListEl.insertBefore(row, refNode);
+      // Fade/slide in on next frame so the transition fires.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => row.classList.remove('trade-row-entering'));
+      });
+    }
+
+    // FLIP step 2: for each surviving row, measure its new position, apply
+    // the inverse transform instantly, then transition to identity so it
+    // appears to slide from old → new position.
+    for (const row of surviving) {
+      const first = firstRects.get(row);
+      const last = row.getBoundingClientRect();
+      const dy = first.top - last.top;
+      if (Math.abs(dy) < 0.5) continue;
+      // Apply inverse instantly — disable transition to snap to the old spot.
+      row.style.transition = 'none';
+      row.style.transform = `translateY(${dy}px)`;
+      // Force a reflow so the browser commits the snap, then re-enable
+      // transition and clear the transform so it animates into place.
+      row.offsetHeight; // eslint-disable-line no-unused-expressions
+      row.style.transition = '';
+      row.style.transform = '';
+    }
+  }
+
+  // ============ PREFILL ============
+  // Run the full sim for MAX_CANDLES-1 historical candles so the chart
+  // starts already "full" — visible uptrend, past trade markers, and
+  // non-zero algo stats from frame 1.
+  function prefillHistory() {
+    currentPrice = BASE_PRICE;
+    const ticksPerCandle = 60;
+    const dt = CANDLE_DURATION / ticksPerCandle;
+
+    for (let i = 0; i < PREFILL_COUNT; i++) {
+      const virtualStart = simStartTime + i * CANDLE_DURATION;
+
+      // Let the algo evaluate the previous virtual candle close.
+      virtualNow = virtualStart;
+      if (currentCandle) algoOnCandleClose();
+
+      // Open the new historical candle at the current (virtual) price.
+      currentCandle = new Candle(currentPrice);
+      rotationGroup.add(currentCandle.group);
+      candles.push(currentCandle);
+      maybeAttachTimeLabel(currentCandle);
+
+      // Simulate this candle's ticks without rebuilding geometry each step
+      // — we only finalize geometry once at the end for performance.
+      for (let t = 0; t < ticksPerCandle; t++) {
+        virtualNow = virtualStart + (t + 0.5) * dt;
+        tickPrice();
+        if (currentPrice > currentCandle.high) currentCandle.high = currentPrice;
+        if (currentPrice < currentCandle.low)  currentCandle.low  = currentPrice;
+        currentCandle.close = currentPrice;
+        algoOnTick();
+      }
+      // Single geometry rebuild with the final OHLC.
+      currentCandle.update(currentPrice);
+    }
+
+    virtualNow = null; // back to real time
+  }
+
+  // ============ START ============
+  async function init() {
+    const loadingEl = document.getElementById('loading');
+
+    // Try fetching real S&P data. A short timeout keeps page load snappy even
+    // if the proxy is slow — synthetic fallback is fine.
+    const fetchPromise = fetchMarketBars();
+    const timeoutPromise = new Promise(r => setTimeout(() => r(null), 4000));
+    const fetched = await Promise.race([fetchPromise, timeoutPromise]);
+
+    if (fetched && fetched.bars.length > MAX_CANDLES + 10) {
+      dataMode   = 'real';
+      bars       = fetched.bars;
+      realSymbol = fetched.symbol;
+
+      // Pick the PREVIOUS trading day (never today). Bars are timestamped
+      // in ms UTC. For grouping, we use the UTC date (fast — no Intl per
+      // bar). The S&P session 09:30-16:00 NY always falls within one UTC
+      // day, so UTC-date grouping correctly separates sessions.
+      const TZ = 'America/New_York';
+      // For the "today" check: the NY date corresponds to the UTC date if
+      // we subtract ~5h (EST) or 4h (EDT). Shifting "now" by -5h UTC gives
+      // us a point that's reliably within the NY calendar day. We then
+      // take the UTC date of that shifted point — matches the format of
+      // bars' UTC date strings.
+      const nowShifted = Date.now() - 5 * 3600 * 1000;
+      const todayDateStr = new Date(nowShifted).toISOString().slice(0, 10);
+      // Count bars per UTC-date string (proxy for NY session date).
+      const dateCounts = new Map();
+      const dateBarIndices = new Map();
+      for (let i = 0; i < bars.length; i++) {
+        const d = new Date(bars[i].time).toISOString().slice(0, 10);
+        dateCounts.set(d, (dateCounts.get(d) || 0) + 1);
+        if (!dateBarIndices.has(d)) dateBarIndices.set(d, [i, i]);
+        else dateBarIndices.get(d)[1] = i;
+      }
+      // Pick the most recent date that isn't today and has at least 200 bars
+      // (filters half-days / data gaps). Never pick today's session.
+      const sortedDates = [...dateCounts.keys()].sort();
+      let chosenDate = null;
+      for (let i = sortedDates.length - 1; i >= 0; i--) {
+        const d = sortedDates[i];
+        if (d === todayDateStr) continue;  // always skip today
+        if (dateCounts.get(d) >= 200) { chosenDate = d; break; }
+      }
+      let startIdx, endIdx;
+      if (chosenDate) {
+        [startIdx, endIdx] = dateBarIndices.get(chosenDate);
+        endIdx += 1; // make endIdx exclusive to match [start, end) convention
+      } else {
+        // Fallback: last contiguous block of bars.
+        startIdx = Math.max(0, bars.length - 390);
+        endIdx = bars.length;
+      }
+
+      // Use the day window if we have enough prefill room before it;
+      // otherwise fall back to the last ~390 bars we have.
+      if (endIdx - startIdx >= PREFILL_COUNT + 2 && startIdx >= PREFILL_COUNT) {
+        dataStartBarIdx = startIdx;
+        LOOP_LENGTH = endIdx - startIdx;
+      } else {
+        LOOP_LENGTH = Math.min(390, bars.length - PREFILL_COUNT - 1);
+        dataStartBarIdx = bars.length - LOOP_LENGTH;
+      }
+
+      // Store the hour range for the UI title.
+      replayWindowStart = bars[dataStartBarIdx].time;
+      replayWindowEnd   = bars[dataStartBarIdx + LOOP_LENGTH - 1].time + 60000;
+
+      // Compute swing extrema — but scale the zigzag threshold to the
+      // window's actual volatility. A 60-min S&P window can span anywhere
+      // from 5 points (calm) to 80+ points (news-driven), so a fixed %
+      // threshold doesn't work across conditions.
+      let minP = Infinity, maxP = -Infinity;
+      for (let i = dataStartBarIdx; i < dataStartBarIdx + LOOP_LENGTH; i++) {
+        if (bars[i].low  < minP) minP = bars[i].low;
+        if (bars[i].high > maxP) maxP = bars[i].high;
+      }
+      const winRange   = Math.max(maxP - minP, 0.01);
+      const avgPrice   = (maxP + minP) / 2;
+      const rangePct   = winRange / avgPrice;
+      // Swings have to be at least 20% of the window's range to matter, with
+      // a floor of 0.02% so we detect something even in ultra-calm windows.
+      const swingThreshold = Math.max(rangePct * 0.20, 0.0002);
+
+      const allSwings = computeSwings(bars, swingThreshold);
+      dataSwings = allSwings.filter(s =>
+        s.barIdx >= dataStartBarIdx && s.barIdx < dataStartBarIdx + LOOP_LENGTH);
+
+      // Fallback: if zigzag still found fewer than 2 swings in the window
+      // (can happen on a near-flat monotonic drift), do a simple local-extrema
+      // scan that always produces something.
+      if (dataSwings.length < 2) {
+        console.log('[chart] zigzag found', dataSwings.length,
+          'swings — falling back to local extrema scan');
+        dataSwings = findLocalExtrema(bars, dataStartBarIdx,
+          dataStartBarIdx + LOOP_LENGTH, 4);
+      }
+
+      // Auto-fit the chart's world-space scale to the actual price range.
+      // Include prefill bars so the chart doesn't clip them.
+      const windowStart = Math.max(0, dataStartBarIdx - PREFILL_COUNT);
+      const windowEnd   = dataStartBarIdx + LOOP_LENGTH;
+      for (let i = windowStart; i < windowEnd; i++) {
+        if (bars[i].low  < minP) minP = bars[i].low;
+        if (bars[i].high > maxP) maxP = bars[i].high;
+      }
+      // PRICE_SCALE: calibrate so a TYPICAL bar's wick extent (high-low)
+      // maps to roughly 4 world units of vertical space. Sample the first 30
+      // bars of the session (the open, what users see first). This gives
+      // candles a substantial, visible presence on the chart.
+      const openingBarCount = Math.min(30, LOOP_LENGTH);
+      let openRangeSum = 0;
+      for (let i = 0; i < openingBarCount; i++) {
+        openRangeSum += bars[dataStartBarIdx + i].high - bars[dataStartBarIdx + i].low;
+      }
+      const openAvgRange = (openRangeSum / openingBarCount) || 0.5;
+      // Target: avg wick extent ≈ 4 world units (~9% of the 43-unit frustum).
+      PRICE_SCALE = 4.0 / Math.max(openAvgRange, 0.1);
+      // Safety clamp: prevent the PRICE_SCALE from becoming absurdly large
+      // on ultra-calm days where a single bar's open range is tiny. Compute
+      // the largest local 25-bar extent and only clamp if it would truly
+      // overflow — the rotationGroup auto-centers on current price, so we
+      // can be generous here (extent up to 40 world units is still OK since
+      // the camera tracks the baseline). This clamp rarely triggers.
+      let maxLocalExtent = 0;
+      const localWindowBars = 25;
+      for (let i = dataStartBarIdx; i < windowEnd - localWindowBars; i++) {
+        let lo = Infinity, hi = -Infinity;
+        for (let j = 0; j < localWindowBars; j++) {
+          const b = bars[i + j];
+          if (b.low  < lo) lo = b.low;
+          if (b.high > hi) hi = b.high;
+        }
+        const extent = hi - lo;
+        if (extent > maxLocalExtent) maxLocalExtent = extent;
+      }
+      // Mobile uses a tighter extent cap so the chart fits inside the
+      // 18-world-unit-tall viewport produced by FRUSTUM_SIZE_MOBILE.
+      const chartExtentCap = isMobileLayout() ? MOBILE_CHART_EXTENT : 40;
+      const maxAllowedScale = chartExtentCap / Math.max(maxLocalExtent, 0.01);
+      if (PRICE_SCALE > maxAllowedScale) PRICE_SCALE = maxAllowedScale;
+      // Anchor BASE_PRICE so the chart starts near world Y = 0. Use the
+      // average of the prefill window so candles aren't piled above or below.
+      let sumP = 0, cnt = 0;
+      for (let i = windowStart; i < dataStartBarIdx; i++) { sumP += bars[i].close; cnt++; }
+      BASE_PRICE        = cnt > 0 ? sumP / cnt : bars[dataStartBarIdx].open;
+      smoothedTrendline = BASE_PRICE;
+      // Real data doesn't have a guaranteed uptrend — let smoothedTrendline
+      // re-center the chart dynamically. Small positive lift shifts the whole
+      // chart slightly upward on screen so it sits higher in the viewport.
+      UPTREND_LIFT = 9;
+
+      // Position time-axis slabs based on the FIRST 45 bars (~90 seconds of
+      // replay — what most users see before leaving the page). Take the
+      // minimum price of that opening window, convert to world Y, and place
+      // the slabs a fixed distance below it. This keeps time labels visually
+      // anchored to the opening candles regardless of where prices end up
+      // later in the session.
+      const openingLookBars = Math.min(45, LOOP_LENGTH);
+      let openMinP = Infinity;
+      for (let i = 0; i < openingLookBars; i++) {
+        if (bars[dataStartBarIdx + i].low < openMinP) {
+          openMinP = bars[dataStartBarIdx + i].low;
+        }
+      }
+      // Slab Y in rotationGroup-local coords. priceToY gives world Y of the
+      // min price; subtract an aesthetic offset so labels sit below the wick.
+      TIME_SLAB_Y = priceToY(openMinP) - 1.2;
+
+      // Fill in the replay-range text — date in NY time, e.g. "Tuesday, April 21st".
+      const replayRangeEl = document.getElementById('replayRange');
+      if (replayRangeEl) {
+        const TZ = 'America/New_York';
+        // Weekday in NY time.
+        const weekday = new Date(replayWindowStart).toLocaleDateString('en-US', {
+          weekday: 'long', timeZone: TZ,
+        });
+        // Month name in NY time.
+        const monthName = new Date(replayWindowStart).toLocaleDateString('en-US', {
+          month: 'long', timeZone: TZ,
+        });
+        // Day of month in NY time.
+        const dayNum = parseInt(new Intl.DateTimeFormat('en-US', {
+          day: 'numeric', timeZone: TZ,
+        }).format(new Date(replayWindowStart)), 10);
+        // English ordinal suffix: 1st, 2nd, 3rd, 4th-20th, 21st, 22nd, 23rd, 24th-30th, 31st.
+        const ordinal = (n) => {
+          const mod100 = n % 100;
+          if (mod100 >= 11 && mod100 <= 13) return 'th';
+          switch (n % 10) {
+            case 1: return 'st';
+            case 2: return 'nd';
+            case 3: return 'rd';
+            default: return 'th';
+          }
+        };
+        replayRangeEl.textContent = `${weekday}, ${monthName} ${dayNum}${ordinal(dayNum)}`;
+      }
+
+      console.log('[chart] real-data mode',
+        '| window:', LOOP_LENGTH, 'bars',
+        '| window range:', winRange.toFixed(2), `(${(rangePct*100).toFixed(3)}%)`,
+        '| swing threshold:', (swingThreshold*100).toFixed(3) + '%',
+        '| swings:', dataSwings.length,
+        '| price range:', minP.toFixed(2), '–', maxP.toFixed(2),
+        '| latest:', new Date(bars[bars.length-1].time).toLocaleString());
+
+      // Seed fake historical trades (4 wins, 1 loss) from the hour before
+      // the replay window, so the Recent Trades list is populated on load.
+      seedFakeTrades();
+    } else {
+      console.log('[chart] synthetic mode — no real data available');
+    }
+
+    // Hide the loading overlay and launch the chart.
+    if (loadingEl) {
+      loadingEl.classList.add('hidden');
+      setTimeout(() => loadingEl.remove(), 500);
+    }
+
+    // Make sure the grid has finished its fade-in before candles appear on
+    // top — avoids a hand-off where the chart pops in over a half-faded grid.
+    grid.material.opacity = 0.6;
+    // Stop the skeleton render loop; animate() takes over from here.
+    skeletonAlive = false;
+
+    prefillHistory();
+    startCandle();
+    initChartPriceLabel();
+    // Stamp the moment the chart hand-off happens so animate() can fade the
+    // candles in over ~500ms instead of popping them in at full opacity.
+    chartAppearStart = performance.now();
+    animate();
+  }
+
+  init();
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    tickPrice();
+    if (currentCandle) currentCandle.update(currentPrice);
+    algoOnTick();
+
+    if (performance.now() - candleStartTime >= CANDLE_DURATION) {
+      startCandle();
+    }
+
+    // Continuous horizontal scroll. Old candles gently fade out in opacity
+    // over the last FADE_ZONE slots — no shrinking, just a subtle fade.
+    const FADE_ZONE = 4;
+    const progress = Math.min((performance.now() - candleStartTime) / CANDLE_DURATION, 1);
+    const offset = -progress * SPACING;
+    const latestIdx = candles.length - 1;
+    // Scene-appear ramp: fades all candles in 0 → 1 over CHART_APPEAR_MS the
+    // first time animate() runs after data load. Eliminates the "pop" of
+    // 28 prefilled candles arriving on top of the already-visible grid.
+    const appearRaw = chartAppearStart
+      ? Math.min((performance.now() - chartAppearStart) / CHART_APPEAR_MS, 1)
+      : 1;
+    const appearT = 1 - Math.pow(1 - appearRaw, 3); // ease-out cubic
+    for (let i = 0; i < candles.length; i++) {
+      const indexFromLatest = latestIdx - i;
+      candles[i].group.position.x = LATEST_X - indexFromLatest * SPACING + offset;
+
+      // Fractional age: grows smoothly as the next candle is forming.
+      const age = indexFromLatest + progress;
+      const fadeStart = MAX_CANDLES - 1 - FADE_ZONE;
+      let opacity = 1;
+      if (age > fadeStart) {
+        const t = Math.min((age - fadeStart) / FADE_ZONE, 1);
+        opacity = Math.max(0, 1 - t); // linear fade
+      }
+      candles[i].setOpacity(opacity * appearT);
+    }
+
+    rotationGroup.rotation.y += (targetRotY - rotationGroup.rotation.y) * 0.06;
+    rotationGroup.rotation.x += (targetRotX - rotationGroup.rotation.x) * 0.06;
+
+    // Follow the rising baseline so the chart stays in view, and lift it by
+    // UPTREND_LIFT so history reads as a clear diagonal climb (latest near
+    // the top of view, oldest near the bottom) rather than a flat oscillation.
+    // On mobile the frustum is centered on y=0 (see computeFrustum), so we
+    // drop UPTREND_LIFT to keep the chart inside the 300px band.
+    const baselineRise = getBaseline() - BASE_PRICE;
+    const lift = isMobileLayout() ? 0 : UPTREND_LIFT;
+    rotationGroup.position.y = -baselineRise * PRICE_SCALE + lift;
+
+    updateMarkerAnimations();
+    updateDissolvingMarkers();
+    updateActiveTradeViz();
+    updateCandleFlashes();
+    tickCodeStream();
+    updateDisplayedPrice();
+    updateChartPriceLabel();
+    updateUI();
+
+    renderer.render(scene, camera);
+  }
+</script>
+
+<!-- ================================================================
+     PERFORMANCE CHART — verbatim from the standalone PRA page, wrapped
+     in an IIFE so its const/let declarations don't leak into globals.
+     Reads/writes the .pra-* DOM in the section above; uses Highcharts
+     loaded in <head>.
+     ================================================================ -->
+<script>
+(function () {
+
+  const RANGE_OPTIONS = [
+    { label: '1Y', days: 365 },
+    { label: '3Y', days: 1095 },
+    { label: '5Y', days: 1825 }
+  ];
+
+  const SERIES_CONFIG = [
+    { key: 'spx',         name: 'S&P 500',      symbol: '%5EGSPC',  hexColor: '#2A2A30', lineWidth: 1.5, dashStyle: 'Solid', isHero: false, defaultVisible: true,  fill: false },
+    { key: 'ndx',         name: 'Nasdaq 100',   symbol: '%5ENDX',   hexColor: '#6E6E78', lineWidth: 1.5, dashStyle: 'Solid', isHero: false, defaultVisible: false, fill: false, hidden: true },
+    { key: 'dax',         name: 'DAX 40',       symbol: '%5EGDAXI', hexColor: '#B5B5BD', lineWidth: 1.5, dashStyle: 'Solid', isHero: false, defaultVisible: true,  fill: false },
+    { key: 'pra',         name: 'ProRealAlgos',                     hexColor: '#3DC574', lineWidth: 3,   dashStyle: 'Solid', isHero: true,  defaultVisible: true,  fill: true  },
+    { key: 'praReinvest', name: 'Reinvest',                         hexColor: '#22A65A', lineWidth: 2.5, dashStyle: 'Dash',  isHero: true,  defaultVisible: false, fill: false }
+  ];
+
+  // Live ProRealAlgos equity comes from a public Google Sheet — column A is
+  // the month name and column B is the compounded account capital at the
+  // start of that month. The sheet has a second stacked block (plain numbers,
+  // no €) below the equity table; we ignore it by filtering on the € prefix.
+  const SHEET_ID  = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+  const SHEET_GID = '1444969085';
+  const SHEET_CORS_PROXY = 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=';
+
+  const STRATEGY = {
+    // If the unleveraged PRA equity curve doesn't clear the best index by
+    // either 1.15x (multiplicative) or +5 percentage points (additive), scale
+    // each monthly return by the smallest leverage that does. Capped at
+    // leverageMax. Set forceLeverage (e.g. 2) to override the auto-pick.
+    leverageTargetMultiplier: 1.15,
+    leverageTargetAddPct:     5,
+    leverageMax:              5,
+    forceLeverage:            null,
+    reinvestQuarterlyRate:    0.05
+  };
+
+  const state = {
+    rangeDays: 365,
+    hidden: new Set(SERIES_CONFIG.filter(s => !s.defaultVisible).map(s => s.key)),
+    rawData: null,        // { spx, ndx, dax }: daily [ts, close] from Yahoo
+    sheetMonthly: null,   // [{ts, capital}]: monthly compounded equity (sheet)
+    appliedLeverage: 1,
+    chart: null
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const formatPct = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  const formatDate = (ts) => new Date(ts).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const setLoadingText = (msg) => { const el = $('pra-loading-text'); if (el) el.textContent = msg; };
+  const hideLoading = () => {
+    const el = $('pra-loading');
+    if (el) el.classList.add('is-hidden');
+  };
+  const showLoadingError = (msg) => {
+    const chart = $('pra-chart');
+    if (!chart) return;
+    let loader = $('pra-loading');
+    if (!loader) {
+      loader = document.createElement('div');
+      loader.id = 'pra-loading';
+      loader.className = 'pra-loading';
+      chart.appendChild(loader);
+    }
+    loader.classList.remove('is-hidden');
+    loader.innerHTML = '<div class="pra-loading-error">' + msg + '</div>';
+  };
+
+  function toMidnightUTC(tsMs) {
+    const d = new Date(tsMs);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  }
+
+  function buildProxyUrls(encodedSymbol) {
+    const yahooUrls = [
+      'https://query1.finance.yahoo.com/v8/finance/chart/' + encodedSymbol + '?range=10y&interval=1wk&events=history',
+      'https://query2.finance.yahoo.com/v8/finance/chart/' + encodedSymbol + '?range=10y&interval=1wk&events=history',
+    ];
+    const proxies = [
+      url => 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=' + encodeURIComponent(url)
+    ];
+    const all = [];
+    for (const proxy of proxies) {
+      for (const yahooUrl of yahooUrls) {
+        all.push(proxy(yahooUrl));
+      }
+    }
+    return all;
+  }
+
+  async function fetchWithTimeout(url, timeoutMs = 12000) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      return response;
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  }
+
+  async function fetchYahooData(encodedSymbol, displayName) {
+    const proxyUrls = buildProxyUrls(encodedSymbol);
+    for (let i = 0; i < proxyUrls.length; i++) {
+      const proxyUrl = proxyUrls[i];
+      setLoadingText('Loading ' + displayName + '…');
+      try {
+        const response = await fetchWithTimeout(proxyUrl, 12000);
+        if (!response.ok) continue;
+        const text = await response.text();
+        if (!text || text.trim().startsWith('<') || text.includes('Too many') || (text.includes('Error') && !text.includes('"chart"'))) continue;
+        let data;
+        try { data = JSON.parse(text); } catch (e) { continue; }
+        if (data.chart && data.chart.error) continue;
+        if (!data.chart || !data.chart.result || !data.chart.result.length) continue;
+        const result = data.chart.result[0];
+        const closes = result.indicators.quote[0].close;
+        const filteredData = result.timestamp
+          .map((ts, idx) => {
+            const close = closes[idx];
+            if (close === null || close === undefined) return null;
+            return [toMidnightUTC(ts * 1000), close];
+          })
+          .filter(Boolean);
+        if (filteredData.length === 0) continue;
+        return filteredData;
+      } catch (e) {
+        continue;
+      }
+    }
+    throw new Error('All ' + proxyUrls.length + ' sources failed for ' + displayName);
+  }
+
+  async function fetchWithRetry(symbol, name, attempts = 2) {
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+      try { return await fetchYahooData(symbol, name); }
+      catch (e) {
+        lastErr = e;
+        if (i < attempts - 1) await new Promise(r => setTimeout(r, 600));
+      }
+    }
+    throw lastErr;
+  }
+
+  function rebaseToReturns(closes, rangeDays) {
+    if (!closes || closes.length === 0) return [];
+    const cutoff = toMidnightUTC(Date.now()) - (rangeDays * 24 * 60 * 60 * 1000);
+    const sliced = closes.filter(([d]) => d >= cutoff);
+    if (sliced.length === 0) return [];
+    const base = sliced[0][1];
+    return sliced.map(([d, c]) => [d, (c / base - 1) * 100]);
+  }
+
+  // ---------- Google Sheet → ProRealAlgos monthly equity ----------
+
+  function parseCsvRows(text) {
+    const rows = [];
+    let row = [], cell = '', inQ = false, i = 0;
+    while (i < text.length) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i += 2; }
+          else { inQ = false; i++; }
+        } else { cell += c; i++; }
+      } else {
+        if (c === '"')      { inQ = true; i++; }
+        else if (c === ',') { row.push(cell); cell = ''; i++; }
+        else if (c === '\n' || c === '\r') {
+          row.push(cell); rows.push(row);
+          row = []; cell = '';
+          if (c === '\r' && text[i + 1] === '\n') i += 2; else i++;
+        } else { cell += c; i++; }
+      }
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  const MONTH_MAP = {
+    'jan': 0,  'january':   0,
+    'feb': 1,  'february':  1,
+    'mar': 2,  'march':     2,
+    'apr': 3,  'april':     3,
+    'may': 4,
+    'jun': 5,  'june':      5,
+    'jul': 6,  'july':      6,
+    'aug': 7,  'august':    7,
+    'sep': 8,  'sept':      8, 'september': 8,
+    'oct': 9,  'okt':       9, 'october':   9,  // 'Okt' typo exists in sheet
+    'nov': 10, 'november': 10,
+    'dec': 11, 'december': 11
+  };
+
+  function parseMonthName(s) {
+    if (!s) return -1;
+    const key = s.trim().toLowerCase().replace(/[.,]$/, '');
+    if (key in MONTH_MAP) return MONTH_MAP[key];
+    const short = key.substring(0, 3);
+    if (short in MONTH_MAP) return MONTH_MAP[short];
+    return -1;
+  }
+
+  // The first block of the sheet (header + month/€capital rows) is the
+  // compounded equity table; a second block below it (no € prefix) is the
+  // raw monthly gain in EUR which we ignore. Filtering on the € marker
+  // cleanly separates them.
+  function extractMonthlyCapitalRows(csvText) {
+    const rows = parseCsvRows(csvText);
+    const out = [];
+    for (const r of rows) {
+      if (r.length < 2) continue;
+      const a = (r[0] || '').trim();
+      const b = (r[1] || '').trim();
+      if (!b.includes('€')) continue;
+      const monthIdx = parseMonthName(a);
+      if (monthIdx < 0) continue;
+      const num = parseFloat(b.replace(/[€\s,]/g, ''));
+      if (!isFinite(num)) continue;
+      out.push({ monthIdx, capital: num });
+    }
+    return out;
+  }
+
+  // Walk backwards from the latest row to assign year+month. Latest row's
+  // month maps to the most recent occurrence not exceeding today's month —
+  // so a "May" entry written on May 1st correctly anchors to this May.
+  function assignMonthlyDates(rows) {
+    if (rows.length === 0) return [];
+    const today    = new Date();
+    const curYear  = today.getUTCFullYear();
+    const curMonth = today.getUTCMonth();
+    const lastIdx  = rows[rows.length - 1].monthIdx;
+    let year  = lastIdx <= curMonth ? curYear : curYear - 1;
+    let month = lastIdx;
+    const dated = new Array(rows.length);
+    for (let i = rows.length - 1; i >= 0; i--) {
+      dated[i] = { ts: Date.UTC(year, month, 1), capital: rows[i].capital };
+      month--;
+      if (month < 0) { month = 11; year--; }
+    }
+    return dated;
+  }
+
+  async function fetchProRealAlgosSheet() {
+    setLoadingText('Loading ProRealAlgos results…');
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+                     '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID + '&range=A:B';
+    const proxyUrl = SHEET_CORS_PROXY + encodeURIComponent(sheetUrl);
+    const res = await fetchWithTimeout(proxyUrl, 12000);
+    if (!res.ok) throw new Error('Sheet HTTP ' + res.status);
+    const text = await res.text();
+    const rows = extractMonthlyCapitalRows(text);
+    if (rows.length < 4) throw new Error('Sheet returned only ' + rows.length + ' usable rows');
+    return assignMonthlyDates(rows);
+  }
+
+  function interpolateCapital(monthly, ts) {
+    if (!monthly || monthly.length === 0) return null;
+    if (ts <= monthly[0].ts) return monthly[0].capital;
+    const last = monthly[monthly.length - 1];
+    if (ts >= last.ts) return last.capital;
+    let lo = 0, hi = monthly.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (monthly[mid].ts <= ts) lo = mid; else hi = mid;
+    }
+    const a = monthly[lo], b = monthly[hi];
+    if (b.ts === a.ts) return a.capital;
+    const f = (ts - a.ts) / (b.ts - a.ts);
+    return a.capital + f * (b.capital - a.capital);
+  }
+
+  // Multiply each monthly return by L and rebuild the capital curve. The
+  // first capital is preserved so absolute magnitudes track the unleveraged
+  // curve's anchor — only relative returns scale.
+  function leverageMonthlyCapital(monthly, L) {
+    if (L === 1 || monthly.length < 2) return monthly;
+    const out = [{ ts: monthly[0].ts, capital: monthly[0].capital }];
+    for (let i = 1; i < monthly.length; i++) {
+      const prev = monthly[i - 1].capital;
+      const r = prev === 0 ? 0 : (monthly[i].capital / prev) - 1;
+      const next = Math.max(0, out[i - 1].capital * (1 + L * r));
+      out.push({ ts: monthly[i].ts, capital: next });
+    }
+    return out;
+  }
+
+  function leveragedPctAtRange(monthly, baseTs, endTs, L) {
+    const lev  = leverageMonthlyCapital(monthly, L);
+    const base = interpolateCapital(lev, baseTs);
+    const end  = interpolateCapital(lev, endTs);
+    if (!base) return 0;
+    return (end / base - 1) * 100;
+  }
+
+  // Binary-search the smallest leverage in [1, leverageMax] whose cumulative
+  // PRA % over [baseTs, endTs] meets or exceeds targetFinalPct.
+  function findRequiredLeverage(monthly, baseTs, endTs, targetFinalPct) {
+    if (leveragedPctAtRange(monthly, baseTs, endTs, 1) >= targetFinalPct) return 1;
+    let lo = 1, hi = STRATEGY.leverageMax;
+    if (leveragedPctAtRange(monthly, baseTs, endTs, hi) < targetFinalPct) return hi;
+    for (let i = 0; i < 30; i++) {
+      const mid = (lo + hi) / 2;
+      if (leveragedPctAtRange(monthly, baseTs, endTs, mid) < targetFinalPct) lo = mid;
+      else hi = mid;
+    }
+    return Math.ceil(hi * 10) / 10; // one-decimal display value
+  }
+
+  function hashSignedFloat(n) {
+    let h = (n >>> 0) ^ 0x9e3779b9;
+    h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    h = (h ^ (h >>> 16)) >>> 0;
+    return (h / 0xFFFFFFFF) * 2 - 1;
+  }
+
+  // Return the monthly bracket whose ts straddles `ts`, or null if `ts` is
+  // outside the data range.
+  function findMonthBracket(monthly, ts) {
+    if (monthly.length < 2) return null;
+    if (ts <= monthly[0].ts || ts >= monthly[monthly.length - 1].ts) return null;
+    let lo = 0, hi = monthly.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (monthly[mid].ts <= ts) lo = mid; else hi = mid;
+    }
+    return { start: monthly[lo], end: monthly[hi] };
+  }
+
+  // Mock intramonth volatility for the PRA equity curve. The sheet only
+  // gives us monthly snapshots, but the indices are now weekly — so on the
+  // weeks between two checkpoints we add a smooth sine wobble. The envelope
+  // is sin(π·frac), so the wobble is exactly 0 at both monthly checkpoints
+  // (the real numbers from the sheet stay anchored) and peaks mid-month.
+  // The oscillation has a deterministic per-month phase so the curve looks
+  // the same on every reload.
+  const WOBBLE_AMPLITUDE = 0.010; // ±1.0% of current capital, mid-month max
+
+  function intramonthWobble(ts, bracket, currentCap) {
+    if (!bracket) return 0;
+    const span = bracket.end.ts - bracket.start.ts;
+    if (span <= 0) return 0;
+    const frac = (ts - bracket.start.ts) / span;
+    const envelope = Math.sin(Math.PI * frac);
+    const phase = hashSignedFloat(Math.floor(bracket.start.ts / 86400000)) * Math.PI;
+    const oscillation = Math.sin(frac * Math.PI * 4 + phase);
+    return envelope * oscillation * WOBBLE_AMPLITUDE * currentCap;
+  }
+
+  // Build a PRA % series aligned to the supplied (typically weekly) index
+  // timestamps, anchored to 0% at timestamps[0] so it lines up with SPX/DAX.
+  function buildPraSeriesFromSheet(monthly, timestamps, leverage) {
+    if (!monthly || monthly.length === 0 || timestamps.length === 0) return [];
+    const lev = leverageMonthlyCapital(monthly, leverage);
+    const baseCap = interpolateCapital(lev, timestamps[0]);
+    if (!baseCap) return [];
+    return timestamps.map(ts => {
+      const cap = interpolateCapital(lev, ts);
+      const bracket = findMonthBracket(lev, ts);
+      const wobble = intramonthWobble(ts, bracket, cap);
+      return [ts, ((cap + wobble) / baseCap - 1) * 100];
+    });
+  }
+
+  function generateReinvestVariant(praSeries) {
+    if (praSeries.length === 0) return [];
+    const startTs = praSeries[0][0];
+    const dayMs = 24 * 60 * 60 * 1000;
+    const quarterMs = 91.3125 * dayMs;
+    let equity = 1;
+    const result = [[startTs, 0]];
+    for (let i = 1; i < praSeries.length; i++) {
+      const [ts, cumPct] = praSeries[i];
+      const [, prevCumPct] = praSeries[i - 1];
+      const prevEq = 1 + prevCumPct / 100;
+      const currEq = 1 + cumPct / 100;
+      const dailyReturn = currEq / prevEq - 1;
+      const quartersElapsed = (ts - startTs) / quarterMs;
+      const positionMult = Math.pow(1 + STRATEGY.reinvestQuarterlyRate, quartersElapsed);
+      const scaledReturn = dailyReturn * positionMult;
+      equity *= (1 + scaledReturn);
+      result.push([ts, (equity - 1) * 100]);
+    }
+    return result;
+  }
+
+  function buildHighchartsSeries(seriesById) {
+    return SERIES_CONFIG.map(cfg => {
+      const data = seriesById[cfg.key] || [];
+      return {
+        id: cfg.key,
+        name: cfg.name,
+        data: data,
+        color: cfg.hexColor,
+        lineWidth: cfg.lineWidth,
+        dashStyle: cfg.dashStyle,
+        visible: !state.hidden.has(cfg.key),
+        marker: { enabled: false, states: { hover: { enabled: true, radius: 4, lineWidth: 2, lineColor: '#fff' } } },
+        zIndex: cfg.isHero ? 5 : 1,
+        type: cfg.fill ? 'areaspline' : 'spline',
+        fillColor: cfg.fill ? {
+          linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+          stops: [
+            [0, 'rgba(61, 197, 116, 0.22)'],
+            [1, 'rgba(61, 197, 116, 0.0)']
+          ]
+        } : null
+      };
+    });
+  }
+
+  function drawEndLabels(chart) {
+    if (chart.endLabels && chart.endLabels.length) {
+      chart.endLabels.forEach(label => { try { label.destroy(); } catch(e) {} });
+    }
+    chart.endLabels = [];
+    chart.series.forEach(series => {
+      if (!series.visible || !series.points || series.points.length === 0) return;
+      const lastPoint = series.points[series.points.length - 1];
+      if (lastPoint == null || lastPoint.plotX == null || lastPoint.plotY == null) return;
+
+      const x = lastPoint.plotX + chart.plotLeft + 8;
+      const y = lastPoint.plotY + chart.plotTop;
+
+      const nameLabel = chart.renderer.text(series.name, x, y - 3)
+        .attr({ zIndex: 100 })
+        .css({
+          color: series.color,
+          fontFamily: 'Onest, sans-serif',
+          fontSize: '10.5px',
+          fontWeight: '500',
+          letterSpacing: '0.005em'
+        }).add();
+      chart.endLabels.push(nameLabel);
+
+      const valueLabel = chart.renderer.text(formatPct(lastPoint.y), x, y + 11)
+        .attr({ zIndex: 100 })
+        .css({
+          color: series.color,
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '14px',
+          fontWeight: '700',
+          letterSpacing: '-0.02em'
+        }).add();
+      chart.endLabels.push(valueLabel);
+    });
+  }
+
+  function renderChart(seriesById) {
+    hideLoading();
+    if (state.chart) { state.chart.destroy(); state.chart = null; }
+
+    const series = buildHighchartsSeries(seriesById);
+
+    state.chart = Highcharts.chart('pra-chart', {
+      chart: {
+        type: 'spline',
+        backgroundColor: 'transparent',
+        spacing: [0, 8, 12, 8],
+        marginRight: 68,
+        animation: { duration: 500 },
+        style: { fontFamily: 'Onest, sans-serif' },
+        events: {
+          load:   function() { drawEndLabels(this); },
+          redraw: function() { drawEndLabels(this); }
+        }
+      },
+      title: { text: null },
+      credits: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        type: 'datetime',
+        lineWidth: 0,
+        tickWidth: 0,
+        gridLineWidth: 0,
+        labels: {
+          style: {
+            color: '#8A8A93',
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: '9.5px',
+            letterSpacing: '0.02em'
+          }
+        },
+        crosshair: { color: '#0E0E10', width: 1, dashStyle: 'ShortDot' }
+      },
+      yAxis: {
+        title: { text: null },
+        gridLineColor: '#F2F2F5',
+        gridLineDashStyle: 'Dot',
+        startOnTick: false,
+        endOnTick: false,
+        minPadding: 0.02,
+        maxPadding: 0.05,
+        labels: { enabled: false },
+        tickWidth: 0,
+        lineWidth: 0
+      },
+      tooltip: {
+        shared: true,
+        useHTML: true,
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+        shadow: false,
+        padding: 0,
+        formatter: function() {
+          // Don't rely on Highcharts' shared-snap (which can drop a series
+          // when its nearest sample is outside the snap radius — happens
+          // when SPX, DAX, and PRA weekly timestamps don't align). Iterate
+          // every visible series and look up its closest point to this.x.
+          const chart = (this.points && this.points[0] && this.points[0].series.chart) ||
+                        (state && state.chart);
+          if (!chart) return '';
+          const tx = this.x;
+          const rows = chart.series
+            .filter(s => s.visible && s.points && s.points.length > 0)
+            .map(s => {
+              let near = s.points[0], best = Math.abs(near.x - tx);
+              for (let i = 1; i < s.points.length; i++) {
+                const d = Math.abs(s.points[i].x - tx);
+                if (d < best) { best = d; near = s.points[i]; }
+              }
+              return { series: s, y: near.y };
+            })
+            .sort((a, b) => b.y - a.y)
+            .map(r => {
+              const isPos = r.y >= 0;
+              return '<div class="pra-tooltip-row">' +
+                       '<span class="pra-tooltip-name">' +
+                         '<span class="pra-tooltip-dot" style="background:' + r.series.color + '"></span>' +
+                         r.series.name +
+                       '</span>' +
+                       '<span class="pra-tooltip-value" style="color:' + (isPos ? '#3DC574' : '#EC3B3D') + '">' + formatPct(r.y) + '</span>' +
+                     '</div>';
+            }).join('');
+          return '<div class="pra-tooltip"><div class="pra-tooltip-date">' + formatDate(tx) + '</div>' + rows + '</div>';
+        }
+      },
+      plotOptions: {
+        series: {
+          states: {
+            hover: { lineWidthPlus: 0, halo: { size: 6, opacity: 0.15 } },
+            inactive: { opacity: 0.45 }
+          },
+          animation: { duration: 600 }
+        },
+        areaspline: { states: { inactive: { opacity: 0.45 } } }
+      },
+      series: series
+    });
+  }
+
+  function renderRangePills() {
+    const container = $('pra-range-pills');
+    if (!container) return;
+    container.innerHTML = '';
+    RANGE_OPTIONS.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.textContent = opt.label;
+      btn.dataset.days = opt.days;
+      if (opt.days === state.rangeDays) btn.classList.add('active');
+      btn.addEventListener('click', () => setRange(opt.days));
+      container.appendChild(btn);
+    });
+  }
+
+  function renderTogglePills() {
+    const container = $('pra-toggles');
+    if (!container) return;
+    container.innerHTML = '';
+    const order = ['pra', 'spx', 'dax'];
+    order.forEach(key => {
+      const cfg = SERIES_CONFIG.find(s => s.key === key);
+      if (!cfg) return;
+      const btn = document.createElement('button');
+      btn.className = 'pra-pill';
+      const isActive = !state.hidden.has(key);
+      btn.classList.add(isActive ? 'is-active' : 'is-inactive');
+      btn.dataset.key = key;
+
+      const indicator = cfg.dashStyle === 'Dash'
+        ? '<span class="pra-pill-dash" style="color:' + cfg.hexColor + '"></span>'
+        : '<span class="pra-pill-dot"  style="background:' + cfg.hexColor + '"></span>';
+
+      btn.innerHTML = indicator + '<span>' + cfg.name + '</span>';
+      btn.addEventListener('click', () => toggleSeries(key));
+      container.appendChild(btn);
+    });
+
+    const sw = $('pra-reinvest-switch');
+    if (sw) {
+      sw.checked = !state.hidden.has('praReinvest');
+      sw.onchange = () => toggleSeries('praReinvest');
+    }
+  }
+
+  function recompute() {
+    if (!state.rawData || !state.sheetMonthly) return;
+    const { spx, ndx, dax } = state.rawData;
+    const spxRet = rebaseToReturns(spx, state.rangeDays);
+    const ndxRet = rebaseToReturns(ndx, state.rangeDays);
+    const daxRet = rebaseToReturns(dax, state.rangeDays);
+
+    // Align PRA to SPX's daily timestamps so the shared tooltip lines up and
+    // both anchor at 0% on the same first x-coord.
+    const dailyTs = spxRet.map(([ts]) => ts);
+    let leverage = 1;
+    if (dailyTs.length > 0 && state.sheetMonthly.length >= 2) {
+      const baseTs   = dailyTs[0];
+      const endTs    = dailyTs[dailyTs.length - 1];
+      const spxFinal = spxRet[spxRet.length - 1][1];
+      const daxFinal = daxRet.length ? daxRet[daxRet.length - 1][1] : -Infinity;
+      const maxIdx   = Math.max(spxFinal, daxFinal);
+      const target   = Math.max(
+        maxIdx * STRATEGY.leverageTargetMultiplier,
+        maxIdx + STRATEGY.leverageTargetAddPct
+      );
+      leverage = STRATEGY.forceLeverage != null
+        ? STRATEGY.forceLeverage
+        : findRequiredLeverage(state.sheetMonthly, baseTs, endTs, target);
+      if (!isFinite(leverage) || leverage < 1) leverage = 1;
+      if (leverage > STRATEGY.leverageMax) leverage = STRATEGY.leverageMax;
+    }
+    state.appliedLeverage = leverage;
+    updateLeverageDisclaimer(leverage);
+
+    const praRet = buildPraSeriesFromSheet(state.sheetMonthly, dailyTs, leverage);
+    const praReinvestRet = generateReinvestVariant(praRet);
+    renderChart({ spx: spxRet, ndx: ndxRet, dax: daxRet, pra: praRet, praReinvest: praReinvestRet });
+  }
+
+  function updateLeverageDisclaimer(L) {
+    const el = document.querySelector('.pra-disclaimer');
+    if (!el) return;
+    const baseText = 'The "Reinvest profits" line models a 5% quarterly ' +
+                     'compounding position size increase.';
+    if (L > 1) {
+      const label = L.toFixed(1).replace(/\.0$/, '') + 'x';
+      el.textContent = 'ProRealAlgos shown with ' + label + ' leverage applied to monthly returns. ' + baseText;
+    } else {
+      el.textContent = baseText;
+    }
+  }
+
+  function setRange(days) {
+    state.rangeDays = days;
+    document.querySelectorAll('.pra-range-pills button').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.days, 10) === days);
+    });
+    recompute();
+  }
+
+  function toggleSeries(key) {
+    if (state.hidden.has(key)) state.hidden.delete(key);
+    else state.hidden.add(key);
+    document.querySelectorAll('.pra-pill').forEach(pill => {
+      if (pill.dataset.key === key) {
+        const isActive = !state.hidden.has(key);
+        pill.classList.toggle('is-active', isActive);
+        pill.classList.toggle('is-inactive', !isActive);
+      }
+    });
+    recompute();
+  }
+
+  function loadScript(src, timeoutMs = 8000) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      let done = false;
+      const finish = (fn, arg) => { if (done) return; done = true; fn(arg); };
+      s.onload = () => finish(resolve);
+      s.onerror = () => finish(reject, new Error('Failed to load ' + src));
+      document.head.appendChild(s);
+      setTimeout(() => finish(reject, new Error('Timeout loading ' + src)), timeoutMs);
+    });
+  }
+
+  async function ensureHighcharts() {
+    if (typeof Highcharts !== 'undefined') return;
+    setLoadingText('Loading chart library…');
+    const fallbacks = [
+      'https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/highcharts.min.js',
+      'https://cdn.jsdelivr.net/npm/highcharts@11.4.8/highcharts.js',
+      'https://unpkg.com/highcharts@11.4.8/highcharts.js'
+    ];
+    for (const url of fallbacks) {
+      try {
+        await loadScript(url);
+        if (typeof Highcharts !== 'undefined') return;
+      } catch (e) { /* try next */ }
+    }
+    throw new Error('Highcharts library failed to load from all sources');
+  }
+
+  async function boot() {
+    try {
+      await ensureHighcharts();
+      setLoadingText('Loading market data…');
+      const [spx, ndx, dax, sheetMonthly] = await Promise.all([
+        fetchWithRetry('%5EGSPC',  'S&P 500'),
+        fetchWithRetry('%5ENDX',   'Nasdaq 100'),
+        fetchWithRetry('%5EGDAXI', 'DAX 40'),
+        fetchProRealAlgosSheet()
+      ]);
+      state.rawData = { spx, ndx, dax };
+      state.sheetMonthly = sheetMonthly;
+      recompute();
+      // Canvas height grew (chart rendered) — re-measure so the 3D grid
+      // still extends all the way under the new section.
+      if (typeof applyCanvasSize === 'function') applyCanvasSize();
+    } catch (err) {
+      console.error('PRA chart fatal:', err);
+      showLoadingError(
+        "Couldn't load chart data right now.<br>" +
+        '<small style="color:#8A8A93;display:block;margin-top:6px">' + (err.message || err) + '</small>' +
+        '<small style="color:#8A8A93;display:block;margin-top:10px">Check the browser console for details, or refresh in a moment.</small>'
+      );
+    }
+  }
+
+  renderRangePills();
+  renderTogglePills();
+  boot();
+})();
+</script>
+
+</body>
+</html>
