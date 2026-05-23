@@ -1692,6 +1692,18 @@
   const MAX_CANDLES     = 32;
   const LATEST_X        = 13;
 
+  // Create the SP500 watermark up-front so it appears even if the real-data
+  // fetch fails. Function declaration is hoisted; its X will drift left over
+  // time at the same rate candles scroll, so the watermark moves with the
+  // timestamp row and eventually scrolls off the left edge of the chart.
+  let sp500WatermarkSlab = null;
+  // X position when the slab was stamped, and the timestamp of that stamp.
+  // The animation loop computes current X as initialX - (elapsed/CANDLE_DURATION) * SPACING,
+  // which matches the candle scroll velocity exactly.
+  let sp500WatermarkInitialX = 0;
+  let sp500WatermarkStampMs  = 0;
+  createSP500Watermark();
+
   const priceToY = p => (p - BASE_PRICE) * PRICE_SCALE;
 
   // ============ CANDLE ============
@@ -2153,6 +2165,68 @@
   const candles = [];
   let currentCandle = null;
   let candleStartTime = performance.now();
+
+  // One-time "SP500" watermark slab. Sits on the same floor plane as the
+  // timestamp slabs, parked just to the right of the latest candle so it
+  // reads like an instrument tag at the end of the time axis. Lives on
+  // rotationGroup (not on a candle), so it stays put as candles scroll.
+  // The reference (declared earlier) lets the real-data init re-pin its Y
+  // once TIME_SLAB_Y settles.
+  function createSP500Watermark() {
+    const text = 'SP500';
+    const DPR  = 2;
+    const FONT = '800 168px "Onest", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const measureCtx = document.createElement('canvas').getContext('2d');
+    measureCtx.font = FONT;
+    const textW = Math.ceil(measureCtx.measureText(text).width);
+    const textH = 180;
+    const PAD   = 60;
+
+    const canvas  = document.createElement('canvas');
+    canvas.width  = (textW + PAD * 2) * DPR;
+    canvas.height = (textH + PAD * 2) * DPR;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+    ctx.font = FONT;
+    ctx.textBaseline = 'top';
+    ctx.textAlign    = 'center';
+    ctx.fillStyle    = '#e8e8e8';   // very light grey — barely-there watermark wash on the floor
+    ctx.fillText(text, (textW + PAD * 2) / 2, PAD);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    tex.anisotropy  = 8;
+
+    const WORLD_PER_PX = 0.02;
+    const slabW = (canvas.width  / DPR) * WORLD_PER_PX;
+    const slabD = (canvas.height / DPR) * WORLD_PER_PX;
+    const slabT = 0.05;
+
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.85,
+    });
+    const slab = new THREE.Mesh(new THREE.BoxGeometry(slabW, slabT, slabD), mat);
+    // Start outside the chart on the right — most of the slab sits past the
+    // latest candle. The animation loop drifts X left over time at the same
+    // rate as candles, so the watermark scrolls with the timestamps and
+    // eventually exits the chart on the left.
+    sp500WatermarkInitialX = LATEST_X + 8;
+    sp500WatermarkStampMs  = performance.now();
+    slab.position.x = sp500WatermarkInitialX;
+    // Sit a couple of grid squares above the timestamp row so the two
+    // labels don't overlap. Still rides inside rotationGroup so it tracks
+    // the chart's vertical motion the same way timestamps do.
+    slab.position.y = TIME_SLAB_Y + 3;
+    slab.position.z = 0;
+    slab.renderOrder = 4;
+    rotationGroup.add(slab);
+    sp500WatermarkSlab = slab;
+    console.log('[watermark] SP500 slab created at', slab.position.toArray(),
+                '| size (w,d):', slabW.toFixed(2), slabD.toFixed(2));
+  }
 
   // Attach a small time label as a flat slab on the chart floor — same
   // orientation as the SL/TP/Entry planes. Runs if the bar timestamp falls
@@ -3688,6 +3762,15 @@
       // min price; subtract an aesthetic offset so labels sit below the wick.
       TIME_SLAB_Y = priceToY(openMinP) - 1.2;
 
+      // Re-pin the SP500 watermark Y to the real floor (with the same
+      // lift above the timestamp row), and re-stamp its X and timestamp
+      // so the leftward drift continues smoothly from its current position.
+      if (sp500WatermarkSlab) {
+        sp500WatermarkInitialX = sp500WatermarkSlab.position.x;
+        sp500WatermarkStampMs  = performance.now();
+        sp500WatermarkSlab.position.y = TIME_SLAB_Y + 3;
+      }
+
       // Fill in the replay-range text — date in NY time, e.g. "Tuesday, April 21st".
       const replayRangeEl = document.getElementById('replayRange');
       if (replayRangeEl) {
@@ -3806,6 +3889,15 @@
     const baselineRise = getBaseline() - BASE_PRICE;
     const lift = isMobileLayout() ? 0 : UPTREND_LIFT;
     rotationGroup.position.y = -baselineRise * PRICE_SCALE + lift;
+
+    // Drift the SP500 watermark left at the exact candle scroll velocity
+    // (SPACING per CANDLE_DURATION ms). It rides the same X-flow as the
+    // timestamp slabs — staying alongside its stamped moment in time and
+    // eventually scrolling off the left edge of the chart.
+    if (sp500WatermarkSlab) {
+      const drift = ((performance.now() - sp500WatermarkStampMs) / CANDLE_DURATION) * SPACING;
+      sp500WatermarkSlab.position.x = sp500WatermarkInitialX - drift;
+    }
 
     updateMarkerAnimations();
     updateDissolvingMarkers();
