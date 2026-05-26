@@ -4084,12 +4084,20 @@
   }
 
   // Translate state.range into the cutoff timestamp the series gets rebased
-  // against. 'all' anchors at monthly[0].ts (May 2019) — the €5,000 seed
-  // makes that row's equity = €5,000 (not €0), so interpolateCapital /
-  // leveragedPctAtRange no longer trip their divide-by-zero guards there.
+  // against. 'all' anchors at monthly[0].ts (= end of April 2019, the
+  // pre-trading state) shifted back 2 weeks. The shift exists so Yahoo's
+  // weekly SPX/DAX feed includes at least one bar BEFORE monthly[0].ts —
+  // interpolateCapital then clamps that bar's PRA equity to monthly[0]
+  // .capital (= €5,000 exactly, via the ts <= monthly[0].ts branch),
+  // making the chart's All-time anchor a clean €5,000 and matching the
+  // hero section's "+1,447% since May 2019" math. Without the shift the
+  // first Yahoo bar lands ~6 days into May, inflating the anchor to
+  // ~€5,070 and dampening the displayed % by ~22 pp. The €5,000 seed
+  // means interpolateCapital / leveragedPctAtRange no longer trip their
+  // divide-by-zero guards at the first row.
   function computeBaseTs() {
     if (state.range === 'all' && state.sheetMonthly && state.sheetMonthly.length > 0) {
-      return state.sheetMonthly[0].ts;
+      return state.sheetMonthly[0].ts - 14 * 24 * 60 * 60 * 1000;
     }
     const opt = RANGE_OPTIONS.find(o => o.key === state.range) || RANGE_OPTIONS[0];
     const days = opt.days || 365;
