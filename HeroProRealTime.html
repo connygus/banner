@@ -3920,9 +3920,9 @@
 (function () {
 
   const RANGE_OPTIONS = [
-    { label: '1Y', days: 365 },
-    { label: '3Y', days: 1095 },
-    { label: '5Y', days: 1825 }
+    { key: '1y',  label: '1Y',  days: 365 },
+    { key: '3y',  label: '3Y',  days: 1095 },
+    { key: 'all', label: 'All', days: null }
   ];
 
   const SERIES_CONFIG = [
@@ -3934,12 +3934,22 @@
   ];
 
   // Live ProRealAlgos equity comes from a public Google Sheet — column A is
-  // the month name and column B is the compounded account capital at the
-  // start of that month. The sheet has a second stacked block (plain numbers,
+  // the month name and column B is the CUMULATIVE PROFIT in € since trading
+  // started in May 2019. IMPORTANT: each row's value reflects state at the
+  // END of the PRECEDING month, not the end of the labeled month. So the
+  // "May 2019" row of €0 is the pre-trading state at the start of May
+  // (= end of April), and "Jun 2019" of €554 is the cumulative profit at
+  // end of May. Timestamps are assigned to the last day of the preceding
+  // month in assignMonthlyDates to make this explicit. Account equity at
+  // any moment = STARTING_CAPITAL + columnB; the €5,000 seed is added
+  // inside extractMonthlyCapitalRows so every downstream function
+  // (interpolation, % returns, drawdowns, leverage targeting) sees true
+  // account equity. The sheet has a second stacked block (plain numbers,
   // no €) below the equity table; we ignore it by filtering on the € prefix.
   const SHEET_ID  = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
   const SHEET_GID = '1444969085';
   const SHEET_CORS_PROXY = 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=';
+  const STARTING_CAPITAL = 5000;
 
   const STRATEGY = {
     // If the unleveraged PRA equity curve doesn't clear the best index by
@@ -3954,10 +3964,10 @@
   };
 
   const state = {
-    rangeDays: 365,
+    range: '1y',          // '1y' | '3y' | 'all' — translated to baseTs in recompute()
     hidden: new Set(SERIES_CONFIG.filter(s => !s.defaultVisible).map(s => s.key)),
     rawData: null,        // { spx, ndx, dax }: daily [ts, close] from Yahoo
-    sheetMonthly: null,   // [{ts, capital}]: monthly compounded equity (sheet)
+    sheetMonthly: null,   // [{ts, capital}]: monthly account equity (sheet €-profit + STARTING_CAPITAL)
     appliedLeverage: 1,
     chart: null
   };
@@ -4063,13 +4073,25 @@
     throw lastErr;
   }
 
-  function rebaseToReturns(closes, rangeDays) {
+  function rebaseToReturns(closes, baseTs) {
     if (!closes || closes.length === 0) return [];
-    const cutoff = toMidnightUTC(Date.now()) - (rangeDays * 24 * 60 * 60 * 1000);
-    const sliced = closes.filter(([d]) => d >= cutoff);
+    const sliced = closes.filter(([d]) => d >= baseTs);
     if (sliced.length === 0) return [];
     const base = sliced[0][1];
     return sliced.map(([d, c]) => [d, (c / base - 1) * 100]);
+  }
+
+  // Translate state.range into the cutoff timestamp the series gets rebased
+  // against. 'all' anchors at monthly[0].ts (May 2019) — the €5,000 seed
+  // makes that row's equity = €5,000 (not €0), so interpolateCapital /
+  // leveragedPctAtRange no longer trip their divide-by-zero guards there.
+  function computeBaseTs() {
+    if (state.range === 'all' && state.sheetMonthly && state.sheetMonthly.length > 0) {
+      return state.sheetMonthly[0].ts;
+    }
+    const opt = RANGE_OPTIONS.find(o => o.key === state.range) || RANGE_OPTIONS[0];
+    const days = opt.days || 365;
+    return toMidnightUTC(Date.now()) - days * 24 * 60 * 60 * 1000;
   }
 
   // ---------- Google Sheet → ProRealAlgos monthly equity ----------
@@ -4122,10 +4144,14 @@
     return -1;
   }
 
-  // The first block of the sheet (header + month/€capital rows) is the
-  // compounded equity table; a second block below it (no € prefix) is the
-  // raw monthly gain in EUR which we ignore. Filtering on the € marker
-  // cleanly separates them.
+  // The first block of the sheet (header + month/€ rows) is the cumulative
+  // profit table — column B is profit-to-date since May 2019 (first row =
+  // €0), where each row's value reflects state at the end of the PRECEDING
+  // month (see assignMonthlyDates for timestamping). We add STARTING_CAPITAL
+  // here so every downstream caller (interpolateCapital, leveragedPctAtRange,
+  // leverageMonthlyCapital, etc.) operates on true account equity rather
+  // than raw profit. A second block below the table (no € prefix) is the
+  // raw monthly gain in EUR which we ignore — filtering on € separates them.
   function extractMonthlyCapitalRows(csvText) {
     const rows = parseCsvRows(csvText);
     const out = [];
@@ -4138,7 +4164,7 @@
       if (monthIdx < 0) continue;
       const num = parseFloat(b.replace(/[€\s,]/g, ''));
       if (!isFinite(num)) continue;
-      out.push({ monthIdx, capital: num });
+      out.push({ monthIdx, capital: num + STARTING_CAPITAL });
     }
     return out;
   }
@@ -4146,6 +4172,14 @@
   // Walk backwards from the latest row to assign year+month. Latest row's
   // month maps to the most recent occurrence not exceeding today's month —
   // so a "May" entry written on May 1st correctly anchors to this May.
+  //
+  // Each row's value reflects state at the END of the PRECEDING month (a
+  // "Jun 2019" row of €554 means "cumulative profit through May 31 was
+  // €554"). We timestamp at the last day of the preceding month so the
+  // chart plots each data point at the moment it was actually achieved.
+  // JS trick: Date.UTC(y, m, 0) rolls back to the last day of month m-1
+  // — so for monthIdx=5 (Jun), ts = May 31; for monthIdx=4 (May), ts =
+  // April 30 (= pre-trading anchor for the May 2019 = €0 first row).
   function assignMonthlyDates(rows) {
     if (rows.length === 0) return [];
     const today    = new Date();
@@ -4156,7 +4190,7 @@
     let month = lastIdx;
     const dated = new Array(rows.length);
     for (let i = rows.length - 1; i >= 0; i--) {
-      dated[i] = { ts: Date.UTC(year, month, 1), capital: rows[i].capital };
+      dated[i] = { ts: Date.UTC(year, month, 0), capital: rows[i].capital };
       month--;
       if (month < 0) { month = 11; year--; }
     }
@@ -4479,9 +4513,9 @@
     RANGE_OPTIONS.forEach(opt => {
       const btn = document.createElement('button');
       btn.textContent = opt.label;
-      btn.dataset.days = opt.days;
-      if (opt.days === state.rangeDays) btn.classList.add('active');
-      btn.addEventListener('click', () => setRange(opt.days));
+      btn.dataset.range = opt.key;
+      if (opt.key === state.range) btn.classList.add('active');
+      btn.addEventListener('click', () => setRange(opt.key));
       container.appendChild(btn);
     });
   }
@@ -4519,9 +4553,10 @@
   function recompute() {
     if (!state.rawData || !state.sheetMonthly) return;
     const { spx, ndx, dax } = state.rawData;
-    const spxRet = rebaseToReturns(spx, state.rangeDays);
-    const ndxRet = rebaseToReturns(ndx, state.rangeDays);
-    const daxRet = rebaseToReturns(dax, state.rangeDays);
+    const cutoffTs = computeBaseTs();
+    const spxRet = rebaseToReturns(spx, cutoffTs);
+    const ndxRet = rebaseToReturns(ndx, cutoffTs);
+    const daxRet = rebaseToReturns(dax, cutoffTs);
 
     // Align PRA to SPX's daily timestamps so the shared tooltip lines up and
     // both anchor at 0% on the same first x-coord.
@@ -4564,10 +4599,10 @@
     }
   }
 
-  function setRange(days) {
-    state.rangeDays = days;
+  function setRange(rangeKey) {
+    state.range = rangeKey;
     document.querySelectorAll('.pra-range-pills button').forEach(b => {
-      b.classList.toggle('active', parseInt(b.dataset.days, 10) === days);
+      b.classList.toggle('active', b.dataset.range === rangeKey);
     });
     recompute();
   }
