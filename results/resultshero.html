@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos · Hero · The Contrarian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.cdnfonts.com/css/pauline-signature">
+<style>
+:root {
+  --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+  --ink: #333333; --ink-soft: #555555; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+  --red: #FF4F55; --red-soft: #FDECEC;
+  --green: #3DC574; --green-soft: #E6F7EE;
+  --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body, html { overflow: hidden; }
+body {
+  font-family: 'Onest', sans-serif; background: var(--bg); color: var(--ink);
+  -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; line-height: 1.55;
+}
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 32px 0;
+  background: var(--bg);
+  position: relative;
+}
+.container {
+  max-width: 1100px; margin: 0 auto;
+  padding: 0 40px;
+  position: relative; z-index: 2;
+}
+
+/* TOP META BAR */
+.meta {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 22px; margin-bottom: 48px;
+  border-bottom: 1px solid var(--hairline);
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  letter-spacing: 0.14em; color: var(--ink-muted); font-weight: 700;
+}
+.meta-left {
+  display: flex; align-items: center; gap: 12px;
+}
+.meta-left .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--red);
+}
+.meta-right {
+  display: flex; gap: 22px;
+}
+.meta-right span {
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.meta-right .live {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 1.6s ease-out infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(61, 197, 116, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(61, 197, 116, 0); }
+}
+
+/* ISSUE NUMBER */
+.issue-line {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: 0.2em; color: var(--ink-muted);
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 28px;
+}
+.issue-line .sep { color: var(--hairline-strong); margin: 0 12px; }
+
+/* THE BIG MANIFESTO */
+.manifesto {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.manifesto-text {
+  font-size: 78px; font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.0;
+  color: var(--ink);
+  max-width: 920px;
+  margin: 0 auto;
+}
+.manifesto-text em {
+  font-style: italic; color: var(--ink-muted); font-weight: 500;
+}
+.manifesto-text .strike {
+  position: relative; display: inline-block;
+  color: var(--ink-muted);
+}
+.manifesto-text .strike::after {
+  content: "";
+  position: absolute;
+  left: -2%; right: -2%; top: 52%;
+  height: 6px; background: var(--red);
+  transform: rotate(-2deg);
+  border-radius: 3px;
+}
+.manifesto-text .accent {
+  color: var(--red);
+  white-space: nowrap;
+}
+.manifesto-text .nowrap-line {
+  white-space: nowrap;
+}
+
+/* SIGNATURE LINE */
+.signature {
+  position: relative;
+  text-align: center;
+  margin-bottom: 36px;
+  padding: 0 16px;
+  font-size: 22px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.012em;
+}
+.signature::before {
+  content: "\201C";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 220px;
+  line-height: 0.6;
+  color: var(--ink);
+  opacity: 0.05;
+  font-weight: 700;
+  pointer-events: none;
+  z-index: 0;
+}
+.signature > * { position: relative; z-index: 1; }
+.signature strong { color: var(--ink-muted); font-weight: 400; }
+.signature em { color: var(--ink-muted); font-style: italic; }
+
+/* TRUST STRIP MIDDLE */
+.trust-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  border-radius: 16px; overflow: hidden;
+  margin-bottom: 0;
+}
+.trust-cell {
+  background: var(--bg);
+  padding: 22px 24px;
+  text-align: center;
+}
+.trust-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 32px; font-weight: 800; letter-spacing: -0.03em;
+  color: var(--ink); line-height: 1; margin-bottom: 8px;
+}
+.trust-num.green { color: var(--green); }
+.trust-num.red { color: var(--red); }
+.trust-lab {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: 0.14em; color: var(--ink-muted); font-weight: 700;
+}
+
+/* CTA ROW */
+.cta-row {
+  display: flex; justify-content: center; gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 26px;
+  border-radius: 10px;
+  border: none;
+  font-family: 'Onest', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+.btn-primary {
+  background: #333333;
+  color: #FFFFFF;
+}
+.btn-primary:hover { background: var(--red); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+.btn-secondary {
+  background: #E2E2E4;
+  color: var(--ink);
+}
+.btn-secondary:hover { background: #D2D2D4; }
+.btn-secondary:active { transform: translateY(1px); }
+.btn-secondary:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
+.foot-note {
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  color: var(--ink-muted); letter-spacing: 0.06em;
+  font-weight: 600;
+}
+.foot-note em { color: var(--ink-dim); font-style: italic; }
+
+/* ROLLING DAY COUNTER */
+.day-counter {
+  position: relative;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+/* FLIP-CARD DIGITS */
+.flip-digit {
+  position: relative;
+  display: inline-block;
+  width: 0.62em;
+  height: 0.92em;
+  background: #FFFFFF;
+  border-radius: 3px;
+  vertical-align: -0.08em;
+  margin: 0 0.04em;
+  text-align: center;
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.10),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  color: inherit;
+  line-height: 0.92em;
+  letter-spacing: 0;
+  font-weight: 800;
+}
+.flip-digit::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0; right: 0;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.10);
+  margin-top: -0.5px;
+  z-index: 3;
+  pointer-events: none;
+}
+.flip-comma {
+  display: inline-block;
+  color: var(--ink);
+  padding: 0 0.04em;
+  font-weight: 800;
+  vertical-align: -0.08em;
+  letter-spacing: 0;
+}
+
+.counter-wrap {
+  position: relative;
+  display: inline-block;
+  width: 0.62em;
+  height: 0.92em;
+  vertical-align: -0.08em;
+  margin: 0 0.04em;
+  line-height: 0.92em;
+  top: 0.07em;
+}
+.counter-wrap::before {
+  content: "0";
+  visibility: hidden;
+}
+
+.counter-roll {
+  overflow: hidden;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+}
+.counter-roll-top,
+.counter-roll-bot {
+  position: absolute;
+  left: 0; right: 0;
+  text-align: center;
+  line-height: 0.92;
+  color: inherit;
+  transform: translateY(calc(-1 * var(--progress, 0.32) * 100%));
+  transition: transform 0.6s ease-out;
+  will-change: transform;
+}
+.counter-roll-top { top: 0; }
+.counter-roll-bot { top: 100%; }
+
+/* CAPTION DIRECTLY UNDER THE COUNTER */
+.counter-caption {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  color: rgba(14, 14, 16, 0.4);
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  line-height: 1.4;
+  text-transform: none;
+}
+
+/* SIGNATURE SVG */
+.sig-cluster {
+  width: 380px;
+  max-width: 92%;
+  margin: 12px auto 0;
+  text-align: center;
+}
+.sig-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+}
+.sig-role {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  font-style: normal;
+  text-align: center;
+  margin-top: 0;
+}
+
+/* ============================================================
+   RESPONSIVE
+   Tiers: 1000px (Wix tablet), 750px (tablet/mobile boundary),
+   510px (phone). Ordered widest first so the narrower blocks win
+   the cascade where they overlap.
+   ============================================================ */
+
+/* TABLET — 751px to 1000px.
+   The flat 78px desktop headline overruns the container here because
+   the nowrap counter line is wider than the available width. Scale the
+   headline fluidly so that line always fits, while keeping the rest of
+   the full-height hero layout (4-col trust strip, row meta) intact. */
+@media (max-width: 1000px) {
+  .manifesto-text { font-size: clamp(50px, 6.9vw, 72px); }
+}
+
+@media (max-width: 750px) {
+  /* Let the iframe grow with its content instead of locking to one
+     screen, and allow vertical scroll. Horizontal stays clipped so a
+     stray sub-pixel never spawns a sideways scrollbar inside Wix. */
+  html, body { overflow-x: hidden; overflow-y: auto; }
+  .hero { min-height: auto; padding: 88px 0 48px; }
+  .container { padding: 0 24px; }
+
+  /* Fluid headline. The nowrap "and N days of receipts." line is the
+     widest element on the page (the flip-cards are wider than plain
+     digits), so the font scales with viewport width to keep that line
+     inside the container at every size instead of being clipped. */
+  .manifesto-text {
+    font-size: clamp(22px, 6.6vw, 50px);
+    margin-bottom: 40px;
+  }
+
+  .trust-row { grid-template-columns: repeat(2, 1fr); }
+  .meta { flex-direction: column; gap: 12px; align-items: flex-start; }
+  .meta-right { gap: 14px; flex-wrap: wrap; }
+  .signature { font-size: 19px; }
+  .sig-cluster { width: 340px; }
+  .signature::before { font-size: 180px; top: 2px; }
+}
+
+@media (max-width: 510px) {
+  .hero { padding: 80px 0 48px; }
+  .container { padding: 0 20px; }
+  .signature { font-size: 17px; padding: 0 6px; }
+  .trust-cell { padding: 18px 14px; }
+  .trust-num { font-size: 24px; }
+  .sig-cluster { width: 260px; }
+  .signature::before { font-size: 130px; top: 6px; }
+  .counter-caption { font-size: 9px; }
+}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="container">
+
+    <!-- MANIFESTO -->
+    <div class="manifesto">
+      <h1 class="manifesto-text">
+        <span class="strike">We have opinions.</span><br>
+        We have <span class="accent">20 algorithms</span><br>
+        <span class="nowrap-line">and <span class="day-counter"
+          ><span class="accent" id="day-stable"><span class="flip-digit">0</span><span class="flip-digit">0</span><span class="flip-digit">0</span></span><span class="accent counter-wrap" id="counter-wrap"
+            ><span class="flip-digit counter-roll" id="day-roll"
+              ><span class="counter-roll-top" id="day-roll-top">0</span
+              ><span class="counter-roll-bot" id="day-roll-bot">1</span
+            ></span
+          ></span
+          ><span class="counter-caption">From May 20th 2019 to <span id="caption-today"></span></span
+        ></span> days of receipts.</span>
+      </h1>
+    </div>
+
+    <!-- SIGNATURE -->
+    <div class="signature">
+      <p class="signature-text">My twenty algorithms. Every trade they've taken, publicly logged since May 2019. Fully hands-off, emotionless trading, running 24/7 for years. No guessing. No burnout. No decision fatigue.</p>
+      <div class="sig-cluster">
+        <svg class="sig-svg" viewBox="0 0 480 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Carl C.G. Eriksson signature">
+          <defs>
+            <filter id="ink-flow" x="-5%" y="-5%" width="110%" height="110%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="11" result="noise"/>
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6"/>
+            </filter>
+          </defs>
+          <text x="240" y="66" text-anchor="middle" font-family="'Pauline Signature', cursive" font-size="56" fill="#1a1a1a" filter="url(#ink-flow)">Carl C.G. Eriksson</text>
+        </svg>
+        <div class="sig-role">FOUNDER · STOCKHOLM</div>
+      </div>
+    </div>
+
+    <!-- TRUST ROW -->
+    <div class="trust-row">
+      <div class="trust-cell">
+        <div class="trust-num green" id="trust-gain">+1,447%</div>
+        <div class="trust-lab">SINCE MAY 2019</div>
+      </div>
+      <div class="trust-cell">
+        <div class="trust-num red" id="trust-dd">−15.7%</div>
+        <div class="trust-lab">WORST DRAWDOWN</div>
+      </div>
+      <div class="trust-cell">
+        <div class="trust-num" id="trust-trades">10,020</div>
+        <div class="trust-lab">TOTAL NBR OF TRADES</div>
+      </div>
+      <div class="trust-cell">
+        <div class="trust-num">20</div>
+        <div class="trust-lab">ALGOS · 7 IN TRADE</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+(function() {
+  // Render today's date into the caption in "May 27th '26" format
+  var captionEl = document.getElementById('caption-today');
+  if (captionEl) {
+    var months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+    function ordinalSuffix(n) {
+      var v = n % 100;
+      if (v >= 11 && v <= 13) return 'th';
+      switch (n % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    }
+    var todayCap = new Date();
+    var d = todayCap.getDate();
+    var m = months[todayCap.getMonth()];
+    var y = todayCap.getFullYear();
+    captionEl.textContent = m + ' ' + d + ordinalSuffix(d) + ' ' + y;
+  }
+
+  // Start date: May 20, 2019 at LOCAL midnight in the user's timezone.
+  // Using (year, month, day) constructor avoids ISO-string UTC parsing
+  // and naturally adapts to wherever the visitor is.
+  var startDate = new Date(2019, 4, 20); // month is 0-indexed: 4 = May
+
+  var stableEl = document.getElementById('day-stable');
+  var topEl = document.getElementById('day-roll-top');
+  var botEl = document.getElementById('day-roll-bot');
+  var rollEl = document.getElementById('day-roll');
+  var wrapEl = document.getElementById('counter-wrap');
+  if (!stableEl || !topEl || !botEl || !rollEl || !wrapEl) return;
+
+  function computeDays(date) {
+    // Normalize both ends to local midnight so DST jumps don't shift the count
+    var startMidnight = startDate.getTime();
+    var dateMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    return Math.round((dateMidnight - startMidnight) / 86400000);
+  }
+  function computeDayProgress(now) {
+    // Fraction of today elapsed in the user's local timezone, 0 to 1
+    var todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    return (now.getTime() - todayMidnight) / 86400000;
+  }
+
+  function renderValue(value, progress) {
+    var dayStr = value.toString();
+    while (dayStr.length < 4) dayStr = '0' + dayStr;
+    var lastChar = dayStr.charAt(dayStr.length - 1);
+    var lastDigit = parseInt(lastChar, 10);
+    var nextDigit = (lastDigit + 1) % 10;
+    var stable = dayStr.slice(0, -1);
+
+    // Render each digit of the stable part as its own flip card
+    var html = '';
+    for (var i = 0; i < stable.length; i++) {
+      html += '<span class="flip-digit">' + stable.charAt(i) + '</span>';
+    }
+    stableEl.innerHTML = html;
+    topEl.textContent = lastDigit;
+    botEl.textContent = nextDigit;
+    wrapEl.style.setProperty('--progress', progress);
+  }
+
+  // INITIAL RENDER: show today's real value immediately (no animation, no pulse)
+  // so the visitor sees a correct, calm number while reading the page.
+  var initialNow = new Date();
+  renderValue(computeDays(initialNow), computeDayProgress(initialNow));
+
+  // After a brief wait, kick off the count-up animation and start the pulse,
+  // so movement only begins once the visitor has settled on the page.
+  setTimeout(function() {
+    wrapEl.classList.add('live');
+
+    var target = computeDays(new Date());
+    var duration = 900;       // ~1 second total
+    var steps = 8;            // 8 visible values (~112ms each, low flicker)
+    var currentStep = 0;
+
+    function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+    // snap to 0 to begin the count-up
+    renderValue(0, 0);
+
+    var animTimer = setInterval(function() {
+      currentStep++;
+      var t = currentStep / steps;
+      if (t >= 1) {
+        clearInterval(animTimer);
+        // settle on today's value with today's progress driving the mid-roll
+        var settled = new Date();
+        renderValue(computeDays(settled), computeDayProgress(settled));
+        // keep the progress visualization fresh
+        setInterval(function() {
+          var nowLive = new Date();
+          renderValue(computeDays(nowLive), computeDayProgress(nowLive));
+        }, 30000);
+      } else {
+        var eased = easeOutCubic(t);
+        renderValue(Math.floor(eased * target), 0);
+      }
+    }, duration / steps);
+  }, 1500);
+
+  // DYNAMIC TRADES COUNT: ~119 trades per month since 20 May 2019
+  // (avg days per month = 30.4375; trades = (elapsedDays / 30.4375) * 119)
+  var tradesEl = document.getElementById('trust-trades');
+  if (tradesEl) {
+    var nowT = new Date();
+    var elapsedDays = computeDays(nowT);
+    var trades = Math.round((elapsedDays / 30.4375) * 119);
+    tradesEl.textContent = trades.toLocaleString('en-US');
+  }
+})();
+</script>
+
+<!-- Live results from the same Google Sheet HeroProRealTime uses.
+     Applies the chart's (end / base - 1) * 100 formula, but to the actual
+     ACCOUNT EQUITY (= €5,000 starting capital + cumulative profit from
+     sheet column B), so percentages reflect real account returns.
+
+     Each sheet row's value reflects state at the END of the PRECEDING
+     month (so "Jun 2019" of €554 means "cumulative profit through end
+     of May was €554"). The "May 2019" row of €0 is the pre-trading
+     anchor at end-of-April / start-of-May, where equity = €5,000 + €0
+     = €5,000 — both gain and drawdown compound from there. -->
+<script>
+(function() {
+  var SHEET_ID   = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+  var SHEET_GID  = '1444969085';
+  var PROXY      = 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=';
+  var TIMEOUT_MS = 12000;
+  var SEED       = 5000;  // Starting capital in May 2019
+
+  // CSV parser (same as HeroProRealTime line 3987)
+  function parseCsvRows(text) {
+    var rows = [], row = [], cell = '', inQ = false, i = 0;
+    while (i < text.length) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i += 2; }
+          else { inQ = false; i++; }
+        } else { cell += c; i++; }
+      } else {
+        if (c === '"')      { inQ = true; i++; }
+        else if (c === ',') { row.push(cell); cell = ''; i++; }
+        else if (c === '\n' || c === '\r') {
+          row.push(cell); rows.push(row);
+          row = []; cell = '';
+          if (c === '\r' && text[i + 1] === '\n') i += 2; else i++;
+        } else { cell += c; i++; }
+      }
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  var MONTH_MAP = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+    apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+    aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+    okt: 9, nov: 10, november: 10, dec: 11, december: 11
+  };
+
+  // Mirrors HeroProRealTime's extractMonthlyCapitalRows: filter rows whose
+  // column-B contains €, parse the number, parse the month name from
+  // column-A. Column B is cumulative profit since trading started (May
+  // 2019 row = €0 = pre-trading); we add SEED here so every downstream
+  // caller works with true account equity rather than raw profit.
+  function extractMonthlyCapitalRows(csvText) {
+    var rows = parseCsvRows(csvText);
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.length < 2) continue;
+      var a = (r[0] || '').trim().toLowerCase().replace(/[^a-z].*$/, '');
+      var b = (r[1] || '').trim();
+      if (b.indexOf('€') === -1) continue;
+      var monthIdx = MONTH_MAP[a];
+      if (monthIdx == null) continue;
+      var num = parseFloat(b.replace(/[€\s,]/g, ''));
+      if (!isFinite(num)) continue;
+      out.push({ monthIdx: monthIdx, capital: num + SEED });
+    }
+    return out;
+  }
+
+  // Account equity at each month is baked into rows[j].capital by
+  // extractMonthlyCapitalRows (= SEED + cumulative profit from column B).
+  // Apply the chart's (end / base - 1) * 100 formula to that equity
+  // series. Anchored at rows[0] = May 2019 pre-trading equity = €5,000.
+  function computeStats(rows) {
+    if (!rows || rows.length < 2) return null;
+    var equityStart = rows[0].capital;              // May 2019 pre-trading = €5,000
+    var equityEnd   = rows[rows.length - 1].capital;
+    if (!equityStart) return null;
+    var gainPct = (equityEnd / equityStart - 1) * 100;
+
+    // Peak-to-trough drawdown on the equity series. The running peak
+    // only ratchets up; dd measures the worst pullback from any peak.
+    var peak  = equityStart;
+    var maxDD = 0;
+    for (var j = 0; j < rows.length; j++) {
+      var eq = rows[j].capital;
+      if (eq > peak) peak = eq;
+      if (peak > 0) {
+        var dd = (peak - eq) / peak;
+        if (dd > maxDD) maxDD = dd;
+      }
+    }
+    return { gainPct: gainPct, ddPct: maxDD * 100 };
+  }
+
+  function formatGain(pct) {
+    var sign = pct >= 0 ? '+' : '−';
+    var abs = Math.abs(pct);
+    var num = abs >= 1000
+      ? Math.round(abs).toLocaleString('en-US')
+      : abs.toFixed(1);
+    return sign + num + '%';
+  }
+  function formatDD(pct) {
+    return '−' + Math.abs(pct).toFixed(1) + '%';
+  }
+
+  function updateUI(stats) {
+    if (!stats) return;
+    var gEl = document.getElementById('trust-gain');
+    var dEl = document.getElementById('trust-dd');
+    if (gEl) gEl.textContent = formatGain(stats.gainPct);
+    if (dEl) dEl.textContent = formatDD(stats.ddPct);
+  }
+
+  function fetchWithTimeout(url, ms) {
+    return new Promise(function(resolve, reject) {
+      var ctrl    = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer   = setTimeout(function() {
+        if (ctrl) ctrl.abort();
+        reject(new Error('timeout'));
+      }, ms);
+      var opts = ctrl ? { signal: ctrl.signal } : {};
+      fetch(url, opts).then(function(res) {
+        clearTimeout(timer);
+        resolve(res);
+      }, function(err) {
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  }
+
+  var sheetUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+                 '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID + '&range=A:B';
+  var proxyUrl = PROXY + encodeURIComponent(sheetUrl);
+
+  fetchWithTimeout(proxyUrl, TIMEOUT_MS)
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function(text) {
+      var rows = extractMonthlyCapitalRows(text);
+      if (rows.length < 4) return;
+      updateUI(computeStats(rows));
+    })
+    .catch(function() {
+      // silent fallback — hardcoded values stay in place
+    });
+})();
+</script>
+
+</body>
+</html>

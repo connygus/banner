@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProRealAlgos — Live Trading Floor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --bg-soft: #F7F7F8;
+    --bg-muted: #F1F1F3;
+    --ink: #0E0E10;
+    --ink-soft: #1F1F22;
+    --ink-muted: #6B6B72;
+    --ink-dim: #9B9BA0;
+    --red: #EC3B3D;
+    --red-hover: #D62F31;
+    --red-soft: #FDECEC;
+    --red-border: #F9D3D4;
+    --green: #3DC574;
+    --green-soft: #E6F7EE;
+    --green-border: #C7EBD6;
+    --amber: #E8B842;
+    --amber-soft: #FCF4DE;
+    --hairline: #EAEAEC;
+    --hairline-strong: #D8D8DB;
+    --button: #121215;
+    --button-hover: #26262B;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body, html{ overflow: hidden;}
+  body {
+    font-family: 'Onest', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+    font-size: 15px;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .accent { color: var(--red); }
+  .accent-g { color: var(--green); }
+
+  /* ===== full-width tinted section ===== */
+  .floor-teaser {
+    width: 100%;
+    background: var(--bg-soft);
+    padding: 66px 0 22px;
+  }
+  .ft-container {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 28px;
+  }
+
+  /* ===== pulse dot ===== */
+  .pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--red);
+    position: relative; display: inline-block; flex-shrink: 0;
+  }
+  .pulse-dot::after {
+    content: ""; position: absolute; inset: -3px; border-radius: 50%;
+    background: var(--red); opacity: 0.4;
+    animation: pulseRing 1.8s ease-in-out infinite;
+  }
+  .pulse-dot.green { background: var(--green); }
+  .pulse-dot.green::after { background: var(--green); }
+  @keyframes pulseRing {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+
+  /* ===== buttons ===== */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 11px 20px; border-radius: 100px; border: none;
+    font-family: inherit; font-weight: 600; font-size: 13.5px;
+    cursor: pointer; text-decoration: none; white-space: nowrap;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  }
+  .btn-dark { background: var(--button); color: #FFFFFF; }
+  .btn-dark:hover { background: var(--button-hover); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,14,16,0.18); }
+  .btn-light { background: #FFFFFF; color: var(--ink); }
+  .btn-light:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(0,0,0,0.28); }
+
+  /* ===== header ===== */
+  .ft-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .ft-eyebrow {
+    display: inline-flex; align-items: center; gap: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--red); font-weight: 600; margin-bottom: 7px;
+  }
+  .ft-eyebrow .pulse-dot { width: 7px; height: 7px; }
+  .ft-header h2 {
+    font-size: clamp(22px, 2.4vw, 28px); font-weight: 700;
+    letter-spacing: -0.025em; line-height: 1.05;
+  }
+  .ft-header .ft-sub {
+    color: var(--ink-muted); font-size: 12.5px; margin-top: 5px; max-width: 540px;
+  }
+  .ft-header .ft-sub strong { color: var(--ink-soft); font-weight: 600; }
+
+  /* ===== board ===== */
+  .ft-board { display: flex; flex-direction: column; gap: 12px; }
+  .ft-row1 { display: grid; grid-template-columns: 1.52fr 1fr; gap: 12px; height: 246px; }
+  .ft-row2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; height: 156px; }
+
+  /* ===== panel ===== */
+  .panel {
+    background: var(--bg); border: 1px solid var(--hairline);
+    border-radius: 16px; overflow: hidden;
+    display: flex; flex-direction: column; position: relative; min-height: 0;
+  }
+  .panel-hdr {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 15px; border-bottom: 1px solid var(--hairline); flex-shrink: 0;
+  }
+  .panel-hdr-l { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .panel-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+  .panel-sub {
+    font-family: 'JetBrains Mono', monospace; font-size: 9.5px;
+    color: var(--ink-muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+  }
+  .panel-body { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+  .panel-body iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+  .live-mini {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    color: var(--green); letter-spacing: 0.12em; font-weight: 700;
+  }
+  .live-mini.red { color: var(--red); }
+  .live-mini::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blinkDot 1.4s ease-in-out infinite; }
+  .live-mini.red::before { background: var(--red); }
+  @keyframes blinkDot { 50% { opacity: 0.2; } }
+  .queue-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700;
+    letter-spacing: 0.08em; color: var(--red);
+  }
+  .queue-pill .pulse-dot { width: 6px; height: 6px; }
+
+  /* ===== open-trades ticker strip ===== */
+  .ft-ticker { height: 40px; border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden; background: var(--bg); }
+  .ft-ticker iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+  /* ===== map panel ===== */
+  .map-body { background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 0; }
+  .map-body svg { width: 100%; height: 100%; display: block; }
+  .map-foot {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--hairline); background: var(--bg-soft); flex-shrink: 0;
+  }
+  .map-foot .cell { padding: 7px 12px; border-right: 1px solid var(--hairline); }
+  .map-foot .cell:last-child { border-right: none; }
+  .map-foot .k { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; color: var(--ink-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .map-foot .v { font-size: 14px; font-weight: 700; letter-spacing: -0.015em; }
+  .map-foot .v .accent { color: var(--red); }
+  .map-foot .mkt-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+  .map-foot .mkt .k { margin-bottom: 0; }
+  .map-foot .mtime { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.01em; }
+  .map-foot .mv { display: flex; align-items: center; gap: 6px; }
+  .map-foot .mdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .map-foot .mdot.open { background: var(--green); box-shadow: 0 0 0 2px rgba(61,197,116,0.22); }
+  .map-foot .mdot.soon { background: var(--amber); box-shadow: 0 0 0 2px rgba(232,184,66,0.20); }
+  .map-foot .mdot.closed { background: var(--red); box-shadow: 0 0 0 2px rgba(236,59,61,0.16); }
+  .map-foot .mstat { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .map-foot .mstat.open { color: var(--green); }
+  .map-foot .mstat.soon { color: var(--amber); }
+  .map-foot .mstat.closed { color: var(--ink-dim); }
+
+  /* ===== unlock bar ===== */
+  .ft-unlock {
+    background: var(--ink); color: #FFFFFF; border-radius: 16px;
+    padding: 14px 22px; display: flex; align-items: center; gap: 22px;
+    position: relative; overflow: hidden; flex-wrap: wrap;
+  }
+  .ft-unlock::before {
+    content: ""; position: absolute; top: -40%; right: -8%; width: 60%; height: 180%;
+    background: radial-gradient(circle, rgba(61,197,116,0.20), transparent 58%); pointer-events: none;
+  }
+  .ft-unlock > * { position: relative; }
+  .ft-unlock-l { display: flex; align-items: center; gap: 13px; flex: 1; min-width: 240px; }
+  .ft-unlock-ico {
+    width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+    background: rgba(255,255,255,0.1); color: #FFFFFF;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ft-unlock-title { font-size: 14.5px; font-weight: 700; letter-spacing: -0.015em; }
+  .ft-unlock-sub { font-size: 11.5px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .ft-unlock-kpis { display: flex; gap: 22px; }
+  .uk { display: flex; flex-direction: column; gap: 2px; }
+  .uk-v { font-family: 'Onest', sans-serif; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+  .uk-v.g { color: var(--green); }
+  .uk-l { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; letter-spacing: 0.1em; color: rgba(255,255,255,0.5); text-transform: uppercase; font-weight: 700; }
+
+  /* ===== join-waitlist popover (ported from tradefloor.html) ===== */
+  .cs-popover {
+    position: fixed; z-index: 9999; width: 400px; max-width: calc(100vw - 24px);
+    background: #FFFFFF; border: 1px solid var(--hairline-strong); border-radius: 14px;
+    padding: 18px 18px 16px;
+    box-shadow: 0 16px 40px rgba(8, 8, 14, 0.16), 0 2px 8px rgba(8, 8, 14, 0.06);
+    display: flex; flex-direction: column; gap: 12px; text-align: left;
+    opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.24s;
+  }
+  .cs-popover.is-open {
+    opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0);
+    transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0s;
+  }
+  .cs-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; color: var(--ink); margin: 0; padding-right: 32px; white-space: nowrap; }
+  .cs-alert { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: var(--red-soft); border: 1px solid var(--red-border); border-radius: 10px; }
+  .cs-alert-icon { flex-shrink: 0; width: 18px; height: 18px; color: var(--red); margin-top: 1px; }
+  .cs-alert-text { font-size: 13px; line-height: 1.4; color: var(--ink); }
+  .cs-alert-text strong { display: block; font-weight: 700; margin-bottom: 2px; }
+  .cs-alert-text span { display: block; color: var(--ink-soft); font-weight: 400; }
+  .cs-close { position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 8px; color: var(--ink-muted); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
+  .cs-close:hover { background: var(--bg-muted); color: var(--ink); }
+  .cs-close svg { width: 14px; height: 14px; }
+  .cs-form-row { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 2px; }
+  .cs-email { width: 100%; height: 44px; padding: 0 14px; background: #FFFFFF; border: 1px solid var(--hairline-strong); border-radius: 10px; font-family: 'Onest', sans-serif; font-size: 14px; color: var(--ink); outline: none; transition: border-color 0.15s ease, box-shadow 0.15s ease; -webkit-appearance: none; appearance: none; }
+  .cs-email::placeholder { color: var(--ink-dim); }
+  .cs-email:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(14, 14, 16, 0.06); }
+  .cs-email.is-invalid { border-color: var(--red); box-shadow: 0 0 0 3px rgba(236, 59, 61, 0.10); }
+  .cs-submit { width: 100%; height: 44px; padding: 0 16px; background: var(--ink); color: #FFFFFF; border: none; border-radius: 10px; font-family: 'Onest', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: -0.005em; cursor: pointer; transition: background-color 0.18s ease, transform 0.08s ease; -webkit-appearance: none; appearance: none; }
+  .cs-submit:hover { background: var(--red); }
+  .cs-submit:active { transform: translateY(1px); }
+  .cs-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+  .cs-submit:disabled:hover { background: var(--ink); }
+  .cs-status { font-size: 12.5px; font-weight: 500; line-height: 1.4; opacity: 0; max-height: 0; overflow: hidden; transition: opacity 0.2s ease, max-height 0.2s ease; }
+  .cs-status.is-visible { opacity: 1; max-height: 60px; }
+  .cs-status.is-success { color: #1a8a4a; }
+  .cs-status.is-error { color: var(--red); }
+
+  /* ===== responsive ===== */
+  @media (max-width: 980px) {
+    .ft-row1, .ft-row2 { grid-template-columns: 1fr; height: auto; }
+    .ft-row1 .panel { height: 280px; }
+    .ft-row2 .panel:nth-child(1) { height: 156px; }   /* Live portfolio */
+    .ft-row2 .panel:nth-child(2) { height: 146px; }   /* Live activity (3 rows) */
+    .ft-row2 .panel:nth-child(3) { height: 130px; }   /* Recent closes (2 closes) */
+    .ft-unlock-kpis { order: 3; }
+  }
+  @media (max-width: 510px) {
+    .ft-container { padding: 0 16px; }
+    .ft-header { gap: 14px; }
+    .ft-header .btn { width: 100%; }
+    .ft-unlock { flex-direction: column; align-items: flex-start; gap: 14px; }
+    .ft-unlock-kpis { gap: 18px; }
+    .ft-unlock .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<section class="floor-teaser">
+  <div class="ft-container">
+
+    <!-- ===== HEADER ===== -->
+    <div class="ft-header">
+      <div class="ft-header-l">
+        <div class="ft-eyebrow"><span class="pulse-dot"></span> Live trading floor</div>
+        <h2>This is the trading floor of what is<br>happening in our algo portfolio <span class="accent">right now</span></h2>
+      </div>
+      <button type="button" class="btn btn-dark cta-waitlist">Start running our algos →</button>
+    </div>
+
+    <!-- ===== BOARD ===== -->
+    <div class="ft-board">
+
+      <!-- OPEN TRADES TICKER (live) -->
+      <div class="ft-ticker">
+        <iframe src="https://prorealalgos.azurewebsites.net/OpenTradesTicker" title="Live open trades" loading="lazy" scrolling="no"></iframe>
+      </div>
+
+      <!-- ROW 1: 30-day PnL chart (hero) + global network map -->
+      <div class="ft-row1">
+
+        <!-- 30-Day P&L (live iframe) -->
+        <div class="panel">
+          <div class="panel-hdr">
+            <div class="panel-hdr-l">
+              <span class="panel-title">Portfolio P&L</span>
+              <span class="panel-sub">Last 30 days</span>
+            </div>
+            <span class="live-mini red">LIVE</span>
+          </div>
+          <div class="panel-body">
+            <iframe src="https://prorealalgos.azurewebsites.net/Pnl30" title="30-day P&L" loading="lazy" scrolling="no"></iframe>
+          </div>
+        </div>
+
+        <!-- Global network map -->
+        <div class="panel">
+          <div class="panel-hdr">
+            <div class="panel-hdr-l">
+              <span class="panel-title">Global network</span>
+            </div>
+          </div>
+          <div class="panel-body map-body">
+            <svg viewBox="0 0 900 430" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="mapDots" width="12" height="12" patternUnits="userSpaceOnUse">
+                  <circle cx="6" cy="6" r="1.4" fill="#D8D8DB"/>
+                </pattern>
+                <radialGradient id="dayGlowGrad" gradientUnits="userSpaceOnUse" cx="450" cy="150" r="340">
+                  <stop offset="0%" stop-color="#FFB020" stop-opacity="0.16"/>
+                  <stop offset="100%" stop-color="#FFB020" stop-opacity="0"/>
+                </radialGradient>
+                <filter id="termBlur" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="6"/></filter>
+                <clipPath id="continents">
+                  <path d="M75,70 Q55,110 65,160 L85,205 Q125,235 175,238 L230,235 Q255,215 262,170 L266,130 Q258,90 235,78 L195,68 Q140,62 110,68 Z"/>
+                  <path d="M185,235 L225,260 L215,275 L195,270 Z"/>
+                  <path d="M235,240 Q215,270 225,305 L240,350 Q265,378 282,374 L310,342 Q325,292 310,255 L285,230 Q258,222 240,228 Z"/>
+                  <path d="M385,90 Q380,122 400,132 L450,142 Q487,142 502,118 L498,92 Q468,82 432,84 Z"/>
+                  <path d="M410,70 Q400,85 415,92 L435,92 Q442,78 432,70 Z"/>
+                  <path d="M440,60 Q440,85 460,92 L478,85 Q478,68 465,60 Z"/>
+                  <path d="M455,155 Q435,200 440,275 L460,340 Q488,362 515,342 L542,300 Q556,250 545,205 L520,168 Q485,148 465,152 Z"/>
+                  <path d="M530,160 Q525,195 550,200 L580,195 Q588,172 575,158 Z"/>
+                  <path d="M500,95 Q510,85 545,85 L820,95 Q838,130 822,180 L762,232 Q680,242 625,237 L545,225 Q505,200 498,160 Z"/>
+                  <path d="M608,195 Q595,220 620,240 L650,242 Q660,220 648,200 Z"/>
+                  <path d="M695,235 Q705,262 738,262 L762,250 Q765,235 745,228 Z"/>
+                  <path d="M710,260 L740,268 L760,262 L765,270 L740,275 L710,270 Z"/>
+                  <path d="M790,125 Q785,145 800,155 L812,150 Q815,130 800,120 Z"/>
+                  <path d="M712,310 Q700,335 735,348 L790,348 Q825,332 818,310 L798,298 Q752,293 722,305 Z"/>
+                  <path d="M830,340 Q828,355 842,358 L850,352 Q850,342 840,338 Z"/>
+                </clipPath>
+              </defs>
+
+              <g clip-path="url(#continents)">
+                <rect x="0" y="0" width="900" height="430" fill="url(#mapDots)"/>
+              </g>
+
+              <g fill="none" stroke="#EAEAEC" stroke-width="1" opacity="0.5">
+                <path d="M75,70 Q55,110 65,160 L85,205 Q125,235 175,238 L230,235 Q255,215 262,170 L266,130 Q258,90 235,78 L195,68 Q140,62 110,68 Z"/>
+                <path d="M235,240 Q215,270 225,305 L240,350 Q265,378 282,374 L310,342 Q325,292 310,255 L285,230 Q258,222 240,228 Z"/>
+                <path d="M385,90 Q380,122 400,132 L450,142 Q487,142 502,118 L498,92 Q468,82 432,84 Z"/>
+                <path d="M455,155 Q435,200 440,275 L460,340 Q488,362 515,342 L542,300 Q556,250 545,205 L520,168 Q485,148 465,152 Z"/>
+                <path d="M500,95 Q510,85 545,85 L820,95 Q838,130 822,180 L762,232 Q680,242 625,237 L545,225 Q505,200 498,160 Z"/>
+                <path d="M712,310 Q700,335 735,348 L790,348 Q825,332 818,310 L798,298 Q752,293 722,305 Z"/>
+              </g>
+
+              <!-- day/night terminator: warm day glow + curved (declination-aware) night region, drawn by JS -->
+              <rect id="dayGlowRect" x="0" y="0" width="900" height="430" fill="url(#dayGlowGrad)"/>
+              <path id="nightPath" fill="#14142A" fill-opacity="0.42" filter="url(#termBlur)"></path>
+
+              <!-- pulsing trader hubs -->
+              <g>
+                <g class="hub" transform="translate(415,100)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+                <g class="hub" transform="translate(205,132)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="0.3s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="0.3s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+                <g class="hub" transform="translate(795,145)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="0.6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="0.6s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+                <g class="hub" transform="translate(793,328)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="0.9s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="0.9s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+                <g class="hub" transform="translate(278,298)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+                <g class="hub" transform="translate(723,248)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="1.5s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+              </g>
+
+              <!-- steady trader dots (recoloured by day/night zone in JS) -->
+              <g id="steadyDots" fill="#EC3B3D">
+                <circle cx="190" cy="118" r="3"/><circle cx="175" cy="142" r="3"/><circle cx="118" cy="155" r="3"/>
+                <circle cx="210" cy="175" r="3"/><circle cx="225" cy="225" r="2.5"/><circle cx="273" cy="335" r="3"/>
+                <circle cx="425" cy="118" r="3"/><circle cx="450" cy="108" r="3"/><circle cx="432" cy="108" r="3"/>
+                <circle cx="405" cy="130" r="3"/><circle cx="445" cy="128" r="3"/><circle cx="475" cy="112" r="3"/>
+                <circle cx="775" cy="138" r="3"/><circle cx="750" cy="182" r="3"/><circle cx="625" cy="210" r="3"/>
+                <circle cx="705" cy="225" r="3"/><circle cx="495" cy="335" r="3"/><circle cx="530" cy="265" r="3"/>
+                <circle cx="470" cy="225" r="3"/><circle cx="770" cy="342" r="3"/><circle cx="485" cy="115" r="2.5"/>
+                <circle cx="445" cy="90" r="2.5"/><circle cx="560" cy="188" r="3"/><circle cx="465" cy="85" r="2.5"/>
+              </g>
+            </svg>
+          </div>
+          <div class="map-foot">
+            <div class="cell mkt" id="mkt-syd"><div class="mkt-top"><span class="k">Sydney</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+            <div class="cell mkt" id="mkt-tky"><div class="mkt-top"><span class="k">Tokyo</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+            <div class="cell mkt" id="mkt-ldn"><div class="mkt-top"><span class="k">London</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+            <div class="cell mkt" id="mkt-ny"><div class="mkt-top"><span class="k">New York</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ROW 2: live portfolio stats + live activity + recent closes -->
+      <div class="ft-row2">
+
+        <!-- Live portfolio stats (live iframe) -->
+        <div class="panel">
+          <div class="panel-hdr">
+            <div class="panel-hdr-l"><span class="panel-title">Live portfolio</span></div>
+            <span class="live-mini red">LIVE</span>
+          </div>
+          <div class="panel-body">
+            <iframe src="https://prorealalgos.azurewebsites.net/LiveStats" title="Live portfolio stats" loading="lazy" scrolling="no"></iframe>
+          </div>
+        </div>
+
+        <!-- Live activity (live iframe) -->
+        <div class="panel">
+          <div class="panel-hdr">
+            <div class="panel-hdr-l"><span class="panel-title">Live activity</span></div>
+            <span class="live-mini">UPDATING</span>
+          </div>
+          <div class="panel-body">
+            <iframe src="https://prorealalgos.azurewebsites.net/LiveActivity" title="Live activity" loading="lazy" scrolling="no"></iframe>
+          </div>
+        </div>
+
+        <!-- Recent closes (live iframe) -->
+        <div class="panel">
+          <div class="panel-hdr">
+            <div class="panel-hdr-l"><span class="panel-title">Recent closes</span></div>
+            <span class="panel-sub">ALL 20 ALGOS</span>
+          </div>
+          <div class="panel-body">
+            <iframe src="https://prorealalgos.azurewebsites.net/RecentCloses" title="Recent closes" loading="lazy" scrolling="no"></iframe>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- UNLOCK BAR -->
+      <div class="ft-unlock">
+        <div class="ft-unlock-l">
+          <span class="ft-unlock-ico"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10.5" width="16" height="9.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>
+          <div>
+            <div class="ft-unlock-title">Run all 20 of our algos, live on your own account.</div>
+            <div class="ft-unlock-sub">The full algo suite running on ~10 different markets and 100+ other indicators, statistics and tools for your trading</div>
+          </div>
+        </div>
+        <div class="ft-unlock-kpis">
+          <div class="uk"><span class="uk-v g">+71.4%</span><span class="uk-l">Portfolio · 180D</span></div>
+          <div class="uk"><span class="uk-v">1,284</span><span class="uk-l">Traders</span></div>
+          <div class="uk"><span class="uk-v">20</span><span class="uk-l">Algos live</span></div>
+        </div>
+        <button type="button" class="btn btn-light cta-waitlist">Start running our algos →</button>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<script>
+  /* Global network map: day/night terminator + live market sessions.
+     Stylised (equirectangular-ish), not astronomically exact. */
+  (function () {
+    var now = new Date();
+    var utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
+
+    // subsolar longitude: 0 deg at 12:00 UTC, +15 deg per hour before noon
+    var lonSun = 15 * (12 - utcH);
+    while (lonSun > 180) lonSun -= 360;
+    while (lonSun < -180) lonSun += 360;
+    // --- declination-aware day/night terminator (sine-like curve that shifts with the season) ---
+    var d2r = Math.PI / 180;
+    // solar declination from day-of-year: ~+23.4 deg at the June solstice, ~-23.4 at December
+    var startY = new Date(now.getFullYear(), 0, 0);
+    var doy = Math.floor((now - startY) / 86400000);
+    var decl = -23.44 * Math.cos((2 * Math.PI / 365) * (doy + 10));
+    var sinD = Math.sin(decl * d2r), cosD = Math.cos(decl * d2r), tanD = Math.tan(decl * d2r);
+
+    // stylised equirectangular mapping, fitted to the city dots on this map
+    function lonAt(x) { return (x - 415) * 0.368; }
+    function xAtLon(lon) { return 415 + lon / 0.368; }
+    function latAt(y) { return 51.5 - (y - 100) * 0.3788; }
+    function yAtLat(lat) { return 100 + (51.5 - lat) / 0.3788; }
+
+    // sine of the sun's altitude at lat/lon (>0 day, <0 night)
+    function altSin(lat, lon) {
+      return Math.sin(lat * d2r) * sinD + Math.cos(lat * d2r) * cosD * Math.cos((lon - lonSun) * d2r);
+    }
+    // terminator latitude for a given longitude (where the sun's altitude crosses 0)
+    function termLat(lon) {
+      var v = Math.atan(-Math.cos((lon - lonSun) * d2r) / tanD) / d2r;
+      return isFinite(v) ? v : 0;
+    }
+
+    // colour each trader dot by the sun's actual altitude at its lat/lon
+    function dotColor(x, y) {
+      var alt = Math.asin(Math.max(-1, Math.min(1, altSin(latAt(y), lonAt(x))))) / d2r;
+      if (alt > 7) return '#3DC574';    // daylight
+      if (alt < -7) return '#EC3B3D';   // darkness
+      return '#E8B842';                  // dawn / dusk band
+    }
+    document.querySelectorAll('.hub').forEach(function (g) {
+      var m = /translate\(\s*([\d.]+)[ ,]+([\d.]+)/.exec(g.getAttribute('transform') || '');
+      if (!m) return;
+      var c = dotColor(parseFloat(m[1]), parseFloat(m[2]));
+      g.querySelectorAll('circle').forEach(function (ci) { ci.setAttribute('fill', c); });
+    });
+    var steady = document.getElementById('steadyDots');
+    if (steady) {
+      steady.removeAttribute('fill');
+      steady.querySelectorAll('circle').forEach(function (ci) {
+        ci.setAttribute('fill', dotColor(parseFloat(ci.getAttribute('cx')), parseFloat(ci.getAttribute('cy'))));
+      });
+    }
+
+    // build the curved night region as a filled path (top/bottom anchored to whichever pole is dark)
+    var W = 900, H = 430, nightSouth = decl >= 0, edge = [];
+    for (var x = 0; x <= W; x += 10) {
+      var yt = yAtLat(termLat(lonAt(x)));
+      if (yt < 0) yt = 0;
+      if (yt > H) yt = H;
+      edge.push(x.toFixed(0) + ',' + yt.toFixed(1));
+    }
+    var np = document.getElementById('nightPath');
+    if (np) {
+      var baseY = nightSouth ? H : 0;
+      np.setAttribute('d', 'M0,' + baseY + ' L' + edge.join(' L') + ' L' + W + ',' + baseY + ' Z');
+    }
+
+    // warm daylight glow centred on the sub-solar point
+    var glow = document.getElementById('dayGlowGrad');
+    if (glow) {
+      glow.setAttribute('cx', Math.max(0, Math.min(W, xAtLon(lonSun))).toFixed(0));
+      glow.setAttribute('cy', Math.max(0, Math.min(H, yAtLat(decl))).toFixed(0));
+    }
+
+    // live local time + market session per city (DST-correct via Intl), ticking each second
+    var cities = {
+      syd: { tz: 'Australia/Sydney', o: 10, c: 16 },
+      tky: { tz: 'Asia/Tokyo',       o: 9,  c: 15 },
+      ldn: { tz: 'Europe/London',    o: 8,  c: 16 },
+      ny:  { tz: 'America/New_York', o: 9,  c: 16 }
+    };
+    function cityParts(tz) {
+      var p = {};
+      new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit' })
+        .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+      return p;
+    }
+    function tickSessions() {
+      var openCount = 0;
+      Object.keys(cities).forEach(function (k) {
+        var cell = document.getElementById('mkt-' + k); if (!cell) return;
+        var cfg = cities[k], p = cityParts(cfg.tz);
+        var mins = parseInt(p.hour, 10) * 60 + parseInt(p.minute, 10);
+        var openMin = cfg.o * 60, closeMin = cfg.c * 60;
+        var weekend = (p.weekday === 'Sat' || p.weekday === 'Sun');
+        var state;
+        if (!weekend && mins >= openMin && mins < closeMin) state = 'open';         // open now -> green
+        else if (!weekend && mins >= openMin - 60 && mins < openMin) state = 'soon'; // opens within the hour -> yellow
+        else state = 'closed';                                                       // closed -> red
+        if (state === 'open') openCount++;
+        var label = state === 'open' ? 'OPEN' : (state === 'soon' ? 'SOON' : 'CLOSED');
+        var stat = cell.querySelector('.mstat'), dot = cell.querySelector('.mdot'), tm = cell.querySelector('.mtime');
+        if (stat) { stat.textContent = label; stat.className = 'mstat ' + state; }
+        if (dot) { dot.className = 'mdot ' + state; }
+        if (tm) { tm.textContent = p.hour + ':' + p.minute; }
+      });
+      var oc = document.getElementById('mktOpenCount'); if (oc) oc.textContent = openCount;
+    }
+    tickSessions();
+    setInterval(tickSessions, 1000);
+  })();
+</script>
+
+<!-- ===== Join-waitlist popover — opened by the "Start running our algos" CTAs.
+     Ported from tradefloor.html (same design); submits to the Wix parent via postMessage. ===== -->
+<div class="cs-popover" id="wlPopover" role="dialog" aria-labelledby="wlTitle">
+  <button type="button" class="cs-close" id="wlClose" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  <h3 class="cs-title" id="wlTitle">Start running our algos</h3>
+  <div class="cs-alert">
+    <svg class="cs-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <div class="cs-alert-text">
+      <strong>Sign up is paused. All spots are currently filled.</strong>
+      <span>Leave your email and we'll reach out as slots open.</span>
+    </div>
+  </div>
+  <form class="cs-form-row" id="wlForm" novalidate>
+    <input type="email" class="cs-email" id="wlEmail" name="email" placeholder="your@email.com" required autocomplete="email">
+    <button type="submit" class="cs-submit" id="wlSubmit">Join waitlist</button>
+  </form>
+  <div class="cs-status" id="wlStatus" aria-live="polite"></div>
+</div>
+
+<script>
+(function () {
+  var triggers  = Array.prototype.slice.call(document.querySelectorAll('.cta-waitlist'));
+  var popover   = document.getElementById('wlPopover');
+  var closeBtn  = document.getElementById('wlClose');
+  var form      = document.getElementById('wlForm');
+  var input     = document.getElementById('wlEmail');
+  var submitBtn = document.getElementById('wlSubmit');
+  var statusEl  = document.getElementById('wlStatus');
+  if (!triggers.length || !popover) return;
+
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var EDGE_PAD = 12, GAP = 8;
+  var activeTrigger = null, lastFocus = null, isOpen = false;
+
+  function setStatus(message, kind) {
+    statusEl.textContent = message || '';
+    statusEl.classList.remove('is-success', 'is-error');
+    if (kind) statusEl.classList.add('is-' + kind);
+    statusEl.classList.toggle('is-visible', Boolean(message));
+  }
+  function setLoading(loading) {
+    submitBtn.disabled = loading;
+    submitBtn.textContent = loading ? 'Submitting…' : 'Join waitlist';
+  }
+  function positionPopover() {
+    if (!activeTrigger) return;
+    var rect = activeTrigger.getBoundingClientRect();
+    var ph = popover.offsetHeight || 240;
+    var top = rect.bottom + GAP;
+    if (top + ph > window.innerHeight - EDGE_PAD) {     // flip above if it would overflow the viewport
+      var above = rect.top - GAP - ph;
+      top = above > EDGE_PAD ? above : EDGE_PAD;
+    }
+    var right = window.innerWidth - rect.right;
+    if (right < EDGE_PAD) right = EDGE_PAD;
+    popover.style.top = top + 'px';
+    popover.style.right = right + 'px';
+    popover.style.left = '';
+  }
+  function onDocClick(e) {
+    if (popover.contains(e.target)) return;
+    for (var i = 0; i < triggers.length; i++) {
+      if (e.target === triggers[i] || triggers[i].contains(e.target)) return;
+    }
+    closePopover();
+  }
+  function openPopover() {
+    isOpen = true;
+    positionPopover();
+    requestAnimationFrame(function () { popover.classList.add('is-open'); });
+    requestAnimationFrame(function () { document.addEventListener('click', onDocClick, true); });
+    window.addEventListener('resize', positionPopover);
+    window.addEventListener('scroll', positionPopover, true);
+    setTimeout(function () { input.focus(); }, 240);
+  }
+  function closePopover() {
+    if (!isOpen) return;
+    isOpen = false;
+    popover.classList.remove('is-open');
+    setStatus('', null);
+    setLoading(false);
+    document.removeEventListener('click', onDocClick, true);
+    window.removeEventListener('resize', positionPopover);
+    window.removeEventListener('scroll', positionPopover, true);
+    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+  }
+
+  triggers.forEach(function (t) {
+    t.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (isOpen && activeTrigger === t) { closePopover(); return; }
+      activeTrigger = t;
+      lastFocus = t;
+      if (isOpen) positionPopover();
+      else openPopover();
+    });
+  });
+
+  closeBtn.addEventListener('click', closePopover);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && isOpen) closePopover(); });
+
+  input.addEventListener('input', function () {
+    input.classList.remove('is-invalid');
+    if (statusEl.classList.contains('is-error')) setStatus('', null);
+  });
+
+  // Submit -> postMessage to the Wix parent page (same contract as tradefloor.html:
+  // parent Velo receives {type:'waitlistSubmit', email, source} and replies {type:'waitlistResult'}).
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = input.value.trim();
+    if (!EMAIL_RE.test(email)) {
+      input.classList.add('is-invalid');
+      setStatus('Please enter a valid email address.', 'error');
+      input.focus();
+      return;
+    }
+    setLoading(true);
+    setStatus('', null);
+    window.parent.postMessage({ type: 'waitlistSubmit', email: email, source: 'copy-strategy' }, '*');
+  });
+
+  window.addEventListener('message', function (event) {
+    var data = event.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type !== 'waitlistResult') return;
+    if (data.source && data.source !== 'copy-strategy') return;
+    setLoading(false);
+    if (data.status === 'success') {
+      form.reset();
+      setStatus('You’re on the list. We’ll be in touch.', 'success');
+    } else {
+      setStatus(data.message || 'Something went wrong. Please try again.', 'error');
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

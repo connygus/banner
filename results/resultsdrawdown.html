@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos · Days underwater</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+    --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+    --red: #EC3B3D; --red-soft: #FDECEC; --red-border: #F9D3D4;
+    --green: #3DC574; --green-soft: #E6F7EE; --green-border: #C7EBD6;
+    --amber: #FFB020;
+    --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow: hidden; }
+  body {
+    font-family: 'Onest', -apple-system, sans-serif; background: var(--bg); color: var(--ink);
+    -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; line-height: 1.55; font-size: 16px;
+  }
+  .container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+  .psec { padding: 88px 0 100px; }
+
+  /* shared eyebrow */
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-muted);
+    display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  }
+  .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+  .eyebrow.green::before { background: var(--green); }
+
+  /* ===================== DAYS UNDERWATER ===================== */
+  .duw { background: var(--bg); }
+  .duw .head { max-width: 900px; margin-bottom: 28px; }
+  .duw .title {
+    font-size: clamp(34px, 4.6vw, 52px); font-weight: 800; letter-spacing: -0.035em;
+    line-height: 1.04; margin-bottom: 18px;
+  }
+  .duw .title em { color: var(--ink-muted); font-style: italic; font-weight: 500; }
+  .duw .title .accent { color: var(--red); }
+  .duw .sub { font-size: 17px; color: var(--ink-muted); max-width: 600px; line-height: 1.55; }
+
+  .duw .top-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--bg-soft); border: 1px solid var(--hairline);
+    border-radius: 18px; margin-bottom: 32px; overflow: hidden;
+  }
+  .duw .ts-cell { padding: 24px 26px; border-right: 1px solid var(--hairline); }
+  .duw .ts-cell:last-child { border-right: none; }
+  .duw .ts-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-muted); margin-bottom: 10px;
+  }
+  .duw .ts-value { font-size: 32px; font-weight: 700; color: var(--ink); letter-spacing: -0.025em; line-height: 1; margin-bottom: 6px; }
+  .duw .ts-value .unit { font-size: 18px; color: var(--ink-muted); font-weight: 500; margin-left: 4px; }
+  .duw .ts-sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted); }
+
+  .duw .timeline-card { background: var(--bg-soft); border: 1px solid var(--hairline); border-radius: 22px; padding: 36px 40px; }
+  .duw .tl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .duw .tl-title { font-size: 22px; font-weight: 700; color: var(--ink); letter-spacing: -0.022em; }
+  .duw .tl-key { display: flex; gap: 18px; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.1em; color: var(--ink-muted); }
+  .duw .tl-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -2px; }
+
+  .duw .chart-area { position: relative; padding: 24px 0 8px; }
+  .duw .chart-svg { width: 100%; height: 280px; display: block; }
+  .duw .x-labels { display: grid; grid-template-columns: repeat(6, 1fr); padding: 10px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--ink-muted); letter-spacing: 0.04em; }
+  .duw .x-labels span { text-align: center; }
+
+  .duw .events-rail { margin-top: 36px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .duw .event { background: var(--bg); border: 1px solid var(--hairline); border-radius: 14px; padding: 22px 24px; position: relative; }
+  .duw .event-num { position: absolute; top: -10px; left: 24px; background: var(--ink); color: #FFF; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+  .duw .event-date { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.14em; color: var(--ink-muted); margin-bottom: 8px; margin-top: 10px; }
+  .duw .event-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.018em; }
+  .duw .event-text { font-size: 13px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 14px; }
+  .duw .event-text em { color: var(--ink-muted); font-style: italic; }
+  .duw .event-stats { display: flex; gap: 18px; padding-top: 12px; border-top: 1px solid var(--hairline); }
+  .duw .event-stat-label { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.12em; color: var(--ink-muted); margin-bottom: 2px; }
+  .duw .event-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--ink); }
+  .duw .duw-note { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.6; color: var(--ink-muted); letter-spacing: 0.02em; margin-top: 28px; }
+
+  /* ===================== RESPONSIVE ===================== */
+  @media (max-width: 900px) {
+    .duw .top-stats { grid-template-columns: repeat(2, 1fr); }
+    .duw .ts-cell:nth-child(2) { border-right: none; }
+    .duw .ts-cell:nth-child(1), .duw .ts-cell:nth-child(2) { border-bottom: 1px solid var(--hairline); }
+    .duw .events-rail { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 510px) {
+    .container { padding: 0 20px; }
+    .psec { padding: 56px 0 64px; }
+    .duw .head { margin-bottom: 24px; }
+    .duw .title { font-size: calc(6.2vw - 3px); }
+    .duw .timeline-card { padding: 22px 18px; }
+    /* keep the 2x2 grid from the 900px breakpoint, just tighten it for phones */
+    .duw .ts-cell { padding: 18px 16px; }
+    .duw .ts-value { font-size: 27px; }
+    .duw .ts-value .unit { font-size: 15px; }
+    .duw .x-labels { font-size: 8.5px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- DAYS UNDERWATER -->
+<!-- ============================================================ -->
+<section class="psec duw">
+  <div class="container">
+
+    <div class="head">
+      <div class="eyebrow">DRAWDOWNS · IN PLAIN SIGHT</div>
+      <h2 class="title">Months underwater. <em>And how long</em><br><span class="accent">it took to come back up.</span></h2>
+      <p class="sub">Every drawdown since May 2020, how deep it went and how long until equity climbed back to a new high. The honest map of the rough patches.</p>
+    </div>
+
+    <div class="top-stats">
+      <div class="ts-cell">
+        <div class="ts-label">MAX DRAWDOWN</div>
+        <div class="ts-value">−15.7<span class="unit">%</span></div>
+        <div class="ts-sub">Trough Oct 2020</div>
+      </div>
+      <div class="ts-cell">
+        <div class="ts-label">LONGEST UNDERWATER</div>
+        <div class="ts-value">5<span class="unit">months</span></div>
+        <div class="ts-sub">Peak to new high</div>
+      </div>
+      <div class="ts-cell">
+        <div class="ts-label">% TIME UNDERWATER</div>
+        <div class="ts-value">48<span class="unit">%</span></div>
+        <div class="ts-sub">Off all-time-high</div>
+      </div>
+      <div class="ts-cell">
+        <div class="ts-label">DRAWDOWNS PAST 10%</div>
+        <div class="ts-value">5</div>
+        <div class="ts-sub">Since May 2020</div>
+      </div>
+    </div>
+
+    <div class="timeline-card">
+      <div class="tl-head">
+        <div class="tl-title">Underwater equity curve · May 2020 → May 2025</div>
+        <div class="tl-key">
+          <div><span class="tl-swatch" style="background: var(--red); opacity: 0.18;"></span>BELOW HIGH</div>
+          <div><span class="tl-swatch" style="background: var(--green);"></span>NEW HIGH</div>
+        </div>
+      </div>
+
+      <div class="chart-area">
+        <svg class="chart-svg" viewBox="0 0 1200 280" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#EC3B3D" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#EC3B3D" stop-opacity="0.22"/>
+            </linearGradient>
+          </defs>
+
+          <line x1="0" y1="40" x2="1200" y2="40" stroke="#EAEAEC" stroke-dasharray="3 3"/>
+          <line x1="0" y1="92" x2="1200" y2="92" stroke="#EAEAEC" stroke-dasharray="3 3"/>
+          <line x1="0" y1="144" x2="1200" y2="144" stroke="#EAEAEC" stroke-dasharray="3 3"/>
+          <line x1="0" y1="196" x2="1200" y2="196" stroke="#EAEAEC" stroke-dasharray="3 3"/>
+          <line x1="0" y1="248" x2="1200" y2="248" stroke="#EAEAEC" stroke-dasharray="3 3"/>
+
+          <text x="6" y="44" font-family="JetBrains Mono" font-size="9" fill="#6B6B72">0%</text>
+          <text x="6" y="96" font-family="JetBrains Mono" font-size="9" fill="#6B6B72">-4%</text>
+          <text x="6" y="148" font-family="JetBrains Mono" font-size="9" fill="#6B6B72">-8%</text>
+          <text x="6" y="200" font-family="JetBrains Mono" font-size="9" fill="#6B6B72">-12%</text>
+          <text x="6" y="252" font-family="JetBrains Mono" font-size="9" fill="#6B6B72">-16%</text>
+
+          <path d="M 0.0 40.0 L 20.0 63.8 L 40.0 92.9 L 60.0 170.5 L 80.0 102.5 L 100.0 244.2 L 120.0 40.0 L 140.0 40.0 L 160.0 40.0 L 180.0 164.3 L 200.0 151.7 L 220.0 40.0 L 240.0 179.5 L 260.0 143.3 L 280.0 97.7 L 300.0 40.0 L 320.0 40.0 L 340.0 78.0 L 360.0 66.5 L 380.0 40.0 L 400.0 40.0 L 420.0 40.0 L 440.0 40.0 L 460.0 40.0 L 480.0 40.0 L 500.0 40.0 L 520.0 51.5 L 540.0 40.0 L 560.0 96.9 L 580.0 131.6 L 600.0 232.3 L 620.0 40.0 L 640.0 40.0 L 660.0 40.0 L 680.0 40.0 L 700.0 40.0 L 720.0 175.1 L 740.0 125.5 L 760.0 40.0 L 780.0 40.0 L 800.0 104.2 L 820.0 117.4 L 840.0 49.0 L 860.0 40.0 L 880.0 40.0 L 900.0 61.6 L 920.0 81.0 L 940.0 40.0 L 960.0 159.4 L 980.0 55.8 L 1000.0 40.0 L 1020.0 40.0 L 1040.0 40.0 L 1060.0 40.0 L 1080.0 40.0 L 1100.0 112.8 L 1120.0 40.0 L 1140.0 93.0 L 1160.0 40.0 L 1180.0 213.5 L 1200.0 130.5 L 1200 40 L 0 40 Z" fill="url(#ddGrad)"/>
+          <path d="M 0.0 40.0 L 20.0 63.8 L 40.0 92.9 L 60.0 170.5 L 80.0 102.5 L 100.0 244.2 L 120.0 40.0 L 140.0 40.0 L 160.0 40.0 L 180.0 164.3 L 200.0 151.7 L 220.0 40.0 L 240.0 179.5 L 260.0 143.3 L 280.0 97.7 L 300.0 40.0 L 320.0 40.0 L 340.0 78.0 L 360.0 66.5 L 380.0 40.0 L 400.0 40.0 L 420.0 40.0 L 440.0 40.0 L 460.0 40.0 L 480.0 40.0 L 500.0 40.0 L 520.0 51.5 L 540.0 40.0 L 560.0 96.9 L 580.0 131.6 L 600.0 232.3 L 620.0 40.0 L 640.0 40.0 L 660.0 40.0 L 680.0 40.0 L 700.0 40.0 L 720.0 175.1 L 740.0 125.5 L 760.0 40.0 L 780.0 40.0 L 800.0 104.2 L 820.0 117.4 L 840.0 49.0 L 860.0 40.0 L 880.0 40.0 L 900.0 61.6 L 920.0 81.0 L 940.0 40.0 L 960.0 159.4 L 980.0 55.8 L 1000.0 40.0 L 1020.0 40.0 L 1040.0 40.0 L 1060.0 40.0 L 1080.0 40.0 L 1100.0 112.8 L 1120.0 40.0 L 1140.0 93.0 L 1160.0 40.0 L 1180.0 213.5 L 1200.0 130.5" fill="none" stroke="#EC3B3D" stroke-width="1.8"/>
+
+          <circle cx="100" cy="244" r="7" fill="#FFF" stroke="#0E0E10" stroke-width="2"/>
+          <text x="100" y="248" font-family="JetBrains Mono" font-size="9" font-weight="700" fill="#0E0E10" text-anchor="middle">1</text>
+          <circle cx="600" cy="232" r="7" fill="#FFF" stroke="#0E0E10" stroke-width="2"/>
+          <text x="600" y="236" font-family="JetBrains Mono" font-size="9" font-weight="700" fill="#0E0E10" text-anchor="middle">2</text>
+          <circle cx="1180" cy="214" r="7" fill="#FFF" stroke="#0E0E10" stroke-width="2"/>
+          <text x="1180" y="218" font-family="JetBrains Mono" font-size="9" font-weight="700" fill="#0E0E10" text-anchor="middle">3</text>
+
+          <line x1="0" y1="40" x2="1200" y2="40" stroke="#3DC574" stroke-width="2"/>
+        </svg>
+
+        <div class="x-labels">
+          <span>MAY '20</span>
+          <span>MAY '21</span>
+          <span>MAY '22</span>
+          <span>MAY '23</span>
+          <span>MAY '24</span>
+          <span>MAY '25</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="events-rail">
+      <div class="event">
+        <div class="event-num">1</div>
+        <div class="event-date">MAY → OCT 2020</div>
+        <div class="event-title">The first real test.</div>
+        <div class="event-text"><em>The deepest drawdown on record.</em> Five months sliding off the May high, down 15.7%. One month later, a brand new all-time high.</div>
+        <div class="event-stats">
+          <div><div class="event-stat-label">DEPTH</div><div class="event-stat-value">−15.7%</div></div>
+          <div><div class="event-stat-label">MONTHS</div><div class="event-stat-value">5</div></div>
+        </div>
+      </div>
+      <div class="event">
+        <div class="event-num">2</div>
+        <div class="event-date">AUG → NOV 2022</div>
+        <div class="event-title">The 2022 bear.</div>
+        <div class="event-text">The year stocks fell about 20%. The book gave back 14.8% from its August peak, <em>then printed a new high</em> by December.</div>
+        <div class="event-stats">
+          <div><div class="event-stat-label">DEPTH</div><div class="event-stat-value">−14.8%</div></div>
+          <div><div class="event-stat-label">MONTHS</div><div class="event-stat-value">3</div></div>
+        </div>
+      </div>
+      <div class="event">
+        <div class="event-num">3</div>
+        <div class="event-date">MAR → APR 2025</div>
+        <div class="event-title">The latest test.</div>
+        <div class="event-text">The sharpest single month on record, equity off 13.3% from the March high. <em>The climb back</em> was underway into May.</div>
+        <div class="event-stats">
+          <div><div class="event-stat-label">DEPTH</div><div class="event-stat-value">−13.3%</div></div>
+          <div><div class="event-stat-label">MONTHS</div><div class="event-stat-value">2</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="duw-note">One combined account across every algo, seeded with 5,000 euro at inception. The curve runs May 2020 to May 2025, the latest month in the track record. Drawdown is measured from each new equity high, net of fees. Past performance does not guarantee future results.</div>
+
+  </div>
+</section>
+
+</body>
+</html>

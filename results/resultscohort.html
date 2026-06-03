@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos · Cohort Returns</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+  --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+  --red: #EC3B3D; --red-soft: #FDECEC;
+  --green: #3DC574; --green-soft: #E6F7EE; --green-border: #C7EBD6;
+  --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Onest', sans-serif; background: var(--bg); color: var(--ink);
+  -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; line-height: 1.55;
+}
+.section { padding: 88px 0 100px; background: var(--bg); }
+.container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+
+.head {
+  /* Widened so "Members who joined 6 years ago" fits on a single line
+     at 52px before the explicit <br>. 760px was just under the natural
+     width of that headline and caused mid-phrase wrapping. */
+  max-width: 880px;
+  margin-bottom: 40px;
+}
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-muted);
+  display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px;
+}
+.eyebrow::before {
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red);
+}
+.title {
+  font-size: 52px; font-weight: 800; letter-spacing: -0.035em;
+  line-height: 1.04; margin-bottom: 18px;
+}
+.title em { color: var(--ink-muted); font-style: italic; font-weight: 500; }
+.title .accent { color: var(--green); }
+.sub { font-size: 17px; color: var(--ink-muted); max-width: 620px; line-height: 1.55; }
+
+/* COHORT GRID */
+.cohorts {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+  position: relative;
+  min-height: 240px;
+}
+.cohort {
+  background: var(--bg-soft); border: 1px solid var(--hairline);
+  border-radius: 16px; padding: 20px 18px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+  position: relative; overflow: hidden;
+}
+.cohort.is-current {
+  background: var(--ink); color: #FFF;
+  border-color: var(--ink);
+}
+.cohort.is-current::before {
+  content: "JOIN THIS ONE"; position: absolute;
+  /* Symmetric padding so the text sits dead-center in the red box;
+     extra padding on BOTH sides keeps the ribbon long enough that the
+     45° diagonal still leaves the full "JOIN THIS ONE" inside the
+     card's clip region. */
+  top: 22px; right: -38px;
+  background: var(--red); color: #FFF;
+  font-family: 'JetBrains Mono', monospace; font-size: 8.5px;
+  font-weight: 700; letter-spacing: 0.14em;
+  padding: 4px 40px;
+  text-align: center;
+  transform: rotate(35deg);
+  transform-origin: center;
+  white-space: nowrap;
+}
+.cohort-year {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: 0.16em; color: var(--ink-muted);
+  font-weight: 700;
+}
+.cohort.is-current .cohort-year { color: rgba(255,255,255,0.55); }
+
+/* Numbers row — big main % on the left, smaller reinvest % on the
+   right. flex-end baseline so the reinvest's tag tucks into the bottom
+   of the row instead of pushing the card taller. */
+.cohort-numbers {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 10px;
+}
+.cohort-num {
+  font-size: 38px; font-weight: 800; letter-spacing: -0.035em;
+  line-height: 1; color: var(--green);
+  font-variant-numeric: tabular-nums;
+}
+.cohort-num.zero { color: var(--ink-muted); }
+.cohort.is-current .cohort-num { color: var(--green); }
+
+/* Reinvest number — same compounded position-size model used on the
+   Hero / Performance chart (5% per quarter). Smaller and grey so it
+   reads as supplementary "what if you'd reinvested" context rather
+   than the headline figure. Tucked into the right of the number row
+   so adding it didn't grow the card. */
+.cohort-reinvest {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px; font-weight: 700;
+  color: var(--ink-muted);
+  letter-spacing: -0.01em;
+  text-align: right;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.cohort-reinvest-tag {
+  display: block;
+  font-size: 8.5px; font-weight: 600;
+  letter-spacing: 0.12em; color: var(--ink-dim);
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.cohort.is-current .cohort-reinvest { color: rgba(255,255,255,0.65); }
+.cohort.is-current .cohort-reinvest-tag { color: rgba(255,255,255,0.4); }
+
+.cohort-sub {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  color: var(--ink-muted); letter-spacing: 0.04em;
+  margin-top: 6px;
+}
+.cohort.is-current .cohort-sub { color: rgba(255,255,255,0.55); }
+
+.cohort-foot {
+  margin-top: auto; padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+  display: flex; justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.cohort.is-current .cohort-foot { border-top-color: rgba(255,255,255,0.1); }
+.cohort-foot .lab { color: var(--ink-muted); }
+.cohort.is-current .cohort-foot .lab { color: rgba(255,255,255,0.5); }
+.cohort-foot .val { color: var(--ink); font-weight: 700; }
+.cohort.is-current .cohort-foot .val { color: #FFF; }
+
+/* Loading state */
+.cohort-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 12px;
+  background: rgba(255,255,255,0.9);
+  z-index: 5; border-radius: 16px;
+}
+.cohort-loading.is-hidden { display: none; }
+.cohort-spinner {
+  width: 22px; height: 22px; border: 2.5px solid var(--hairline);
+  border-top-color: var(--green); border-radius: 50%;
+  animation: cohortSpin 0.8s linear infinite;
+}
+@keyframes cohortSpin { to { transform: rotate(360deg); } }
+.cohort-loading-text {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  color: var(--ink-muted); letter-spacing: 0.12em; text-transform: uppercase;
+}
+.cohort-loading-error {
+  max-width: 380px; text-align: center;
+  font-size: 13px; color: var(--red); line-height: 1.5;
+}
+
+/* STORY ROW */
+.story {
+  background: var(--bg-soft); border: 1px solid var(--hairline);
+  border-radius: 22px; padding: 32px 36px;
+  display: grid; grid-template-columns: 2.2fr 1fr; gap: 40px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+/* Watermark equity line behind the right half of the story box.
+   Drawn from the actual monthly equity data — same numbers that
+   power the cohort cards. Stretches edge-to-edge of the box (top,
+   right, bottom) and fades in from the left so it doesn't fight
+   with the story text. */
+.story-watermark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 62%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 35%);
+          mask-image: linear-gradient(to right, transparent 0%, black 35%);
+}
+.story-watermark .wm-area {
+  fill: rgba(61, 197, 116, 0.10);
+  stroke: none;
+}
+.story-watermark .wm-path {
+  fill: none;
+  stroke: rgba(61, 197, 116, 0.45);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  /* Keep the stroke a constant 1.5px regardless of SVG stretching. */
+  vector-effect: non-scaling-stroke;
+}
+/* Lift the actual content above the watermark so the green tint
+   doesn't bleed into the text. */
+.story-text, .story-cta { position: relative; z-index: 1; }
+.story-text {
+  font-size: 18px; line-height: 1.5; color: var(--ink);
+  letter-spacing: -0.012em;
+  text-wrap: pretty;
+}
+.story-text strong { color: var(--ink); font-weight: 800; }
+.story-text em { color: var(--ink-muted); font-style: italic; }
+.story-text .big {
+  /* Tabular-nums removed — Onest's tabular digits are wider than the
+     proportional ones, which was leaving visible gaps between digits
+     and reading as "stretched". Without it the digits kern naturally
+     at the headline size. */
+  font-size: 48px; font-weight: 800; color: var(--green);
+  letter-spacing: -0.025em; display: block; margin: 10px 0;
+  line-height: 1.05;
+}
+/* Right-align the button + meta group; inside the group, the meta is
+   centered under the button so "Limited number of spots." sits
+   horizontally centered on the CTA. */
+.story-cta {
+  display: flex;
+  justify-content: flex-end;
+}
+.cta-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.cta-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 26px; background: var(--ink); color: #FFF;
+  border-radius: 100px;
+  text-decoration: none;
+  font-weight: 700; font-size: 15px; letter-spacing: -0.012em;
+  transition: transform 0.15s ease;
+}
+.cta-btn:hover { transform: translateY(-2px); }
+.cta-btn::after { content: "→"; font-size: 17px; }
+.cta-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  color: var(--ink-muted); letter-spacing: 0.08em;
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* ============================================================
+   WAITLIST POPOVER — anchored to the CTA, no backdrop. Adapted
+   from the manifesto signature lightbox so the visual language
+   (border, shadow, alert pill) matches the rest of the site.
+   Submission flows through window.postMessage so Wix Velo on the
+   parent page can handle the actual signup.
+   ============================================================ */
+.cohort-popover {
+  position: fixed;
+  z-index: 9999;
+  width: 400px;
+  max-width: calc(100vw - 24px);
+  background: #FFFFFF;
+  border: 1px solid #D8D8DB;
+  border-radius: 14px;
+  padding: 18px 18px 16px;
+  box-shadow:
+    0 16px 40px rgba(8, 8, 14, 0.16),
+    0 2px 8px rgba(8, 8, 14, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0.24s;
+}
+.cohort-popover.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition:
+    opacity 0.18s ease,
+    transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s linear 0s;
+}
+.cohort-popover-close {
+  position: absolute;
+  top: 8px; right: 8px;
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 8px;
+  color: var(--ink-muted); cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.cohort-popover-close:hover { background: var(--bg-muted); color: var(--ink); }
+.cohort-popover-close svg { width: 14px; height: 14px; }
+.cohort-popover-title {
+  font-family: 'Onest', sans-serif;
+  /* Sized so "Join the ProRealAlgos Community!" fits on a single line
+     inside the 400px popover (≈336px usable after side + close-button
+     padding). 22px was wrapping at "Community!"; 18px clears it. */
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.015em; line-height: 1.2;
+  color: var(--ink);
+  margin: 0; padding-right: 28px;
+  white-space: nowrap;
+}
+.cohort-popover-alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  background: var(--red-soft);
+  border: 1px solid #F9D3D4;
+  border-radius: 10px;
+}
+.cohort-popover-alert-icon {
+  flex-shrink: 0; width: 18px; height: 18px;
+  color: var(--red); margin-top: 1px;
+}
+.cohort-popover-alert-text {
+  font-family: 'Onest', sans-serif;
+  font-size: 13px; line-height: 1.4; color: var(--ink);
+}
+.cohort-popover-alert-text strong {
+  display: block; font-weight: 700; margin-bottom: 2px;
+}
+.cohort-popover-alert-text span {
+  display: block; color: var(--ink-soft); font-weight: 400;
+}
+.cohort-popover-form {
+  display: flex; flex-direction: column; gap: 8px;
+  width: 100%; margin-top: 2px;
+}
+.cohort-popover-email {
+  width: 100%; height: 44px;
+  padding: 0 14px;
+  background: #FFFFFF;
+  border: 1px solid #D8D8DB; border-radius: 10px;
+  font-family: 'Onest', sans-serif; font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cohort-popover-email::placeholder { color: var(--ink-dim); }
+.cohort-popover-email:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(14, 14, 16, 0.06);
+}
+.cohort-popover-email.is-invalid {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(236, 59, 61, 0.10);
+}
+.cohort-popover-submit {
+  width: 100%; height: 44px;
+  padding: 0 16px;
+  background: var(--ink); color: #FFFFFF;
+  border: none; border-radius: 10px;
+  font-family: 'Onest', sans-serif;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.08s ease;
+}
+.cohort-popover-submit:hover { background: var(--red); }
+.cohort-popover-submit:active { transform: translateY(1px); }
+.cohort-popover-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+.cohort-popover-submit:disabled:hover { background: var(--ink); }
+.cohort-popover-status {
+  font-family: 'Onest', sans-serif;
+  font-size: 12.5px; font-weight: 500; line-height: 1.4;
+  opacity: 0; max-height: 0; overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+.cohort-popover-status.is-visible { opacity: 1; max-height: 60px; }
+.cohort-popover-status.is-success { color: #1a8a4a; }
+.cohort-popover-status.is-error   { color: var(--red); }
+
+@media (max-width: 1100px) {
+  .cohorts { grid-template-columns: repeat(3, 1fr); }
+
+  /* Below the 4-column desktop grid the cards narrow to the point where a
+     4-digit headline return (e.g. +1447%) and its reinvest figure (+4902%)
+     can no longer sit side by side — the headline ate the row and clipped
+     the reinvest against the card's overflow edge. Stack the reinvest onto
+     its own line under the headline so each gets the full card width and
+     the "W/ REINVEST" tag stops wrapping mid-phrase. */
+  .cohort-numbers {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .cohort-reinvest {
+    text-align: left;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .cohort-reinvest-tag {
+    display: inline-block;
+    margin-top: 0;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 1000px) {
+  .story { grid-template-columns: 1fr; gap: 22px; }
+  .story-cta { justify-content: flex-start; }
+}
+@media (max-width: 600px) {
+  .section { padding: 56px 0 64px; }
+  .container { padding: 0 22px; }
+  .title { font-size: 34px; }
+  .cohorts { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .cohort { padding: 16px 14px; }
+  .cohort-num { font-size: 28px; }
+  .story { padding: 22px 20px; }
+  .story-text .big { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+
+<section class="section">
+  <div class="container">
+
+    <div class="head">
+      <div class="eyebrow">MEMBER COHORTS · COMPOUNDED RETURNS</div>
+      <h2 class="title" id="head-title">Members who joined <em>five&nbsp;years ago</em><br>are now up <span class="accent" id="head-best-pct">+—%</span>.</h2>
+      <p class="sub">Every cohort, every year. Compounded returns if you ran our algos from the day you joined. The math is the math.</p>
+    </div>
+
+    <div class="cohorts" id="cohort-grid">
+      <div class="cohort-loading" id="cohort-loading">
+        <div class="cohort-spinner"></div>
+        <div class="cohort-loading-text">Loading cohort returns…</div>
+      </div>
+    </div>
+
+    <div class="story" id="story">
+      <svg class="story-watermark" id="story-watermark" viewBox="0 0 600 200" preserveAspectRatio="none" aria-hidden="true">
+        <path class="wm-area" id="watermark-area" d=""></path>
+        <path class="wm-path" id="watermark-path" d=""></path>
+      </svg>
+      <div class="story-text" id="story-text">
+        Someone who joined in <strong id="story-when">—</strong> with a €10,000 starting account is sitting on
+        <span class="big" id="story-value">€—</span>
+        <em>Same algos, same signals, same plan. Just more years of compounding.</em> <br>The earliest seats compound the hardest.
+      </div>
+      <div class="story-cta">
+        <div class="cta-group">
+          <a class="cta-btn" href="#" id="cohort-cta-trigger">Reserve a — seat</a>
+          <div class="cta-meta" id="cta-meta">Limited number of spots.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Anchored to the CTA button (no backdrop). Submission goes through
+     window.postMessage so the parent Wix page's Velo code can handle
+     the actual signup; see the message-listener and post in the IIFE
+     at the bottom of the script. -->
+<div class="cohort-popover" id="cohortPopover" role="dialog" aria-labelledby="cohortPopoverTitle">
+  <button type="button" class="cohort-popover-close" id="cohortPopoverClose" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  <h3 class="cohort-popover-title" id="cohortPopoverTitle">Join the ProRealAlgos Community!</h3>
+  <div class="cohort-popover-alert">
+    <svg class="cohort-popover-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <div class="cohort-popover-alert-text">
+      <strong>Sign up is paused. All spots are currently filled.</strong>
+      <span>Leave your email and we&rsquo;ll reach out as slots open.</span>
+    </div>
+  </div>
+  <form class="cohort-popover-form" id="cohortPopoverForm" novalidate>
+    <input type="email" class="cohort-popover-email" id="cohortPopoverEmail" name="email" placeholder="your@email.com" required autocomplete="email">
+    <button type="submit" class="cohort-popover-submit" id="cohortPopoverSubmit">Join waitlist</button>
+  </form>
+  <div class="cohort-popover-status" id="cohortPopoverStatus" aria-live="polite"></div>
+</div>
+
+<script>
+(function() {
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const SHEET_ID  = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+  const SHEET_GID = '1444969085';
+  const SHEET_CORS_PROXIES = [
+    url => 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=' + encodeURIComponent(url),
+    url => 'https://corsproxy.io/?'                                       + encodeURIComponent(url),
+  ];
+  const STARTING_CAPITAL = 5000;
+
+  // Reinvest model — identical to HeroCopyTrading.html: each period's
+  // PRA return gets scaled by a position-size multiplier that
+  // compounds at 5% per quarter, then re-integrates into a cumulative %.
+  const REINVEST_QUARTERLY_RATE = 0.05;
+  const QUARTER_MS = 91.3125 * 24 * 60 * 60 * 1000;
+
+  const MONTH_NAMES = ['January','February','March','April','May','June',
+                       'July','August','September','October','November','December'];
+
+  // ============================================================
+  // DOM HELPERS
+  // ============================================================
+  const $ = id => document.getElementById(id);
+  const setText = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
+  const fmtPct = pct => (pct >= 0 ? '+' : '−') + Math.abs(Math.round(pct)) + '%';
+  const fmtEur = v => '€' + Math.round(v).toLocaleString('en-US');
+
+  // ============================================================
+  // CSV PARSING
+  // ============================================================
+  function parseCsvRows(text) {
+    const rows = [];
+    let row = [], cell = '', inQ = false, i = 0;
+    while (i < text.length) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i += 2; }
+          else { inQ = false; i++; }
+        } else { cell += c; i++; }
+      } else {
+        if (c === '"')      { inQ = true; i++; }
+        else if (c === ',') { row.push(cell); cell = ''; i++; }
+        else if (c === '\n' || c === '\r') {
+          row.push(cell); rows.push(row);
+          row = []; cell = '';
+          if (c === '\r' && text[i + 1] === '\n') i += 2; else i++;
+        } else { cell += c; i++; }
+      }
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  const MONTH_MAP = {
+    'jan':0, 'january':0,    'feb':1, 'february':1,
+    'mar':2, 'march':2,      'apr':3, 'april':3,
+    'may':4,                  'jun':5, 'june':5,
+    'jul':6, 'july':6,        'aug':7, 'august':7,
+    'sep':8, 'sept':8, 'september':8,
+    'oct':9, 'okt':9, 'october':9,
+    'nov':10, 'november':10,  'dec':11, 'december':11
+  };
+  function parseMonthName(s) {
+    if (!s) return -1;
+    const key = s.trim().toLowerCase().replace(/[.,]$/, '');
+    if (key in MONTH_MAP) return MONTH_MAP[key];
+    const short = key.substring(0, 3);
+    if (short in MONTH_MAP) return MONTH_MAP[short];
+    return -1;
+  }
+  function parseEuro(s) {
+    if (!s) return null;
+    const cleaned = s.replace(/[€\s,]/g, '');
+    const n = parseFloat(cleaned);
+    return isFinite(n) ? n : null;
+  }
+
+  // ============================================================
+  // SHEET FETCH + PARSE (same conventions as HeroCopyTrading)
+  // ============================================================
+  async function fetchSheetCsv() {
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+                     '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID;
+    const attempts = SHEET_CORS_PROXIES.map(p =>
+      fetch(p(sheetUrl)).then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+    );
+    return Promise.any(attempts);
+  }
+
+  function parseSheet(csvText) {
+    const rows = parseCsvRows(csvText);
+    if (rows.length < 2) throw new Error('Sheet returned no data');
+
+    // Pull the monthly equity rows: month name in col 0 + € value in col 1.
+    const monthRows = [];
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      if (row.length < 2) continue;
+      const a = (row[0] || '').trim();
+      const b = (row[1] || '').trim();
+      if (!b.includes('€')) continue;
+      const monthIdx = parseMonthName(a);
+      if (monthIdx < 0) continue;
+      const profit = parseEuro(b);
+      if (profit === null) continue;
+      monthRows.push({ monthIdx, capital: profit + STARTING_CAPITAL });
+    }
+    if (monthRows.length < 2) throw new Error('Could not extract month rows');
+
+    // Walk backwards from latest row, anchored at today's month, to
+    // assign year+month. ts = last day of preceding month (HeroCopyTrading
+    // convention — each row's value is end-of-prior-month state).
+    const today    = new Date();
+    const curYear  = today.getUTCFullYear();
+    const curMonth = today.getUTCMonth();
+    const lastIdx  = monthRows[monthRows.length - 1].monthIdx;
+    let year  = lastIdx <= curMonth ? curYear : curYear - 1;
+    let month = lastIdx;
+    const monthly = new Array(monthRows.length);
+    for (let i = monthRows.length - 1; i >= 0; i--) {
+      monthly[i] = {
+        ts: Date.UTC(year, month, 0),
+        year, monthIdx: month,
+        capital: monthRows[i].capital
+      };
+      month--;
+      if (month < 0) { month = 11; year--; }
+    }
+    return monthly;
+  }
+
+  // ============================================================
+  // COHORT MATH
+  // ============================================================
+  // For each year Y from the sheet's first year through current year:
+  //   anchor capital = end-of-Dec(Y-1) equity, equivalently the value
+  //     stored on the row labelled "Jan Y" (sheet convention).
+  //   For the very first year (2019) there is no "Jan Y" row; use the
+  //     pre-trading anchor instead (monthly[0]).
+  //   return % = latestCapital / anchorCapital − 1.
+  function computeCohorts(monthly) {
+    if (!monthly || monthly.length === 0) return [];
+    const today = new Date();
+    const currentYear = today.getUTCFullYear();
+    const latestCapital = monthly[monthly.length - 1].capital;
+
+    // First year is whatever the sheet actually starts at — derived from
+    // the data, NOT a hardcoded 2019. The sheet only retains a rolling
+    // window of months (currently ~73), so monthly[0] is the oldest row
+    // (e.g. May 2020 as of today). Anything earlier than that simply
+    // can't be a cohort — there's no data for it.
+    const firstYear = monthly[0].year;
+
+    const out = [];
+    for (let y = firstYear; y <= currentYear; y++) {
+      let anchorIdx;
+      if (y === firstYear) {
+        // Earliest available year — use the very first row as anchor.
+        // For the current sheet that's the pre-trading €5,000 row.
+        anchorIdx = 0;
+      } else {
+        // For later years, anchor at the row LABELLED "Jan Y", whose
+        // ts is end-of-Dec(Y-1) per the sheet convention.
+        anchorIdx = monthly.findIndex(m => m.year === y && m.monthIdx === 0);
+        if (anchorIdx < 0) continue;
+      }
+      const anchor = monthly[anchorIdx].capital;
+      const pct = anchor === 0 ? 0 : (latestCapital / anchor - 1) * 100;
+
+      // Cumulative-% series for THIS cohort + run the same reinvest
+      // formula HeroCopyTrading uses on the line chart — so the
+      // "with reinvest" number is directly comparable.
+      const cumSeries = [];
+      for (let i = anchorIdx; i < monthly.length; i++) {
+        const cum = anchor === 0 ? 0 : (monthly[i].capital / anchor - 1) * 100;
+        cumSeries.push([monthly[i].ts, cum]);
+      }
+      const reinvestSeries = generateReinvestVariant(cumSeries);
+      const reinvestPct = reinvestSeries.length > 0
+        ? reinvestSeries[reinvestSeries.length - 1][1]
+        : 0;
+
+      out.push({
+        year: y,
+        pct: pct,
+        reinvestPct: reinvestPct,
+        anchor: anchor,
+        anchorMonthName: MONTH_NAMES[monthly[anchorIdx].monthIdx],
+        latest: latestCapital,
+        isCurrent: y === currentYear
+      });
+    }
+    return out;
+  }
+
+  function generateReinvestVariant(praSeries) {
+    if (praSeries.length === 0) return [];
+    const startTs = praSeries[0][0];
+    let equity = 1;
+    const out = [[startTs, 0]];
+    for (let i = 1; i < praSeries.length; i++) {
+      const [ts, cumPct]    = praSeries[i];
+      const [, prevCumPct]  = praSeries[i - 1];
+      const prevEq          = 1 + prevCumPct / 100;
+      const currEq          = 1 + cumPct / 100;
+      const periodReturn    = currEq / prevEq - 1;
+      const quartersElapsed = (ts - startTs) / QUARTER_MS;
+      const positionMult    = Math.pow(1 + REINVEST_QUARTERLY_RATE, quartersElapsed);
+      const scaledReturn    = periodReturn * positionMult;
+      equity *= (1 + scaledReturn);
+      out.push([ts, (equity - 1) * 100]);
+    }
+    return out;
+  }
+
+  // ============================================================
+  // RENDER
+  // ============================================================
+  function renderCohorts(cohorts) {
+    const grid = $('cohort-grid');
+    if (!grid) return;
+    // Clear and re-render (also wipes the loading overlay).
+    grid.innerHTML = '';
+
+    for (const c of cohorts) {
+      const card = document.createElement('div');
+      card.className = 'cohort' + (c.isCurrent ? ' is-current' : '');
+
+      const sub = c.isCurrent ? 'ytd, still growing' : 'on every euro';
+      const numClass = c.pct === 0 ? 'cohort-num zero' : 'cohort-num';
+
+      // Year is now inside the heading ("CLASS OF 2022") and the old
+      // footer with "YYYY · N joined" has been dropped.
+      card.innerHTML =
+          '<div class="cohort-year">CLASS OF ' + c.year + '</div>'
+        + '<div>'
+        +   '<div class="cohort-numbers">'
+        +     '<div class="' + numClass + '">' + fmtPct(c.pct) + '</div>'
+        +     '<div class="cohort-reinvest">' + fmtPct(c.reinvestPct)
+        +       '<span class="cohort-reinvest-tag">W/ REINVEST</span>'
+        +     '</div>'
+        +   '</div>'
+        +   '<div class="cohort-sub">' + sub + '</div>'
+        + '</div>';
+
+      grid.appendChild(card);
+    }
+  }
+
+  function renderStory(cohorts) {
+    if (!cohorts.length) return;
+    // Use the earliest cohort (largest compounded return) for the story —
+    // it sells the "the earliest seats compound the hardest" line best.
+    const earliest = cohorts[0];
+    const eurValue = 10000 * (1 + earliest.pct / 100);
+
+    // Story start = the earliest cohort's actual anchor month —
+    // "May 2020" if that's where the sheet currently begins, "January
+    // 2021" for any post-rollover cohort, etc.
+    const startWhen = earliest.anchorMonthName + ' ' + earliest.year;
+
+    setText('story-when', startWhen);
+    setText('story-value', fmtEur(eurValue) + ' today.');
+
+    // Headline rewrite: "five years ago" → actual gap to earliest cohort.
+    // Non-breaking spaces between number / "years" / "ago" so they all
+    // wrap together — keeps the headline reading "joined 7 years ago"
+    // on a single line instead of orphaning the word "ago".
+    const headlineYears = new Date().getUTCFullYear() - earliest.year;
+    const title = $('head-title');
+    if (title) {
+      title.innerHTML =
+          'Members who joined <em>' + headlineYears + '&nbsp;years&nbsp;ago</em><br>'
+        + 'are now up <span class="accent">' + fmtPct(earliest.pct) + '.</span>';
+    }
+
+    // CTA button label tracks the current-year cohort — "Reserve a
+    // 2026 seat", "Reserve a 2027 seat" next January, etc. The meta
+    // line below it is now a fixed "limited spots" message (no longer
+    // sourced from SEAT_DATA).
+    const current = cohorts.find(c => c.isCurrent);
+    if (current) {
+      setText('cohort-cta-trigger', 'Reserve a ' + current.year + ' seat');
+    }
+  }
+
+  // Paint the watermark line graph from the actual monthly equity
+  // values. The path spans the SVG's full viewBox horizontally and
+  // scales the equity range vertically — same data the cohort cards
+  // are computed from. preserveAspectRatio:none on the SVG stretches
+  // this to the right half of the story box.
+  function renderWatermark(monthly) {
+    if (!monthly || monthly.length < 2) return;
+    const linePath = $('watermark-path');
+    const areaPath = $('watermark-area');
+    if (!linePath || !areaPath) return;
+
+    const W = 600, H = 200, PAD_Y = 20;
+    let minCap = Infinity, maxCap = -Infinity;
+    for (const m of monthly) {
+      if (m.capital < minCap) minCap = m.capital;
+      if (m.capital > maxCap) maxCap = m.capital;
+    }
+    const range = (maxCap - minCap) || 1;
+
+    let dLine = '';
+    for (let i = 0; i < monthly.length; i++) {
+      const x = (i / (monthly.length - 1)) * W;
+      const yNorm = (monthly[i].capital - minCap) / range;
+      const y = (H - PAD_Y) - yNorm * (H - PAD_Y * 2);
+      dLine += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+    }
+    const dArea = dLine + 'L' + W + ',' + H + ' L0,' + H + ' Z';
+
+    linePath.setAttribute('d', dLine.trim());
+    areaPath.setAttribute('d', dArea);
+  }
+
+  function showError(msg) {
+    const loader = $('cohort-loading');
+    if (!loader) return;
+    loader.classList.remove('is-hidden');
+    loader.innerHTML = '<div class="cohort-loading-error">' + msg + '</div>';
+  }
+
+  // ============================================================
+  // BOOT
+  // ============================================================
+  async function boot() {
+    try {
+      const csv = await fetchSheetCsv();
+      const monthly = parseSheet(csv);
+      const cohorts = computeCohorts(monthly);
+      renderCohorts(cohorts);
+      renderStory(cohorts);
+      renderWatermark(monthly);
+    } catch (e) {
+      console.error('Cohort fetch failed:', e);
+      showError("Couldn't load cohort data right now.<br><small style=\"display:block;margin-top:6px;color:#8A8A93\">" + (e.message || e) + '</small>');
+    }
+  }
+
+  boot();
+
+  // ============================================================
+  // WAITLIST POPOVER — adapted from the Manifesto signature lightbox.
+  // Opens anchored to the CTA. Submission posts a message to the
+  // parent window for Wix Velo to handle, then listens for the result.
+  // ============================================================
+  (function setupPopover() {
+    const trigger    = $('cohort-cta-trigger');
+    const popover    = $('cohortPopover');
+    const closeBtn   = $('cohortPopoverClose');
+    const emailForm  = $('cohortPopoverForm');
+    const emailInput = $('cohortPopoverEmail');
+    const submitBtn  = $('cohortPopoverSubmit');
+    const statusEl   = $('cohortPopoverStatus');
+    if (!trigger || !popover) return;
+
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const EDGE_PAD = 12;
+    const GAP      = 8;
+    let lastFocus = null;
+    let isOpen    = false;
+
+    function setStatus(message, kind) {
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('is-success', 'is-error');
+      if (kind) statusEl.classList.add('is-' + kind);
+      statusEl.classList.toggle('is-visible', Boolean(message));
+    }
+    function setLoading(loading) {
+      submitBtn.disabled = loading;
+      submitBtn.textContent = loading ? 'Submitting…' : 'Join waitlist';
+    }
+    function positionPopover() {
+      const rect = trigger.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const pw = popover.offsetWidth;   // actual width after the max-width clamp
+      const ph = popover.offsetHeight;
+
+      // Horizontal: align the popover's right edge with the CTA's right
+      // edge, then clamp so the panel always stays inside the viewport
+      // gutters. On the stacked mobile/tablet layout the CTA is
+      // left-aligned, so the naive right-anchor used to run the panel off
+      // the LEFT edge of the screen (its width overshot the viewport).
+      popover.style.left = '';
+      const maxRight = vw - pw - EDGE_PAD;            // keeps left edge >= EDGE_PAD
+      let right = vw - rect.right;
+      right = Math.min(Math.max(right, EDGE_PAD), maxRight);
+      popover.style.right = right + 'px';
+
+      // Vertical: sit just above the CTA, but clamp so the top edge never
+      // slips above the viewport when the button is high on screen.
+      popover.style.top = '';
+      const maxBottom = vh - ph - EDGE_PAD;           // keeps top edge >= EDGE_PAD
+      let bottom = vh - rect.top + GAP;
+      if (bottom > maxBottom) bottom = Math.max(EDGE_PAD, maxBottom);
+      popover.style.bottom = bottom + 'px';
+    }
+    function onDocClick(e) {
+      if (popover.contains(e.target)) return;
+      if (e.target === trigger || trigger.contains(e.target)) return;
+      closePopover();
+    }
+    function openPopover() {
+      if (isOpen) return;
+      isOpen = true;
+      lastFocus = document.activeElement;
+      positionPopover();
+      requestAnimationFrame(() => popover.classList.add('is-open'));
+      requestAnimationFrame(() => document.addEventListener('click', onDocClick, true));
+      window.addEventListener('resize', positionPopover);
+      window.addEventListener('scroll', positionPopover, true);
+      setTimeout(() => emailInput.focus(), 240);
+    }
+    function closePopover() {
+      if (!isOpen) return;
+      isOpen = false;
+      popover.classList.remove('is-open');
+      setStatus('', null);
+      setLoading(false);
+      document.removeEventListener('click', onDocClick, true);
+      window.removeEventListener('resize', positionPopover);
+      window.removeEventListener('scroll', positionPopover, true);
+      if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+    }
+
+    trigger.addEventListener('click', e => {
+      e.preventDefault();
+      if (isOpen) closePopover();
+      else        openPopover();
+    });
+    closeBtn.addEventListener('click', closePopover);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && isOpen) closePopover();
+    });
+    emailInput.addEventListener('input', () => {
+      emailInput.classList.remove('is-invalid');
+      if (statusEl.classList.contains('is-error')) setStatus('', null);
+    });
+
+    emailForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      if (!EMAIL_RE.test(email)) {
+        emailInput.classList.add('is-invalid');
+        setStatus('Please enter a valid email address.', 'error');
+        emailInput.focus();
+        return;
+      }
+      setLoading(true);
+      setStatus('', null);
+      // Hand off to Wix Velo on the parent page. Velo should listen
+      // for { type: 'waitlistSubmit', email } and reply with
+      // { type: 'waitlistResult', status: 'success' | 'error', message? }.
+      window.parent.postMessage({ type: 'waitlistSubmit', email: email }, '*');
+    });
+
+    window.addEventListener('message', event => {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'waitlistResult') {
+        setLoading(false);
+        if (data.status === 'success') {
+          emailForm.reset();
+          setStatus('You’re on the list. We’ll be in touch.', 'success');
+        } else {
+          setStatus(data.message || 'Something went wrong. Please try again.', 'error');
+        }
+      }
+    });
+  })();
+})();
+</script>
+
+</body>
+</html>

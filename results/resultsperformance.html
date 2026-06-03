@@ -1,0 +1,2558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos · The Trading Year</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+  --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+  --red: #EC3B3D; --red-soft: #FDECEC;
+  --green: #3DC574; --green-soft: #E6F7EE;
+  --green-deep: #22A65A;
+  --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+  /* Shared height for the chart / heatmap viewport. Overridden per
+     breakpoint below so Line, Bars and Heatmap all stay the same height
+     and the box never grows taller than the viz it holds. */
+  --viz-h: 440px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Onest', sans-serif; background: var(--bg); color: var(--ink);
+  -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; line-height: 1.55;
+}
+.section { padding: 88px 0 100px; background: var(--bg); }
+.container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+
+.head {
+  max-width: 900px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+.title {
+  font-size: 60px; font-weight: 800; letter-spacing: -0.035em;
+  line-height: 1.08; margin-bottom: 18px;
+  color: #333;
+}
+.title em { color: var(--ink-muted); font-style: italic; font-weight: 500; }
+.title .accent {
+  color: var(--green);
+  position: relative;
+  display: inline-block;
+  /* Anchor for the floating +€X badge and the glow transform. */
+  transform-origin: 50% 60%;
+  will-change: transform, text-shadow;
+}
+/* Pulse triggered on every incoming bump — quick scale + glow, easing
+   out so it feels like the number "took" the new money rather than
+   just changed. Wins get a bigger pulse + green glow; losses get a
+   smaller pulse + red glow, mirroring the relative size convention
+   (wins 1-9, losses 1-4). The number itself stays green throughout
+   so the brand color reads consistently. */
+.title .accent.is-bumping {
+  animation: dynBumpWin 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.title .accent.is-bumping.is-loss {
+  animation: dynBumpLoss 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes dynBumpWin {
+  0%   { transform: scale(1);    text-shadow: 0 0 0    rgba(61,197,116,0);   }
+  35%  { transform: scale(1.07); text-shadow: 0 0 28px rgba(61,197,116,0.55); }
+  100% { transform: scale(1);    text-shadow: 0 0 0    rgba(61,197,116,0);   }
+}
+@keyframes dynBumpLoss {
+  0%   { transform: scale(1);    text-shadow: 0 0 0    rgba(236,59,61,0);   }
+  35%  { transform: scale(0.96); text-shadow: 0 0 22px rgba(236,59,61,0.50); }
+  100% { transform: scale(1);    text-shadow: 0 0 0    rgba(236,59,61,0);   }
+}
+/* Floating "+€X" / "−€X" badge — pops in just above and to the right
+   of the number, drifts up while fading out. Absolutely positioned
+   inside the accent span, so it follows the number's location
+   automatically. Win = green pill, loss = red pill. */
+.dyn-floater {
+  position: absolute;
+  top: -0.05em;
+  right: -0.35em;
+  transform: translate(100%, 0);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.32em;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--green-deep);
+  background: rgba(61,197,116,0.12);
+  border: 1px solid rgba(61,197,116,0.35);
+  border-radius: 999px;
+  padding: 0.25em 0.6em;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  animation: dynFloat 1500ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.dyn-floater.is-loss {
+  color: var(--red);
+  background: rgba(236,59,61,0.10);
+  border-color: rgba(236,59,61,0.32);
+}
+@keyframes dynFloat {
+  0%   { opacity: 0; transform: translate(100%, 0.6em) scale(0.8); }
+  18%  { opacity: 1; transform: translate(100%, 0)      scale(1);   }
+  70%  { opacity: 1; transform: translate(100%, -0.8em) scale(1);   }
+  100% { opacity: 0; transform: translate(100%, -1.6em) scale(1);   }
+}
+.gain-info {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  margin-top: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: rgba(14, 14, 16, 0.4);
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: none;
+}
+.gain-info .gain-pct {
+  color: inherit;
+  font-weight: 500;
+}
+.sub {
+  font-size: 17px; color: var(--ink-muted);
+  max-width: 600px; margin: 0 auto;
+  line-height: 1.55;
+}
+
+/* ============================================================
+   MAIN BOX — title above, chart card in the middle, stats below
+   ============================================================ */
+.dial-wrap {
+  background: var(--bg-soft); border: 1px solid var(--hairline);
+  border-radius: 24px;
+  /* Tightened: less top padding because the floating view-toggle
+     already eats the upper edge, and narrower side padding so the
+     chart claims more of the box width. */
+  padding: 22px 24px 28px;
+  position: relative;
+}
+
+/* CHART CARD: now just a container for the viz-area. The old toolbar
+   row is gone — the reinvest switch moved under the range pills on the
+   chart itself. Tight bottom margin so the disclaimer sits close to
+   the chart's lower edge. */
+.chart-card {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+/* Floating view toggle — anchored to the .dial-wrap's top border so it
+   reads like a browser tab attached to the card. White background +
+   hairline border + soft shadow so it pops against the grey box bg
+   and clearly covers the 1px border line passing behind it. */
+.floating-view-toggle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  padding: 4px;
+  background: #fff;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* VIEW TOGGLE (Line / Bars) — ~2x bigger than the original spec.
+   Outer wrapper (.floating-view-toggle) carries the white pill bg +
+   border + shadow; this inner element is just the segmented control. */
+.view-toggle {
+  display: inline-flex; gap: 4px; background: transparent;
+  border-radius: 999px; padding: 0;
+}
+.vt {
+  font-family: 'Onest', sans-serif; font-size: 16px; font-weight: 600;
+  padding: 11px 22px; border-radius: 999px; border: none; background: transparent;
+  color: #4A4A52; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.vt:hover { color: var(--ink); }
+.vt.is-active {
+  background: var(--ink); color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.vt svg { width: 16px; height: 16px; }
+
+/* REINVEST TOGGLE SWITCH — floats just below the range pills in the
+   chart's top-left corner. Same white-pill / hairline-border treatment
+   as the pills so the two read as a stacked control cluster. */
+.reinvest-switch {
+  position: absolute;
+  top: 44px;           /* below range pills (top:4 + ~34 pill height + 6 gap) */
+  left: 4px;
+  z-index: 5;
+  display: inline-flex; align-items: center; gap: 8px;
+  cursor: pointer; user-select: none;
+  padding: 6px 12px 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: background 0.16s ease;
+}
+.reinvest-switch:hover { background: var(--bg-soft); }
+
+/* Reinvest disclaimer — pinned to the absolute bottom of the box,
+   centered. Position is absolute so it overlays existing content
+   instead of pushing the chart up; pointer-events none so it doesn't
+   block hover/clicks on the chart below it. */
+.reinvest-disclaimer {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  font-family: 'Onest', sans-serif;
+  font-size: 11px;
+  color: var(--ink-muted);
+  letter-spacing: 0.01em;
+  text-align: center;
+  max-width: 80%;
+  pointer-events: none;
+}
+.reinvest-switch input { display: none; }
+.reinvest-switch-label {
+  font-family: 'Onest', sans-serif; font-size: 11.5px;
+  font-weight: 500; color: #4A4A52;
+  transition: color 0.16s ease;
+}
+.reinvest-switch input:checked ~ .reinvest-switch-label {
+  color: var(--ink); font-weight: 600;
+}
+.reinvest-switch-track {
+  position: relative; width: 28px; height: 16px;
+  background: #E8E8EC; border-radius: 999px;
+  transition: background 0.2s ease; flex-shrink: 0;
+}
+.reinvest-switch-track::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px; background: #fff; border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.reinvest-switch input:checked + .reinvest-switch-track { background: var(--green-deep); }
+.reinvest-switch input:checked + .reinvest-switch-track::after { transform: translateX(12px); }
+
+/* RANGE PILLS (1Y / 3Y / 5Y / MAX) — anchored at the top-left corner
+   of the chart container. Sits above the plot's upper-empty band so it
+   doesn't obscure data on either line or bars views. */
+.range-pills {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 5;
+  display: inline-flex; align-items: center; gap: 2px;
+  background: var(--bg); border: 1px solid var(--hairline);
+  border-radius: 999px; padding: 3px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.rp {
+  font-family: 'Onest', sans-serif; font-size: 11.5px; font-weight: 600;
+  padding: 6px 12px; border-radius: 999px; border: none; background: transparent;
+  color: #4A4A52; cursor: pointer;
+  transition: all 0.18s ease;
+}
+.rp:hover { color: var(--ink); }
+.rp.is-active {
+  background: var(--ink); color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+/* CHART CONTAINER */
+.viz-area {
+  position: relative;
+  min-height: var(--viz-h);
+}
+.chart-area { width: 100%; height: var(--viz-h); position: relative; }
+
+/* Loading overlay */
+.viz-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 14px;
+  background: rgba(247,247,248,0.92);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  z-index: 10; border-radius: 16px;
+}
+.viz-loading.is-hidden { display: none; }
+.viz-loading-spinner {
+  width: 24px; height: 24px; border: 2.5px solid var(--hairline);
+  border-top-color: var(--green); border-radius: 50%;
+  animation: vlSpin 0.8s linear infinite;
+}
+@keyframes vlSpin { to { transform: rotate(360deg); } }
+.viz-loading-text { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+.viz-loading-error {
+  max-width: 360px; text-align: center; font-size: 12.5px;
+  color: var(--red); line-height: 1.5;
+}
+
+/* ============================================================
+   STATS GRID — 4 columns, 9 cells with one cell spanning 2.
+   ============================================================ */
+.stats-area { width: 100%; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.lg-cell {
+  padding: 14px 16px; background: var(--bg);
+  border: 1px solid var(--hairline); border-radius: 12px;
+}
+.lg-cell.span2 { grid-column: span 2; }
+.lg-cell.span4 { grid-column: span 4; }
+.lg-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: 0.12em; color: var(--ink-muted); margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.lg-pill .swatch { width: 10px; height: 10px; border-radius: 50%; }
+.lg-pill .swatch.green { background: var(--green); }
+.lg-pill .swatch.red   { background: var(--red); }
+.lg-pill .swatch.flat  { background: var(--ink-dim); }
+.lg-pill .swatch.ink   { background: var(--ink); }
+.lg-value {
+  font-size: 22px; font-weight: 700; color: var(--ink);
+  letter-spacing: -0.022em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+.lg-value.pos { color: var(--green); }
+.lg-value.neg { color: var(--red); }
+.lg-sub {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  color: var(--ink-muted); margin-top: 6px;
+}
+
+.algo-cell {
+  padding: 14px 16px; background: var(--bg);
+  border: 1px solid var(--hairline); border-radius: 12px;
+}
+.algo-cell.up { border-color: rgba(61,197,116,0.32); background: rgba(61,197,116,0.05); }
+.algo-cell.dn { border-color: rgba(236,59,61,0.28);  background: rgba(236,59,61,0.04); }
+
+.month-call {
+  grid-column: span 2;
+  display: grid; grid-template-columns: auto 1fr; gap: 14px;
+  padding: 14px 16px; background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 12px; align-items: center;
+}
+.mc-arc { width: 36px; height: 36px; flex-shrink: 0; }
+.mc-title {
+  font-size: 10px; font-weight: 600; color: var(--ink-muted);
+  margin-bottom: 6px; letter-spacing: 0.16em;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+}
+.mc-value {
+  font-size: 22px; font-weight: 700; color: var(--ink);
+  font-variant-numeric: tabular-nums; letter-spacing: -0.022em;
+  line-height: 1; display: inline-block;
+}
+.mc-text {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  color: var(--ink-muted); margin-top: 6px;
+}
+
+/* ============================================================
+   HEATMAP VIEW — ported from the section 04 mockup. Lives inside
+   the same viz-area as the chart, swaps in/out via setView().
+   Wrapped in .heatmap-area so the grid + legend + stats stack
+   vertically inside the dial-wrap. The card chrome (white bg,
+   hairline border, rounded corners) is intentionally OMITTED here
+   because the heatmap sits inside the .dial-wrap card already — a
+   second card-on-card would look heavy.
+   ============================================================ */
+.heatmap-area {
+  width: 100%;
+  /* Match the chart-area height so switching between Line / Bars /
+     Heatmap doesn't reflow the box. The grid below distributes its
+     rows to fill this height, so taller cells when there are fewer
+     years of data and tighter rows once the track record grows.
+     Padding gives the grid the same top breathing room the chart
+     view gets from its internal Highcharts spacing — without it
+     the heatmap sat too close to the floating view-toggle pill. */
+  height: var(--viz-h);
+  padding: 28px 2px 8px;
+  display: flex;
+  flex-direction: column;
+}
+.heatmap-area[hidden] { display: none; }
+
+.heatmap {
+  display: grid;
+  /* Year col + 12 months + total col. Match mockup exactly. */
+  grid-template-columns: 64px repeat(12, 1fr) 76px;
+  /* First row (header) is auto-height (~36px); every subsequent year
+     row is 1fr so the data rows distribute the remaining vertical
+     space evenly. */
+  grid-template-rows: auto;
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  min-width: 720px;
+  flex: 1;
+  min-height: 0;
+}
+.hm-month, .hm-year, .hm-total {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+}
+.hm-total { letter-spacing: 0.16em; }
+.hm-year {
+  justify-content: flex-start;
+  padding-left: 4px;
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+}
+/* Month-header initials — hidden by default; shown only on phones, where
+   the month columns are too narrow for the 3-letter abbreviation. */
+.hm-h-mini { display: none; }
+.hm-cell {
+  /* No aspect-ratio — cells stretch to fill the grid row so the whole
+     heatmap reaches the same 480px height as the chart views. */
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 600;
+  color: var(--ink);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: default;
+  letter-spacing: -0.01em;
+  min-height: 0;
+}
+.hm-cell:hover {
+  transform: scale(1.08);
+  z-index: 1;
+  box-shadow: 0 4px 12px rgba(14,14,16,0.12);
+}
+/* "Live" pulsing on the current calendar month cell — same heartbeat
+   metaphor as the dot at the end of the PRA line chart. The ring is
+   an outward-expanding box-shadow, kept green regardless of whether
+   the underlying cell is a winning or losing month (the pulse marks
+   "this is right now", not the outcome). */
+.hm-cell.is-live {
+  position: relative;
+  z-index: 1;
+  animation: hmCellPulse 1.8s ease-out infinite;
+}
+@keyframes hmCellPulse {
+  0%   { box-shadow: 0 0 0 0   rgba(61,197,116,0.60); }
+  70%  { box-shadow: 0 0 0 12px rgba(61,197,116,0);   }
+  100% { box-shadow: 0 0 0 0   rgba(61,197,116,0);    }
+}
+/* Per-bump pop on the live cell — combines with the continuous
+   hmCellPulse (above) using a comma-separated animation list. The
+   transform animation handles the "took a hit" / "made some money"
+   flinch while the box-shadow pulse keeps signalling "live". */
+.hm-cell.is-live.is-bumping {
+  animation:
+    hmCellPulse 1.8s ease-out infinite,
+    hmCellBumpWin 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hm-cell.is-live.is-bumping.is-loss {
+  animation:
+    hmCellPulse 1.8s ease-out infinite,
+    hmCellBumpLoss 600ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes hmCellBumpWin {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(1.12); }
+  100% { transform: scale(1);    }
+}
+@keyframes hmCellBumpLoss {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(0.94); }
+  100% { transform: scale(1);    }
+}
+.hm-cell.g1 { background: #E6F7EE; }
+.hm-cell.g2 { background: #C7EBD6; }
+.hm-cell.g3 { background: #8FD9B0; }
+.hm-cell.g4 { background: #5DC489; color: #FFF; }
+.hm-cell.g5 { background: #3DC574; color: #FFF; }
+.hm-cell.r1 { background: #FDECEC; }
+.hm-cell.r2 { background: #F9D3D4; }
+.hm-cell.r3 { background: #F4A7A8; color: #FFF; }
+.hm-cell.r4 { background: #EC3B3D; color: #FFF; }
+.hm-cell.empty { background: var(--bg-muted); color: var(--ink-dim); font-weight: 400; }
+.hm-cell.total {
+  background: var(--ink); color: #FFF; font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.hm-cell.total.neg { background: #B12527; }
+
+.hm-legend {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 22px; padding-top: 18px;
+  border-top: 1px solid var(--hairline);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  color: var(--ink-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  flex-wrap: wrap;
+}
+.hm-legend-swatches { display: flex; gap: 3px; }
+.hm-legend-swatches span {
+  width: 18px; height: 14px; border-radius: 3px; display: inline-block;
+}
+.hm-legend-end { margin-left: auto; }
+
+.hm-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  margin-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+.hm-stats .si {
+  padding: 16px 18px;
+  border-right: 1px solid var(--hairline);
+}
+.hm-stats .si:last-child { border-right: none; }
+.hm-stats .si-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-muted); margin-bottom: 6px;
+}
+.hm-stats .si-value {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.02em;
+  font-family: 'Onest', sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.hm-stats .si-value.green { color: var(--green); }
+.hm-stats .si-value.red   { color: var(--red); }
+
+/* When the heatmap is the active view, hide the controls that don't
+   make sense for it (range pills, reinvest switch) and the reinvest
+   disclaimer at the bottom. */
+.dial-wrap.view-heatmap .range-pills,
+.dial-wrap.view-heatmap .reinvest-switch,
+.dial-wrap.view-heatmap .reinvest-disclaimer { display: none; }
+
+@media (max-width: 750px) {
+  /* Phones can't fit a "+X.X%" in every one of the 12 month columns, so the
+     month cells become colour-only squares — the shade still carries each
+     month's magnitude (g1–g5 / r1–r4) and the bold YEAR total keeps the
+     actual number. Month headers shrink to single initials. The 720px floor
+     is dropped (in the 1000px block) so the whole grid fits the card with
+     no horizontal scroll. */
+  .heatmap { grid-template-columns: 34px repeat(12, 1fr) 48px; gap: 3px; }
+  .hm-cell { font-size: 0; min-height: 0; }      /* hide the per-month %s */
+  .hm-cell.total { font-size: 9px; }             /* …but keep year totals readable */
+  .hm-month, .hm-total { font-size: 9px; padding: 6px 0; }
+  .hm-year { font-size: 9px; padding-left: 2px; }
+  .hm-h-full { display: none; }                  /* JAN → J */
+  .hm-h-mini { display: inline; }
+}
+
+/* ============================================================
+   HIGHCHARTS shared styling — keeps Line and Bars looking like
+   members of the same family.
+   ============================================================ */
+#chart-area .highcharts-container { font-family: 'Onest', sans-serif !important; }
+#chart-area .highcharts-credits { display: none !important; }
+#chart-area, #chart-area .highcharts-container,
+#chart-area .highcharts-root, #chart-area svg { overflow: visible !important; }
+
+/* Bars view: x-axis HTML labels stack month abbreviation above coloured
+   delta ("▲ +6%"). Shared with the "ALL" range's year-tick labels. */
+.bar-x-cat { text-align: center; line-height: 1.25; }
+.bxc-month, .bxc-year {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700; font-size: 12px;
+  letter-spacing: 0.04em; color: #0E0E10;
+}
+.bxc-year { font-size: 13px; }
+.bxc-delta {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600; font-size: 10.5px;
+  letter-spacing: 0.02em; margin-top: 4px; white-space: nowrap;
+}
+
+/* Crosshair tooltip — dark pill, shared by Line and Bars */
+.pra-tooltip {
+  background: var(--ink); color: #fff; padding: 9px 11px;
+  border-radius: 10px; font-family: 'Onest', sans-serif; font-size: 11.5px;
+  box-shadow: 0 12px 40px rgba(14,14,16,0.18);
+  pointer-events: none; min-width: 168px;
+}
+.pra-tooltip-date {
+  font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+  color: rgba(255,255,255,0.6); margin-bottom: 7px; letter-spacing: 0.02em;
+}
+.pra-tooltip-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 2px 0;
+}
+.pra-tooltip-name {
+  display: flex; align-items: center; gap: 6px; font-size: 11.5px;
+}
+.pra-tooltip-dot { width: 6px; height: 6px; border-radius: 50%; }
+.pra-tooltip-value {
+  font-family: 'JetBrains Mono', monospace; font-weight: 600; font-size: 11.5px;
+}
+
+/* TABLET — 1000px down to 751px. Shorter viz so the box isn't oversized
+   on narrower viewports; stats collapse to two columns. */
+@media (max-width: 1000px) {
+  :root { --viz-h: 400px; }
+  .dial-wrap { padding: 28px 24px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .month-call { grid-column: span 2; }
+  .lg-cell.span2 { grid-column: span 2; }
+  .title { font-size: 48px; }
+  /* Drop the desktop 720px floor below 1000px so the heatmap always fits
+     the card width — no horizontal scroll. Tablets keep the %s at a
+     smaller font (see the tablet block below); phones switch the month
+     cells to colour-only (see the 750px block). */
+  .heatmap { min-width: 0; }
+}
+/* TABLET heatmap (751–1000px) — with the 720px floor gone the 14 columns
+   shrink to fit, so trim the cell + header font and tighten the year /
+   total columns to leave each "+X.X%" enough room. */
+@media (min-width: 751px) and (max-width: 1000px) {
+  .heatmap { grid-template-columns: 48px repeat(12, 1fr) 60px; gap: 3px; }
+  .hm-cell { font-size: 10px; }
+  .hm-month, .hm-year, .hm-total { font-size: 10px; }
+}
+/* MOBILE — 750px and below. Even shorter viz, tighter chrome. */
+@media (max-width: 750px) {
+  :root { --viz-h: 360px; }
+  .section { padding: 56px 0 64px; }
+  .container { padding: 0 22px; }
+  /* Fluid below ~410px so "became €154,XXX today." stays on one line
+     (2-line title) on narrow phones; caps at 32px on wider ones. */
+  .title { font-size: clamp(22px, calc(9vw - 5px), 32px); }
+  .view-toggle, .range-pills { width: fit-content; }
+  .dial-wrap { padding: 22px 14px 20px; }
+  /* On mobile the chart is short and the disclaimer wraps to a few
+     lines, so pinning it absolutely makes it collide with the x-axis
+     and the data. Let it flow in normal order below the chart instead. */
+  .reinvest-disclaimer {
+    position: static;
+    transform: none;
+    max-width: 100%;
+    margin-top: 12px;
+  }
+}
+/* VERY NARROW PHONES (≤360px, e.g. iPhone SE) — the Line / Bars / Heatmap
+   toggle pill is a fixed ~356px wide and spills past the viewport here
+   (the only remaining source of horizontal scroll at this width), so
+   shrink its buttons just enough to fit. Larger phones are unchanged. */
+@media (max-width: 360px) {
+  .vt { font-size: 13px; padding: 9px 13px; gap: 6px; }
+  .vt svg { width: 14px; height: 14px; }
+}
+</style>
+</head>
+<body>
+
+<section class="section">
+  <div class="container">
+
+    <div class="head">
+      <h2 class="title">&euro;10,000 in 2015<br>became <span class="accent" id="dyn-headline-value"><span id="dyn-headline-text">&euro;XX,XXX</span><span class="gain-info"><span class="gain-pct" id="dyn-gain-pct">+X,XXX%</span> gain since May 20th 2019</span></span> today.</h2>
+      <p class="sub">Most people would do better to invest into an index fund. One portfolio of 20 trading algorithms that outperforms the market year after year.</p>
+    </div>
+
+    <div class="dial-wrap">
+
+      <!-- Floating view toggle — sits ON the box's top border, centered.
+           Promoted out of the chart toolbar so the box edge passes
+           through its vertical center, like a browser tab. -->
+      <div class="floating-view-toggle">
+        <div class="view-toggle" id="view-toggle">
+          <button class="vt is-active" data-view="line">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+              <polyline points="2,12 5,8 8,10 11,5 14,7"/>
+              <line x1="2" y1="14" x2="14" y2="14"/>
+            </svg>
+            Line
+          </button>
+          <button class="vt" data-view="bars">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+              <line x1="3"  y1="14" x2="3"  y2="10"/>
+              <line x1="8"  y1="14" x2="8"  y2="6"/>
+              <line x1="13" y1="14" x2="13" y2="3"/>
+            </svg>
+            Bars
+          </button>
+          <button class="vt" data-view="heatmap">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+              <rect x="2"  y="2"  width="3.5" height="3.5" rx="0.6"/>
+              <rect x="6.25" y="2"  width="3.5" height="3.5" rx="0.6"/>
+              <rect x="10.5" y="2"  width="3.5" height="3.5" rx="0.6"/>
+              <rect x="2"  y="6.25" width="3.5" height="3.5" rx="0.6"/>
+              <rect x="6.25" y="6.25" width="3.5" height="3.5" rx="0.6"/>
+              <rect x="10.5" y="6.25" width="3.5" height="3.5" rx="0.6"/>
+              <rect x="2"  y="10.5" width="3.5" height="3.5" rx="0.6"/>
+              <rect x="6.25" y="10.5" width="3.5" height="3.5" rx="0.6"/>
+              <rect x="10.5" y="10.5" width="3.5" height="3.5" rx="0.6"/>
+            </svg>
+            Heatmap
+          </button>
+        </div>
+      </div>
+
+      <!-- Chart card: viz-area only (toolbar removed). Range pills and
+           the reinvest switch both float over the chart's upper-left
+           empty band as a stacked cluster. -->
+      <div class="chart-card">
+        <div class="viz-area">
+          <div class="range-pills" id="range-pills"></div>
+          <label class="reinvest-switch" id="reinvest-switch">
+            <input type="checkbox" id="reinvest-toggle">
+            <span class="reinvest-switch-track"></span>
+            <span class="reinvest-switch-label">Reinvest profits</span>
+          </label>
+          <div class="chart-area" id="chart-area"></div>
+          <div class="heatmap-area" id="heatmap-area" hidden></div>
+          <div class="viz-loading" id="viz-loading">
+            <div class="viz-loading-spinner"></div>
+            <div class="viz-loading-text" id="viz-loading-text">Loading ProRealAlgos results…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom overlay — pinned absolutely so it doesn't push the
+           chart up or grow the box. -->
+      <p class="reinvest-disclaimer">The &ldquo;Reinvest profits&rdquo; line models a 5% quarterly compounding position size increase.</p>
+
+    </div>
+
+  </div>
+</section>
+
+<script>
+(function() {
+  // ============================================================
+  // CONFIG
+  // ============================================================
+  const SHEET_ID  = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+  const SHEET_GID = '1444969085';
+  const SHEET_CORS_PROXIES = [
+    url => 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=' + encodeURIComponent(url),
+    url => 'https://corsproxy.io/?'                                       + encodeURIComponent(url),
+  ];
+  const STARTING_CAPITAL = 5000;
+  const HIGHCHARTS_CDNS = [
+    'https://code.highcharts.com/highcharts.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/highcharts/11.4.8/highcharts.min.js',
+    'https://cdn.jsdelivr.net/npm/highcharts@11.4.8/highcharts.js',
+    'https://unpkg.com/highcharts@11.4.8/highcharts.js'
+  ];
+  const SPX_SYMBOL = '%5EGSPC';
+  const SPX_YAHOO_HOSTS = [
+    'https://query1.finance.yahoo.com/v8/finance/chart/',
+    'https://query2.finance.yahoo.com/v8/finance/chart/'
+  ];
+
+  // Range options — MAX anchors at the global PRA start date (May 2019).
+  // 5Y added per spec.
+  const RANGE_OPTIONS = [
+    { key: '1y',  label: '1Y',  days: 365  },
+    { key: '3y',  label: '3Y',  days: 1095 },
+    { key: '5y',  label: '5Y',  days: 1825 },
+    { key: 'max', label: 'MAX', days: null }
+  ];
+
+  // Reinvest model — lifted from HeroCopyTrading. Each period's return
+  // is scaled by a position-size multiplier that compounds at 5%/quarter.
+  const REINVEST_QUARTERLY_RATE = 0.05;
+  const QUARTER_MS = 91.3125 * 24 * 60 * 60 * 1000;
+
+  // Series styling — kept here so Line and Bars stay in sync, and so
+  // the legend / end-labels / tooltip all pull from one source of truth.
+  const SERIES_COLORS = {
+    pra:        '#3DC574',   // bright brand green
+    praReinvest:'#22A65A',   // deeper green (matches HeroCopyTrading)
+    spx:        '#9B9BA0'    // neutral grey
+  };
+
+  // Bars gradient palette — direction is read from above/below the zero
+  // line, so SPX uses the same grey gradient whether the month is up or
+  // down. PRA flips green↔red. Reinvest uses a deeper green/red so it
+  // visually pairs with PRA but reads as a distinct (more "intense")
+  // series.
+  const BAR_GRADIENTS = {
+    praUp:      ['#5BDC93', '#3DC574'],
+    praDn:      ['#F26064', '#EC3B3D'],
+    reinvestUp: ['#3FBE7C', '#22A65A'],
+    reinvestDn: ['#D44A4D', '#B5292D'],
+    spxUp:      ['#C8C8CD', '#9B9BA0'],
+    spxDn:      ['#C8C8CD', '#9B9BA0']
+  };
+
+  // Shared Highcharts legend config — currently only used by the Bars
+  // view (Line view has its own legend disabled because the end-of-line
+  // labels already identify the series). Right-aligned so it sits on
+  // the opposite side from the range pills + reinvest switch at top-left.
+  const SHARED_LEGEND = {
+    enabled: true,
+    align: 'right',
+    verticalAlign: 'top',
+    x: 4, y: -8,
+    itemStyle: {
+      fontFamily: 'JetBrains Mono, monospace',
+      fontSize: '10.5px',
+      fontWeight: '600',
+      color: '#4A4A52',
+      letterSpacing: '0.04em'
+    },
+    itemHoverStyle:  { color: '#0E0E10' },
+    itemHiddenStyle: { color: '#C8C8CD' },
+    symbolRadius: 3,
+    squareSymbol: true,
+    symbolHeight: 10,
+    symbolWidth:  10
+  };
+
+  // ============================================================
+  // DOM HELPERS
+  // ============================================================
+  const $ = id => document.getElementById(id);
+  const setText = (id, txt) => { const el = $(id); if (el) el.textContent = txt; };
+  const formatPct  = v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  const formatPctShort = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+  const formatEur  = v => (v >= 0 ? '+€' : '−€') + Math.round(Math.abs(v)).toLocaleString('en-US');
+  const formatDate = ts => new Date(ts).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const monthName  = m => ['January','February','March','April','May','June','July','August','September','October','November','December'][m];
+  const monthAbbr  = m => ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][m];
+
+  // ============================================================
+  // STATE
+  // ============================================================
+  const state = {
+    rawCsv: null,
+    monthly: null,
+    algoCols: null,
+    spxBars: null,
+    range: 'max',          // '1y' | '3y' | '5y' | 'max'
+    view:  'line',         // 'line' | 'bars'
+    reinvest: false,       // controlled by the toggle switch
+    chart: null
+  };
+
+  // ============================================================
+  // HIGHCHARTS LOADER
+  // ============================================================
+  function loadScript(src, timeoutMs = 8000) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      let done = false;
+      const finish = (fn, arg) => { if (done) return; done = true; fn(arg); };
+      s.onload  = () => finish(resolve);
+      s.onerror = () => finish(reject, new Error('Failed to load ' + src));
+      document.head.appendChild(s);
+      setTimeout(() => finish(reject, new Error('Timeout loading ' + src)), timeoutMs);
+    });
+  }
+  let highchartsPromise = null;
+  function ensureHighcharts() {
+    if (typeof window.Highcharts !== 'undefined') return Promise.resolve();
+    if (highchartsPromise) return highchartsPromise;
+    highchartsPromise = (async () => {
+      for (const url of HIGHCHARTS_CDNS) {
+        try {
+          await loadScript(url);
+          if (typeof window.Highcharts !== 'undefined') return;
+        } catch (e) { /* try next */ }
+      }
+      throw new Error('Highcharts failed to load from any CDN');
+    })();
+    return highchartsPromise;
+  }
+
+  // ============================================================
+  // CSV PARSING
+  // ============================================================
+  function parseCsvRows(text) {
+    const rows = [];
+    let row = [], cell = '', inQ = false, i = 0;
+    while (i < text.length) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i += 2; }
+          else { inQ = false; i++; }
+        } else { cell += c; i++; }
+      } else {
+        if (c === '"')      { inQ = true; i++; }
+        else if (c === ',') { row.push(cell); cell = ''; i++; }
+        else if (c === '\n' || c === '\r') {
+          row.push(cell); rows.push(row);
+          row = []; cell = '';
+          if (c === '\r' && text[i + 1] === '\n') i += 2; else i++;
+        } else { cell += c; i++; }
+      }
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  const MONTH_MAP = {
+    'jan':0, 'january':0,    'feb':1, 'february':1,
+    'mar':2, 'march':2,      'apr':3, 'april':3,
+    'may':4,                  'jun':5, 'june':5,
+    'jul':6, 'july':6,        'aug':7, 'august':7,
+    'sep':8, 'sept':8, 'september':8,
+    'oct':9, 'okt':9, 'october':9,
+    'nov':10, 'november':10,  'dec':11, 'december':11
+  };
+  function parseMonthName(s) {
+    if (!s) return -1;
+    const key = s.trim().toLowerCase().replace(/[.,]$/, '');
+    if (key in MONTH_MAP) return MONTH_MAP[key];
+    const short = key.substring(0, 3);
+    if (short in MONTH_MAP) return MONTH_MAP[short];
+    return -1;
+  }
+  function parseEuro(s) {
+    if (!s) return null;
+    const cleaned = s.replace(/[€\s,]/g, '');
+    const n = parseFloat(cleaned);
+    return isFinite(n) ? n : null;
+  }
+
+  // ============================================================
+  // SHEET + YAHOO FETCHES
+  // ============================================================
+  async function fetchSheetCsv() {
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+                     '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID;
+    const attempts = SHEET_CORS_PROXIES.map(p =>
+      fetch(p(sheetUrl)).then(r => r.ok ? r.text() : Promise.reject(new Error('HTTP ' + r.status)))
+    );
+    return Promise.any(attempts);
+  }
+
+  async function fetchSpxBars() {
+    const tryHost = async (host) => {
+      const yahooUrl = host + SPX_SYMBOL + '?range=10y&interval=1wk&events=history';
+      const proxied  = SHEET_CORS_PROXIES[0](yahooUrl);
+      const res = await fetch(proxied);
+      if (!res.ok) throw new Error('SPX HTTP ' + res.status);
+      const text = await res.text();
+      if (!text || text.trim().startsWith('<')) throw new Error('SPX bad payload');
+      const j = JSON.parse(text);
+      const r = j && j.chart && j.chart.result && j.chart.result[0];
+      if (!r || !r.timestamp || !r.indicators || !r.indicators.quote || !r.indicators.quote[0]) {
+        throw new Error('SPX missing data');
+      }
+      const closes = r.indicators.quote[0].close;
+      const out = [];
+      for (let i = 0; i < r.timestamp.length; i++) {
+        const c = closes[i];
+        if (c == null) continue;
+        out.push([r.timestamp[i] * 1000, c]);
+      }
+      if (out.length < 50) throw new Error('SPX too few bars (' + out.length + ')');
+      return out;
+    };
+    return Promise.any(SPX_YAHOO_HOSTS.map(tryHost));
+  }
+
+  function interpolateSpx(bars, ts) {
+    if (!bars || bars.length === 0) return null;
+    if (ts <= bars[0][0]) return bars[0][1];
+    const last = bars[bars.length - 1];
+    if (ts >= last[0]) return last[1];
+    let lo = 0, hi = bars.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (bars[mid][0] <= ts) lo = mid; else hi = mid;
+    }
+    const a = bars[lo], b = bars[hi];
+    if (b[0] === a[0]) return a[1];
+    const f = (ts - a[0]) / (b[0] - a[0]);
+    return a[1] + f * (b[1] - a[1]);
+  }
+
+  // ============================================================
+  // SHEET PARSING (same conventions as HeroCopyTrading.html)
+  // ============================================================
+  function parseSheet(csvText) {
+    const rows = parseCsvRows(csvText);
+    if (rows.length < 2) throw new Error('Sheet returned no data');
+    const header = rows[0];
+
+    // Algo columns: cols 11+ where the header doesn't start with 'old'.
+    const algoCols = [];
+    for (let c = 11; c < header.length; c++) {
+      const name = (header[c] || '').trim();
+      if (!name) continue;
+      if (name.toLowerCase().startsWith('old')) continue;
+      algoCols.push({ name, colIdx: c });
+    }
+
+    const monthRows = [];
+    for (let r = 1; r < rows.length; r++) {
+      const row = rows[r];
+      if (row.length < 2) continue;
+      const a = (row[0] || '').trim();
+      const b = (row[1] || '').trim();
+      if (!b.includes('€')) continue;
+      const monthIdx = parseMonthName(a);
+      if (monthIdx < 0) continue;
+      const profitPra = parseEuro(b);
+      if (profitPra === null) continue;
+      const algoPnL = {};
+      for (const a2 of algoCols) {
+        const v = parseEuro((row[a2.colIdx] || '').trim());
+        algoPnL[a2.name] = v === null ? 0 : v;
+      }
+      monthRows.push({
+        monthIdx,
+        capitalPra: profitPra + STARTING_CAPITAL,
+        capitalSpx: STARTING_CAPITAL,    // populated by assignSpxToMonthly
+        algoPnL
+      });
+    }
+    if (monthRows.length < 2) throw new Error('Could not extract month rows');
+
+    const today    = new Date();
+    const curYear  = today.getUTCFullYear();
+    const curMonth = today.getUTCMonth();
+    const lastIdx  = monthRows[monthRows.length - 1].monthIdx;
+    let year  = lastIdx <= curMonth ? curYear : curYear - 1;
+    let month = lastIdx;
+    const monthly = new Array(monthRows.length);
+    for (let i = monthRows.length - 1; i >= 0; i--) {
+      monthly[i] = {
+        ts: Date.UTC(year, month, 0),
+        year, monthIdx: month,
+        capitalPra: monthRows[i].capitalPra,
+        capitalSpx: monthRows[i].capitalSpx,
+        algoPnL: monthRows[i].algoPnL
+      };
+      month--;
+      if (month < 0) { month = 11; year--; }
+    }
+
+    state.algoCols = algoCols;
+    state.monthly  = monthly;
+  }
+
+  function assignSpxToMonthly() {
+    if (!state.monthly || !state.spxBars) return;
+    const baseSpx = interpolateSpx(state.spxBars, state.monthly[0].ts);
+    if (!baseSpx) return;
+    for (const m of state.monthly) {
+      const spx = interpolateSpx(state.spxBars, m.ts);
+      m.capitalSpx = spx == null ? STARTING_CAPITAL : (STARTING_CAPITAL * spx / baseSpx);
+    }
+  }
+
+  // ============================================================
+  // RANGE FILTERING (1Y / 3Y / MAX)
+  // ============================================================
+  function monthsInRange() {
+    const all = state.monthly;
+    if (!all || all.length === 0) {
+      return { months: [], anchorPra: STARTING_CAPITAL, anchorSpx: STARTING_CAPITAL };
+    }
+    if (state.range === 'max') {
+      return {
+        months: all.slice(1),
+        anchorPra: all[0].capitalPra,
+        anchorSpx: all[0].capitalSpx
+      };
+    }
+    const opt = RANGE_OPTIONS.find(o => o.key === state.range) || RANGE_OPTIONS[0];
+    const cutoffTs = Date.now() - opt.days * 24 * 60 * 60 * 1000;
+    // First row at or after cutoff. The anchor is the row immediately
+    // before it (so the % series starts at 0% exactly at the prior month).
+    let firstIdx = -1;
+    for (let i = 0; i < all.length; i++) {
+      if (all[i].ts >= cutoffTs) { firstIdx = i; break; }
+    }
+    if (firstIdx < 1) firstIdx = 1;   // never skip the global anchor at 0
+    const months    = all.slice(firstIdx);
+    const anchorPra = all[firstIdx - 1].capitalPra;
+    const anchorSpx = all[firstIdx - 1].capitalSpx;
+    return { months, anchorPra, anchorSpx };
+  }
+
+  // ============================================================
+  // STATS
+  // ============================================================
+  function computeStats() {
+    const { months, anchorPra, anchorSpx } = monthsInRange();
+    if (months.length === 0) return null;
+
+    const endPra = months[months.length - 1].capitalPra;
+    const endSpx = months[months.length - 1].capitalSpx;
+    const gainPctPra = anchorPra === 0 ? 0 : (endPra / anchorPra - 1) * 100;
+    const gainPctSpx = anchorSpx === 0 ? 0 : (endSpx / anchorSpx - 1) * 100;
+
+    let prevPra = anchorPra, prevSpx = anchorSpx;
+    const perMonthPra = [];
+    const perMonthSpx = [];
+    for (const m of months) {
+      const pctP = prevPra === 0 ? 0 : (m.capitalPra / prevPra - 1) * 100;
+      const eurP = m.capitalPra - prevPra;
+      // The pct is the gain between two adjacent rows; the time period
+      // it covers is the month ending at m.ts (sheet convention: each
+      // row's ts = last day of the PRECEDING month label). So the
+      // month name for display purposes is derived from ts, not from
+      // the row's monthIdx (which is the label, off by one).
+      const dt = new Date(m.ts);
+      const realYear = dt.getUTCFullYear();
+      const realMonth = dt.getUTCMonth();
+      perMonthPra.push({ ts: m.ts, year: realYear, monthIdx: realMonth, pct: pctP, eur: eurP, capital: m.capitalPra });
+      const pctS = prevSpx === 0 ? 0 : (m.capitalSpx / prevSpx - 1) * 100;
+      const eurS = m.capitalSpx - prevSpx;
+      perMonthSpx.push({ ts: m.ts, year: realYear, monthIdx: realMonth, pct: pctS, eur: eurS, capital: m.capitalSpx });
+      prevPra = m.capitalPra; prevSpx = m.capitalSpx;
+    }
+
+    const up = perMonthPra.filter(m => m.pct > 0);
+    const dn = perMonthPra.filter(m => m.pct < 0);
+    const best  = perMonthPra.reduce((a, b) => (a == null || b.pct > a.pct) ? b : a, null);
+    const worst = perMonthPra.reduce((a, b) => (a == null || b.pct < a.pct) ? b : a, null);
+
+    let peakCap = anchorPra, peakTs = months[0].ts;
+    let trough = { dd: 0, peakCap: anchorPra, peakTs: months[0].ts, troughCap: anchorPra, troughTs: months[0].ts };
+    for (const m of perMonthPra) {
+      if (m.capital > peakCap) { peakCap = m.capital; peakTs = m.ts; }
+      const dd = peakCap === 0 ? 0 : (peakCap - m.capital) / peakCap;
+      if (dd > trough.dd) trough = { dd, peakCap, peakTs, troughCap: m.capital, troughTs: m.ts };
+    }
+
+    const algoTotals = {};
+    for (const a of state.algoCols) algoTotals[a.name] = 0;
+    for (const m of months) {
+      for (const a of state.algoCols) algoTotals[a.name] += m.algoPnL[a.name] || 0;
+    }
+    const activeAlgos = state.algoCols.filter(a => {
+      for (const m of months) if ((m.algoPnL[a.name] || 0) !== 0) return true;
+      return false;
+    });
+    const algosUp = activeAlgos.filter(a => algoTotals[a.name] > 0);
+    const algosDn = activeAlgos.filter(a => algoTotals[a.name] < 0);
+
+    const avgPct = perMonthPra.length === 0 ? 0
+                   : perMonthPra.reduce((s, m) => s + m.pct, 0) / perMonthPra.length;
+
+    return {
+      perMonthPra, perMonthSpx, up, dn, best, worst,
+      gainPctPra, gainPctSpx, anchorPra, anchorSpx, endPra, endSpx,
+      drawdown: trough,
+      algosUp, algosDn, algoTotals, activeAlgos,
+      avgPct,
+      vsBuyHoldPct: gainPctPra - gainPctSpx
+    };
+  }
+
+  // ============================================================
+  // REINVEST (port of HeroCopyTrading.generateReinvestVariant)
+  // ============================================================
+  function generateReinvestVariant(praSeries) {
+    if (praSeries.length === 0) return [];
+    const startTs = praSeries[0][0];
+    let equity = 1;
+    const out = [[startTs, 0]];
+    for (let i = 1; i < praSeries.length; i++) {
+      const [ts, cumPct]    = praSeries[i];
+      const [, prevCumPct]  = praSeries[i - 1];
+      const prevEq          = 1 + prevCumPct / 100;
+      const currEq          = 1 + cumPct / 100;
+      const periodReturn    = currEq / prevEq - 1;
+      const quartersElapsed = (ts - startTs) / QUARTER_MS;
+      const positionMult    = Math.pow(1 + REINVEST_QUARTERLY_RATE, quartersElapsed);
+      const scaledReturn    = periodReturn * positionMult;
+      equity *= (1 + scaledReturn);
+      out.push([ts, (equity - 1) * 100]);
+    }
+    return out;
+  }
+
+  // ============================================================
+  // RANGE PILLS + VIEW TOGGLE + REINVEST WIRING
+  // ============================================================
+  function renderRangePills() {
+    const container = $('range-pills');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const opt of RANGE_OPTIONS) {
+      const btn = document.createElement('button');
+      btn.className = 'rp';
+      btn.textContent = opt.label;
+      btn.dataset.range = opt.key;
+      if (opt.key === state.range) btn.classList.add('is-active');
+      btn.addEventListener('click', () => setRange(opt.key));
+      container.appendChild(btn);
+    }
+  }
+  function setRange(key) {
+    state.range = key;
+    document.querySelectorAll('.rp').forEach(el => {
+      el.classList.toggle('is-active', el.dataset.range === key);
+    });
+    rerenderAll();
+  }
+
+  function setView(view) {
+    state.view = view;
+    document.querySelectorAll('.vt').forEach(el => {
+      el.classList.toggle('is-active', el.dataset.view === view);
+    });
+    // Show/hide the chart vs the heatmap container based on the new view.
+    // The chart-area always exists in the DOM so Highcharts can size into
+    // it on demand; we just hide it when the heatmap is active.
+    const chartEl = document.getElementById('chart-area');
+    const heatmapEl = document.getElementById('heatmap-area');
+    const wrap = document.querySelector('.dial-wrap');
+    if (view === 'heatmap') {
+      if (chartEl) chartEl.style.display = 'none';
+      if (heatmapEl) heatmapEl.hidden = false;
+      if (wrap) wrap.classList.add('view-heatmap');
+    } else {
+      if (chartEl) chartEl.style.display = '';
+      if (heatmapEl) heatmapEl.hidden = true;
+      if (wrap) wrap.classList.remove('view-heatmap');
+    }
+    rerenderViz();
+    requestAnimationFrame(() => { if (state.chart && view !== 'heatmap') state.chart.reflow(); });
+  }
+
+  function setReinvest(enabled) {
+    state.reinvest = enabled;
+    // Reinvest now applies to both views — re-render whichever is active.
+    rerenderViz();
+  }
+
+  // ============================================================
+  // LINE CHART
+  // ============================================================
+  function renderLine() {
+    const stats = computeStats();
+    if (!stats || stats.perMonthPra.length === 0) return;
+    ensureHighcharts().then(() => doRenderLine(stats)).catch(err => {
+      console.error('[line] Highcharts load failed:', err);
+      showChartError(err.message || err);
+    });
+  }
+
+  function doRenderLine(stats) {
+    const anchorTs = stats.perMonthPra[0].ts - 30 * 24 * 60 * 60 * 1000;
+
+    const dataPra = [[anchorTs, 0]];
+    for (const m of stats.perMonthPra) {
+      const pct = stats.anchorPra === 0 ? 0 : (m.capital / stats.anchorPra - 1) * 100;
+      dataPra.push([m.ts, pct]);
+    }
+    const dataSpx = [[anchorTs, 0]];
+    for (const m of stats.perMonthSpx) {
+      const pct = stats.anchorSpx === 0 ? 0 : (m.capital / stats.anchorSpx - 1) * 100;
+      dataSpx.push([m.ts, pct]);
+    }
+    const dataReinvest = generateReinvestVariant(dataPra);
+
+    if (state.chart) { state.chart.destroy(); state.chart = null; }
+
+    const chartEl = $('chart-area');
+    const cw = chartEl.clientWidth || 720;
+    // End-of-line value string (e.g. "+2247%") — drives the right margin
+    // so the label column always fits inside the box.
+    const praEndVal = dataPra[dataPra.length - 1][1];
+    const praEndStr = (praEndVal >= 0 ? '+' : '−') + Math.abs(Math.round(praEndVal)) + '%';
+
+    state.chart = Highcharts.chart('chart-area', {
+      chart: {
+        // Plain area/line (not areaspline/spline) — straight segments
+        // between monthly data points so users read exact values rather
+        // than visually-smoothed curves between them.
+        type: 'area',
+        backgroundColor: 'transparent',
+        // Extra right margin reserves space for the end-of-line labels
+        // (series name + final %) AND the VS BUY & HOLD bracket past them.
+        spacing: [22, 8, 12, 8],
+        // End-of-line labels are custom-drawn at the right edge, so the
+        // right margin is sized to exactly fit the (responsively scaled)
+        // widest label — keeps the "+X,XXX%" headline inside the box on
+        // every viewport instead of spilling past it.
+        marginRight: lineMarginRight(cw, praEndStr),
+        // Modest top margin — the range pills + reinvest switch float
+        // in the top-left corner above the upper-empty band of the plot.
+        marginTop: 24,
+        animation: { duration: 500 },
+        style: { fontFamily: 'Onest, sans-serif' },
+        // No fixed width/height — the chart fills its .chart-area box
+        // (height driven by the --viz-h CSS variable) and is re-fit on
+        // window resize, so it stays inside the parent on all breakpoints.
+        events: {
+          load: function() {
+            drawEndLabels(this);
+            drawVsBHBracket(this);
+            drawBestWorstMarkers(this, stats);
+            drawDrawdownArea(this, stats);   // polygon under PRA line first…
+            drawDrawdownLabel(this, stats);  // …then the label + leader on top
+            drawPraLivePulse(this);          // pulsing ring on PRA's last point
+          },
+          redraw: function() {
+            drawEndLabels(this);
+            drawVsBHBracket(this);
+            drawBestWorstMarkers(this, stats);
+            drawDrawdownArea(this, stats);
+            drawDrawdownLabel(this, stats);
+            drawPraLivePulse(this);
+          }
+        }
+      },
+      title:   { text: null },
+      credits: { enabled: false },
+      // Legend turned off — end-of-line labels already show name + value
+      // for each series, and toggling lives on the reinvest switch.
+      legend:  { enabled: false },
+      xAxis: lineXAxisWithDrawdown(stats),
+      yAxis: sharedYAxisPct(),
+      tooltip: lineSharedTooltip(),
+      plotOptions: {
+        series: {
+          // Dots on every data point — small with a white border so
+          // they read as anchors without overwhelming the line itself.
+          marker: {
+            enabled: true,
+            radius: 3.5,
+            lineWidth: 1.5,
+            lineColor: '#fff',
+            symbol: 'circle',
+            states: { hover: { enabled: true, radius: 5, lineWidth: 2, lineColor: '#fff' } }
+          },
+          states: {
+            hover: { lineWidthPlus: 0, halo: { size: 6, opacity: 0.15 } },
+            inactive: { opacity: 0.55 }
+          }
+        },
+        area: {
+          fillColor: {
+            linearGradient: { x1:0, y1:0, x2:0, y2:1 },
+            stops: [[0, 'rgba(61, 197, 116, 0.22)'], [1, 'rgba(61, 197, 116, 0.0)']]
+          }
+        }
+      },
+      series: [
+        {
+          type: 'area',
+          name: 'ProRealAlgos',
+          data: dataPra,
+          color: SERIES_COLORS.pra,
+          lineWidth: 2.5,
+          zIndex: 3
+        },
+        {
+          type: 'line',
+          name: 'Reinvest',
+          data: dataReinvest,
+          color: SERIES_COLORS.praReinvest,
+          lineWidth: 2.5,
+          dashStyle: 'Dash',          // dashed darker green per spec
+          visible: state.reinvest,    // controlled by the toggle switch
+          zIndex: 4
+        },
+        {
+          type: 'line',
+          name: 'S&P 500',
+          data: dataSpx,
+          color: SERIES_COLORS.spx,
+          lineWidth: 1.8,
+          dashStyle: 'Dash',
+          zIndex: 2
+        }
+      ]
+    });
+  }
+
+  // End-of-line labels — port of HeroCopyTrading's drawEndLabels. Draws
+  // series name + final % to the right of each visible series' last
+  // point. Re-run on every chart load/redraw so legend toggles and
+  // tooltips don't leave stale labels behind.
+  function drawEndLabels(chart) {
+    if (chart.endLabels && chart.endLabels.length) {
+      chart.endLabels.forEach(label => { try { label.destroy(); } catch(e) {} });
+    }
+    chart.endLabels = [];
+    chart.series.forEach(series => {
+      if (!series.visible || !series.points || series.points.length === 0) return;
+      const lastPoint = series.points[series.points.length - 1];
+      if (lastPoint == null || lastPoint.plotX == null || lastPoint.plotY == null) return;
+
+      // Same x as the VS B&H bracket label (lineEnd + 12) so all three
+      // labels stack in a single tidy column.
+      const x = lastPoint.plotX + chart.plotLeft + 12;
+      const y = lastPoint.plotY + chart.plotTop;
+
+      // PRA is the hero, sized big as the chart's headline number.
+      // SPX is the benchmark — kept smaller so it doesn't compete with
+      // PRA for visual weight. Reinvest slots between the two.
+      const isPra      = series.name === 'ProRealAlgos';
+      const isSpx      = series.name === 'S&P 500';
+      const s          = endLabelScale(chart.chartWidth);
+      const nameSize   = (isPra ? 16 : (isSpx ? 11 : 13)) * s + 'px';
+      const valueSize  = (isPra ? 30 : (isSpx ? 16 : 20)) * s + 'px';
+      const nameOffset = (isPra ? -6 : (isSpx ? -3 : -4)) * s;
+      const valueOffset= (isPra ? 20 : (isSpx ? 11 : 14)) * s;
+
+      const nameLabel = chart.renderer.text(series.name, x, y + nameOffset)
+        .attr({ zIndex: 100 })
+        .css({
+          color: series.color,
+          fontFamily: 'Onest, sans-serif',
+          fontSize: nameSize,
+          fontWeight: isPra ? '600' : '500',
+          letterSpacing: '0.005em'
+        }).add();
+      chart.endLabels.push(nameLabel);
+
+      // No decimals on the line chart's headline totals — rounded to
+       // integer % so PRA / SPX read cleanly as "+44% · +9%" etc.
+      const valueRounded = (lastPoint.y >= 0 ? '+' : '−') + Math.abs(Math.round(lastPoint.y)) + '%';
+      const valueLabel = chart.renderer.text(valueRounded, x, y + valueOffset)
+        .attr({ zIndex: 100 })
+        .css({
+          color: series.color,
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: valueSize,
+          fontWeight: isPra ? '800' : '700',
+          letterSpacing: '-0.02em'
+        }).add();
+      chart.endLabels.push(valueLabel);
+    });
+  }
+
+  // VS BUY & HOLD bracket — vertical span between PRA's last point and
+  // SPX's last point, anchored AT the line endpoints (not in the far
+  // right margin). The bracket connector sits immediately past where
+  // the lines stop; the "+XX.X% VS BUY & HOLD" label is vertically
+  // centered between the two endpoints, off to the right past the
+  // end-of-line text labels.
+  function drawVsBHBracket(chart) {
+    const pra = chart.series.find(s => s.name === 'ProRealAlgos');
+    const spx = chart.series.find(s => s.name === 'S&P 500');
+    if (!pra || !spx || !pra.visible || !spx.visible) return;
+    const praLast = pra.points[pra.points.length - 1];
+    const spxLast = spx.points[spx.points.length - 1];
+    if (!praLast || !spxLast || praLast.plotY == null || spxLast.plotY == null) return;
+
+    const lineEndX = praLast.plotX + chart.plotLeft;
+    // Bracket vertical sits just inside the line tips (2px past).
+    // Ticks point LEFT (back toward the line endpoints) so the bracket
+    // visually connects to the data, and the labels sit to the right.
+    const bracketX = lineEndX + 6;
+    const yPra = praLast.plotY + chart.plotTop;
+    const ySpx = spxLast.plotY + chart.plotTop;
+    const yTop = Math.min(yPra, ySpx);
+    const yBot = Math.max(yPra, ySpx);
+    const yMid = (yTop + yBot) / 2;
+
+    // Delta is computed from the ROUNDED end-label values so what the
+    // user reads as "46% − 9%" displays here as exactly "+37%" — not
+    // a rounding of the raw 46.49 − 9.51 difference, which can drift
+    // by ±1 from the visible totals.
+    const praInt   = Math.round(praLast.y);
+    const spxInt   = Math.round(spxLast.y);
+    const deltaInt = praInt - spxInt;
+    const isPos    = deltaInt >= 0;
+    const color    = isPos ? '#3DC574' : '#EC3B3D';
+
+    if (yBot - yTop < 6) return;   // endpoints too close — bracket would be a smudge
+
+    const stroke = { stroke: '#9B9BA0', 'stroke-width': 1.4, zIndex: 88 };
+    const vline = chart.renderer.path(['M', bracketX, yTop, 'L', bracketX, yBot]).attr(stroke).add();
+    const ttop  = chart.renderer.path(['M', bracketX, yTop, 'L', bracketX - 4, yTop]).attr(stroke).add();
+    const tbot  = chart.renderer.path(['M', bracketX, yBot, 'L', bracketX - 4, yBot]).attr(stroke).add();
+
+    // Label shares the same x as the end-of-line text labels (lineEnd+12),
+    // so PRA name+value, the VS B&H label, and SPX name+value line up
+    // vertically as a single column.
+    const s = endLabelScale(chart.chartWidth);
+    const labelX = lineEndX + 12;
+    const valueText = (isPos ? '+' : '−') + Math.abs(deltaInt) + '%';
+    const valueLbl = chart.renderer.text(valueText, labelX, yMid - 1)
+      .attr({ zIndex: 100 })
+      .css({
+        color: color,
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: (14 * s) + 'px',
+        fontWeight: '700',
+        letterSpacing: '-0.02em'
+      }).add();
+    const subLbl = chart.renderer.text('HIGHER RETURNS', labelX, yMid + 14 * s)
+      .attr({ zIndex: 100 })
+      .css({
+        color: '#8A8A93',
+        fontFamily: 'JetBrains Mono, monospace',
+        fontSize: (8.5 * s) + 'px',
+        fontWeight: '600',
+        letterSpacing: '0.12em'
+      }).add();
+
+    chart.endLabels = chart.endLabels || [];
+    chart.endLabels.push(vline, ttop, tbot, valueLbl, subLbl);
+  }
+
+  // ============================================================
+  // BAR CHART (monthly grouped columns)
+  // ============================================================
+  function renderBars() {
+    const stats = computeStats();
+    if (!stats || stats.perMonthPra.length === 0) return;
+    ensureHighcharts().then(() => doRenderBars(stats)).catch(err => {
+      console.error('[bars] Highcharts load failed:', err);
+      showChartError(err.message || err);
+    });
+  }
+
+  function doRenderBars(stats) {
+    const monthsPra = stats.perMonthPra;
+    const monthsSpx = stats.perMonthSpx;
+
+    // Per-month rows (drop the delta — the per-month delta text was
+    // removed from the x-axis per spec, and tooltips compute on the fly).
+    const months = monthsPra.map((m, i) => ({
+      ts: m.ts, year: m.year, monthIdx: m.monthIdx,
+      pctPra: m.pct,
+      pctSpx: monthsSpx[i] ? monthsSpx[i].pct : 0
+    }));
+
+    // Reinvest monthly returns — same formula HeroCopyTrading uses for
+    // the line chart, just extracted to per-month %: each period's
+    // PRA return scaled by a 5%-per-quarter compounding position
+    // multiplier.
+    const reinvestStartTs = monthsPra[0].ts;
+    const monthsReinvest = monthsPra.map(m => {
+      const qe = (m.ts - reinvestStartTs) / QUARTER_MS;
+      const mult = Math.pow(1 + REINVEST_QUARTERLY_RATE, qe);
+      return { ts: m.ts, year: m.year, monthIdx: m.monthIdx, pct: m.pct * mult };
+    });
+
+    const dataPra = months.map((m, i) => ({
+      x: i, y: +m.pctPra.toFixed(2),
+      color: gradientFor(m.pctPra >= 0 ? BAR_GRADIENTS.praUp : BAR_GRADIENTS.praDn)
+    }));
+    const dataSpx = months.map((m, i) => ({
+      x: i, y: +m.pctSpx.toFixed(2),
+      color: gradientFor(m.pctSpx >= 0 ? BAR_GRADIENTS.spxUp : BAR_GRADIENTS.spxDn)
+    }));
+    const dataReinvest = monthsReinvest.map((m, i) => ({
+      x: i, y: +m.pct.toFixed(2),
+      color: gradientFor(m.pct >= 0 ? BAR_GRADIENTS.reinvestUp : BAR_GRADIENTS.reinvestDn)
+    }));
+
+    // x-axis labels:
+    //   MAX / 5Y → too many months for per-month labels, only the first
+    //              month of each year is labelled (year number only).
+    //   1Y / 3Y  → month abbreviation per bar.
+    const isMax    = state.range === 'max';
+    const isWide   = isMax || state.range === '5y';
+    const categories = months.map((m, i) => {
+      if (isWide) {
+        const isFirstOfYear = (i === 0) || (months[i - 1].year !== m.year);
+        if (!isFirstOfYear) return '';
+        return '<div class="bar-x-cat"><div class="bxc-year">' + m.year + '</div></div>';
+      }
+      return '<div class="bar-x-cat">'
+           +   '<div class="bxc-month">' + monthAbbr(m.monthIdx) + '</div>'
+           + '</div>';
+    });
+
+    if (state.chart) { state.chart.destroy(); state.chart = null; }
+
+    state.chart = Highcharts.chart('chart-area', {
+      chart: {
+        type: 'column',
+        backgroundColor: 'transparent',
+        spacing: [22, 12, 18, 12],
+        animation: { duration: 500 },
+        style: { fontFamily: 'Onest, sans-serif' },
+        // Container-driven size (height from the --viz-h CSS variable),
+        // re-fit on window resize — see doRenderLine.
+        events: {
+          load: function() {
+            clearChartLabels(this);
+            drawBarBestWorstMarkers(this, stats, months);
+            drawDrawdownLabel(this, stats, months);
+          },
+          redraw: function() {
+            clearChartLabels(this);
+            drawBarBestWorstMarkers(this, stats, months);
+            drawDrawdownLabel(this, stats, months);
+          }
+        }
+      },
+      title:   { text: null },
+      credits: { enabled: false },
+      // Legend disabled — the scorecards floating on the top-right
+       // (MONTHS / ALGOS) and the dataLabels above each bar carry the
+       // identification work. Series are also obvious from color
+       // (green = PRA, grey = SPX, deep green = Reinvest).
+      legend:  { enabled: false },
+      xAxis: barsXAxisWithDrawdown(stats, months, categories),
+      yAxis: sharedYAxisPct(),
+      tooltip: barsSharedTooltip(months),
+      plotOptions: {
+        column: {
+          borderWidth: 0,
+          borderRadius: 3,
+          groupPadding: isWide ? 0.06 : 0.10,
+          pointPadding: isWide ? 0.02 : 0.04,
+          dataLabels: {
+            // Outside the bar, above for positives / below for negatives,
+            // in black so they read against the white card background
+            // instead of the bar color. Skipped for wide ranges (5Y/MAX)
+            // where bar width gets too narrow to fit a label.
+            enabled: !isWide,
+            inside: false,
+            verticalAlign: 'top',
+            y: -4,
+            crop: false,
+            overflow: 'allow',
+            formatter: function() {
+              if (Math.abs(this.y) < 0.5) return '';
+              return (this.y >= 0 ? '+' : '−') + Math.abs(this.y).toFixed(1) + '%';
+            },
+            style: {
+              color: '#0E0E10',
+              fontFamily: 'JetBrains Mono, monospace',
+              fontWeight: '700',
+              fontSize: '10.5px',
+              textOutline: 'none'
+            }
+          }
+        },
+        series: {
+          states: {
+            hover: { brightness: -0.06 },
+            inactive: { opacity: 0.5 }
+          }
+        }
+      },
+      series: buildBarSeries(dataPra, dataSpx, dataReinvest)
+    });
+  }
+
+  // Series list for the bars chart. When reinvest is enabled we slot
+  // the Reinvest series between PRA and SPX so the grouped columns
+  // read left-to-right as "strategy → strategy compounded → benchmark".
+  function buildBarSeries(dataPra, dataSpx, dataReinvest) {
+    const series = [
+      { name: 'ProRealAlgos', data: dataPra, color: SERIES_COLORS.pra, zIndex: 3 }
+    ];
+    if (state.reinvest) {
+      series.push({ name: 'Reinvest', data: dataReinvest, color: SERIES_COLORS.praReinvest, zIndex: 3 });
+    }
+    series.push({ name: 'S&P 500', data: dataSpx, color: SERIES_COLORS.spx, zIndex: 2 });
+    return series;
+  }
+
+  // ============================================================
+  // SHARED HIGHCHARTS HELPERS
+  // ============================================================
+  function gradientFor(stops) {
+    return {
+      linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+      stops: [[0, stops[0]], [1, stops[1]]]
+    };
+  }
+
+  // Custom end-of-line labels are drawn via chart.renderer at fixed font
+  // sizes, so on a narrow chart they'd overflow the plot's right edge.
+  // Scale them down by chart width, and size the chart's right margin to
+  // exactly fit the (scaled) widest label so nothing spills past the box.
+  function endLabelScale(w) {
+    return w >= 720 ? 1 : (w >= 520 ? 0.86 : 0.72);
+  }
+  function lineMarginRight(w, praValueStr) {
+    const s = endLabelScale(w);
+    const valW  = praValueStr.length    * (30 * s) * 0.62;  // JetBrains Mono ~0.6em
+    const nameW = 'ProRealAlgos'.length * (16 * s) * 0.52;  // Onest ~0.52em
+    return Math.ceil(Math.max(valW, nameW)) + 18;
+  }
+
+  function sharedXAxisDatetime() {
+    return {
+      type: 'datetime',
+      lineWidth: 0, tickWidth: 0, gridLineWidth: 0,
+      labels: {
+        style: {
+          color: '#8A8A93',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '10px', letterSpacing: '0.02em'
+        }
+      },
+      crosshair: { color: '#0E0E10', width: 1, dashStyle: 'ShortDot' }
+    };
+  }
+
+  // Line-chart xAxis. The drawdown shading is NOT a built-in plotBand
+  // anymore — a plotBand fills the full vertical height which doesn't
+  // tell the user anything about where the PRA equity actually was.
+  // Instead, drawDrawdownArea() renders a polygon whose top edge
+  // traces the PRA line itself, so the box visually IS the drawdown.
+  function lineXAxisWithDrawdown(stats) {
+    return sharedXAxisDatetime();
+  }
+
+  // Drawdown label rendered via chart.renderer OUTSIDE the band — sits
+  // above the plot's upper edge, centered horizontally over the band's
+  // midpoint, with a short vertical leader line dropping down to the
+  // band's top. Lets the label be wider than the band itself (essential
+  // for 1-month drawdowns), and stops content getting cropped.
+  // Line-chart drawdown polygon. Top edge traces the PRA line between
+  // peak and trough; bottom edge sits on the chart's bottom. The result
+  // reads as "this is the equity you would have given back during the
+  // worst stretch" rather than the old full-height vertical strip
+  // which conveyed only the time range.
+  function drawDrawdownArea(chart, stats) {
+    if (!stats || !stats.drawdown || stats.drawdown.dd <= 0) return;
+    const dd = stats.drawdown;
+    const pra = chart.series && chart.series.find(s => s.name === 'ProRealAlgos');
+    if (!pra || !pra.points) return;
+    const ddPoints = pra.points.filter(p => p.x >= dd.peakTs && p.x <= dd.troughTs);
+    if (ddPoints.length < 2) return;
+
+    const plotBottomY = chart.plotTop + chart.plotHeight;
+
+    // Walk the PRA line forward for the top edge…
+    const cmds = ['M', ddPoints[0].plotX + chart.plotLeft, ddPoints[0].plotY + chart.plotTop];
+    for (let i = 1; i < ddPoints.length; i++) {
+      cmds.push('L', ddPoints[i].plotX + chart.plotLeft, ddPoints[i].plotY + chart.plotTop);
+    }
+    // …drop straight down to the bottom of the plot…
+    cmds.push('L', ddPoints[ddPoints.length - 1].plotX + chart.plotLeft, plotBottomY);
+    // …and close back along the bottom to the peak's x.
+    cmds.push('L', ddPoints[0].plotX + chart.plotLeft, plotBottomY);
+    cmds.push('Z');
+
+    const region = chart.renderer.path(cmds)
+      .attr({
+        fill: 'rgba(236, 59, 61, 0.10)',
+        stroke: 'rgba(236, 59, 61, 0.30)',
+        'stroke-width': 1,
+        zIndex: 1
+      })
+      .add();
+
+    chart.endLabels = chart.endLabels || [];
+    chart.endLabels.push(region);
+  }
+
+  function drawDrawdownLabel(chart, stats, months) {
+    if (!stats || !stats.drawdown || stats.drawdown.dd <= 0) return;
+    if (window.innerWidth <= 750) return;   // mobile: keep the shading (drawDrawdownArea), drop the overlapping box
+    const dd = stats.drawdown;
+    const xAxis = chart.xAxis[0];
+    if (!xAxis) return;
+
+    // Anchor (where the leader-line tip lands) and the label baseline
+    // differ by chart type:
+    //   BARS  → anchor at the top edge of the plot, centered over the
+    //           drawdown band's category range.
+    //   LINE  → anchor on the PRA line at the peak point — that's also
+    //           the top edge of the drawdown polygon, so the leader
+    //           reads as pointing AT the box.
+    let anchorX, anchorY, labelBottomY;
+    if (months && months.length) {
+      let fromIdx = months.findIndex(m => m.ts === dd.peakTs);
+      let toIdx   = months.findIndex(m => m.ts === dd.troughTs);
+      if (fromIdx < 0) fromIdx = 0;
+      if (toIdx   < 0) toIdx   = months.length - 1;
+      const leftPx  = xAxis.toPixels(fromIdx - 0.5, false);
+      const rightPx = xAxis.toPixels(toIdx   + 0.5, false);
+      if (leftPx == null || rightPx == null) return;
+      anchorX = (leftPx + rightPx) / 2;
+      anchorY = chart.plotTop;
+      labelBottomY = anchorY - 6;
+    } else {
+      const pra = chart.series.find(s => s.name === 'ProRealAlgos');
+      if (!pra || !pra.points) return;
+      const ddPoints = pra.points.filter(p => p.x >= dd.peakTs && p.x <= dd.troughTs);
+      if (ddPoints.length === 0) return;
+      // Peak point = smallest plotY (highest on screen).
+      const peak = ddPoints.reduce((b, p) => (p.plotY < b.plotY ? p : b), ddPoints[0]);
+      anchorX = peak.plotX + chart.plotLeft;
+      anchorY = peak.plotY + chart.plotTop;
+      // Label sits 20px above the peak so the leader has room to draw.
+      labelBottomY = anchorY - 20;
+    }
+    // Reuse the same names downstream — keeps the rendering block
+    // independent of which branch produced the coords.
+    const centerPx = anchorX;
+    const bandTopY = anchorY;
+
+    // Multi-line label, anchored at bottom-center of the floating card.
+    const peakLbl   = monthName(new Date(dd.peakTs).getUTCMonth()).slice(0, 3) + ' ' + new Date(dd.peakTs).getUTCFullYear();
+    const troughLbl = monthName(new Date(dd.troughTs).getUTCMonth()).slice(0, 3) + ' ' + new Date(dd.troughTs).getUTCFullYear();
+    const valueStr  = '−' + (dd.dd * 100).toFixed(2) + '%';
+
+    const html = '<div style="text-align:center;font-family:\'JetBrains Mono\',monospace;line-height:1.2;background:#fff;border:1px solid rgba(236,59,61,0.45);border-radius:8px;padding:6px 10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);white-space:nowrap;pointer-events:none">'
+             +   '<div style="font-size:9px;font-weight:700;color:#EC3B3D;letter-spacing:0.14em">WORST DRAWDOWN</div>'
+             +   '<div style="font-size:13px;font-weight:800;color:#EC3B3D;letter-spacing:-0.02em;margin-top:2px">' + valueStr + '</div>'
+             +   '<div style="font-size:9px;font-weight:600;color:#8A8A93;letter-spacing:0.06em;margin-top:2px">' + peakLbl + ' → ' + troughLbl + '</div>'
+             + '</div>';
+
+    // The HTML label width depends on content (longest line is ~120px
+    // here), so we render with the centered anchor and let it size
+    // naturally; bounding box read after .add() positions the leader.
+    const lbl = chart.renderer.label(html, centerPx, labelBottomY, undefined, undefined, undefined, true)
+      .attr({ zIndex: 96 })
+      .add();
+    // Measure and re-position so the label is bottom-centered on
+    // (centerPx, labelBottomY).
+    const bb = lbl.getBBox();
+    lbl.attr({ x: centerPx - bb.width / 2, y: labelBottomY - bb.height });
+
+    // Leader line from label bottom down to band top.
+    const leaderStartY = labelBottomY - 1;
+    const leaderEndY = bandTopY;
+    const leader = chart.renderer.path(['M', centerPx, leaderStartY, 'L', centerPx, leaderEndY])
+      .attr({ stroke: 'rgba(236,59,61,0.55)', 'stroke-width': 1.2, zIndex: 95 })
+      .add();
+
+    chart.endLabels = chart.endLabels || [];
+    chart.endLabels.push(lbl, leader);
+  }
+
+  // Bar-chart xAxis with a drawdown plotBand. Because the bar chart's
+  // x-axis is category (indices), the band is positioned by index range
+  // — we look up the months that match the drawdown's peak and trough
+  // timestamps.
+  function barsXAxisWithDrawdown(stats, months, categories) {
+    const ax = {
+      type: 'category',
+      categories: categories,
+      lineWidth: 0, tickWidth: 0, gridLineWidth: 0,
+      labels: { useHTML: true, y: 28, autoRotation: [0], step: 1 }
+    };
+    if (stats && stats.drawdown && stats.drawdown.dd > 0) {
+      // findIndex by ts; fall back to start/end of range if a tick falls
+      // outside the visible window.
+      let fromIdx = months.findIndex(m => m.ts === stats.drawdown.peakTs);
+      let toIdx   = months.findIndex(m => m.ts === stats.drawdown.troughTs);
+      if (fromIdx < 0) fromIdx = 0;
+      if (toIdx   < 0) toIdx   = months.length - 1;
+      // Expand half a column on each side so the band visually wraps
+      // the bars at the boundary months rather than cutting through them.
+      ax.plotBands = [{
+        from: fromIdx - 0.5,
+        to:   toIdx   + 0.5,
+        color: 'rgba(236, 59, 61, 0.07)',
+        borderColor: 'rgba(236, 59, 61, 0.35)',
+        borderWidth: 1,
+        zIndex: 0
+        // Label drawn via chart.renderer in drawDrawdownLabel — see
+        // the line-chart helper above for the rationale.
+      }];
+    }
+    return ax;
+  }
+
+  // Best- and worst-month markers on the line chart. Drawn after layout
+  // via chart.renderer so we can place them exactly at the PRA series
+  // points and label them inline. Goes into the same endLabels cleanup
+  // bag as the end labels and the VS B&H bracket.
+  function drawBestWorstMarkers(chart, stats) {
+    if (!stats || !chart.series) return;
+    if (window.innerWidth <= 750) return;   // mobile declutter: these callouts collide with the drawdown box + line
+    const pra = chart.series.find(s => s.name === 'ProRealAlgos');
+    if (!pra || !pra.visible || !pra.points) return;
+
+    function place(targetTs, monthPct, color, prefix, labelAbove) {
+      const point = pra.points.find(p => p.x === targetTs);
+      if (!point || point.plotX == null || point.plotY == null) return;
+      const x = point.plotX + chart.plotLeft;
+      const y = point.plotY + chart.plotTop;
+
+      const circle = chart.renderer.circle(x, y, 5)
+        .attr({ fill: '#fff', stroke: color, 'stroke-width': 2.2, zIndex: 85 })
+        .add();
+
+      const dt = new Date(targetTs);
+      const monthFull = monthName(dt.getUTCMonth()).toUpperCase();   // "APRIL"
+      const yearFull  = dt.getUTCFullYear();                          // 2025
+      const valueStr  = (monthPct >= 0 ? '+' : '−') + Math.abs(monthPct).toFixed(2) + '%';
+      const subLabel  = prefix + ' MONTH';                            // "BEST MONTH"
+      const periodLbl = monthFull + ' ' + yearFull;                   // "APRIL 2025"
+
+      // Three-line stacked label: value (largest) → "BEST/WORST MONTH"
+      // → "APRIL 2025". Stacked above the marker for a positive month,
+      // below for a negative one — ordered so the line closest to the
+      // marker is the period (smallest), value sits furthest away.
+      let yVal, ySub, yPer;
+      if (labelAbove) {
+        yPer = y - 14;
+        ySub = y - 28;
+        yVal = y - 46;
+      } else {
+        yPer = y + 24;
+        ySub = y + 38;
+        yVal = y + 56;
+      }
+
+      const valLbl = chart.renderer.text(valueStr, x, yVal)
+        .attr({ zIndex: 86, 'text-anchor': 'middle' })
+        .css({
+          color: color,
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '15px',
+          fontWeight: '800',
+          letterSpacing: '-0.02em'
+        }).add();
+      try { valLbl.element.setAttribute('text-anchor', 'middle'); } catch (e) {}
+
+      const subLbl = chart.renderer.text(subLabel, x, ySub)
+        .attr({ zIndex: 86, 'text-anchor': 'middle' })
+        .css({
+          color: color,
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '9px',
+          fontWeight: '700',
+          letterSpacing: '0.14em'
+        }).add();
+      try { subLbl.element.setAttribute('text-anchor', 'middle'); } catch (e) {}
+
+      const perLbl = chart.renderer.text(periodLbl, x, yPer)
+        .attr({ zIndex: 86, 'text-anchor': 'middle' })
+        .css({
+          color: color,
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '9px',
+          fontWeight: '600',
+          letterSpacing: '0.12em'
+        }).add();
+      try { perLbl.element.setAttribute('text-anchor', 'middle'); } catch (e) {}
+
+      chart.endLabels = chart.endLabels || [];
+      chart.endLabels.push(circle, valLbl, subLbl, perLbl);
+    }
+
+    if (stats.best  && stats.best.pct > 0) {
+      place(stats.best.ts,  stats.best.pct,  '#22A65A', 'BEST',  true);
+    }
+    if (stats.worst && stats.worst.pct < 0) {
+      place(stats.worst.ts, stats.worst.pct, '#C42E32', 'WORST', false);
+    }
+  }
+
+  // "Live" pulsing ring at the very last PRA data point. Reads like a
+  // streaming/heartbeat indicator: a small solid dot in PRA green with
+  // an outer ring that expands + fades on a loop. Uses Highcharts'
+  // native .animate() so we don't need to fight SVG transform-origin
+  // for CSS animations. The recursive callback re-fires the animation
+  // as long as the ring SVG node still exists; once the chart redraws
+  // we destroy the elements via chart.endLabels, the node is gone, the
+  // callback no-ops, and the loop dies cleanly.
+  function drawPraLivePulse(chart) {
+    const pra = chart.series && chart.series.find(s => s.name === 'ProRealAlgos');
+    if (!pra || !pra.visible || !pra.points || pra.points.length === 0) return;
+    const last = pra.points[pra.points.length - 1];
+    if (last.plotX == null || last.plotY == null) return;
+    const x = last.plotX + chart.plotLeft;
+    const y = last.plotY + chart.plotTop;
+
+    // Outer pulsating ring — starts tight around the marker, expands
+    // outward while fading to transparent, then resets.
+    const ring = chart.renderer.circle(x, y, 4)
+      .attr({
+        fill: 'none',
+        stroke: '#3DC574',
+        'stroke-width': 2,
+        opacity: 0.7,
+        zIndex: 89
+      })
+      .add();
+
+    // Solid inner dot on top, so the "live" point reads as a steady
+    // anchor that the ring is emitted from. Slightly larger than the
+    // normal series marker (which is 3.5 radius) so it stands out as
+    // the latest point.
+    const core = chart.renderer.circle(x, y, 4)
+      .attr({
+        fill: '#3DC574',
+        stroke: '#fff',
+        'stroke-width': 1.5,
+        zIndex: 90
+      })
+      .add();
+
+    const PULSE_DURATION = 1600;   // ms — slow enough to read as a heartbeat
+    const PULSE_MAX_R    = 18;     // px — final ring radius before reset
+    function pulse() {
+      // Guard: if the chart redrew and destroyed our circle, bail.
+      if (!ring.element) return;
+      ring.attr({ r: 4, opacity: 0.7 });
+      ring.animate(
+        { r: PULSE_MAX_R, opacity: 0 },
+        { duration: PULSE_DURATION, easing: 'easeOutQuad' },
+        pulse  // restart on completion
+      );
+    }
+    pulse();
+
+    chart.endLabels = chart.endLabels || [];
+    chart.endLabels.push(ring, core);
+  }
+
+  // Wipe any renderer-drawn labels we've previously attached to the
+  // chart so consecutive redraws don't stack ghosts. drawEndLabels
+  // already does this for the line chart; the bar chart calls it
+  // explicitly in its load/redraw handlers.
+  function clearChartLabels(chart) {
+    if (chart.endLabels && chart.endLabels.length) {
+      chart.endLabels.forEach(el => { try { el.destroy(); } catch (e) {} });
+    }
+    chart.endLabels = [];
+  }
+
+  // Bar-chart best/worst markers — small label above the best PRA bar
+  // ("BEST · APRIL +14.0%") and below the worst PRA bar. Uses the bar's
+  // own shapeArgs to find the center-x and top-y of the column.
+  function drawBarBestWorstMarkers(chart, stats, months) {
+    if (!stats || !chart.series || !months) return;
+    if (window.innerWidth <= 750) return;   // mobile declutter — see drawBestWorstMarkers
+    const pra = chart.series.find(s => s.name === 'ProRealAlgos');
+    if (!pra || !pra.points) return;
+
+    function place(targetTs, monthPct, color, prefix) {
+      // Find the column whose underlying month matches the target ts.
+      const point = pra.points.find(p => {
+        const m = months[p.x];
+        return m && m.ts === targetTs;
+      });
+      if (!point || !point.shapeArgs) return;
+
+      const dt = new Date(targetTs);
+      const monthFull = monthName(dt.getUTCMonth()).toUpperCase();
+      const yearFull  = dt.getUTCFullYear();
+      const subLabel  = prefix + ' MONTH';
+      const periodLbl = monthFull + ' ' + yearFull;
+
+      const isPositive = monthPct >= 0;
+      const colCenterX = (point.shapeArgs.x || 0) + (point.shapeArgs.width || 0) / 2 + chart.plotLeft;
+      const colTopY = (point.shapeArgs.y || 0) + chart.plotTop;
+      const colBotY = colTopY + (point.shapeArgs.height || 0);
+
+      // Two-line label (value omitted — the bar's own data label already
+      // shows it above each bar). Stack outside the bar, beyond the
+      // existing dataLabel: sub-label, then period below it.
+      let ySub, yPer;
+      if (isPositive) {
+        ySub = colTopY - 42;
+        yPer = colTopY - 28;
+      } else {
+        ySub = colBotY + 32;
+        yPer = colBotY + 46;
+      }
+
+      const subLbl = chart.renderer.text(subLabel, colCenterX, ySub)
+        .attr({ zIndex: 90, 'text-anchor': 'middle' })
+        .css({
+          color: color,
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '9px',
+          fontWeight: '700',
+          letterSpacing: '0.14em'
+        }).add();
+      try { subLbl.element.setAttribute('text-anchor', 'middle'); } catch (e) {}
+
+      const perLbl = chart.renderer.text(periodLbl, colCenterX, yPer)
+        .attr({ zIndex: 90, 'text-anchor': 'middle' })
+        .css({
+          color: color,
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: '9px',
+          fontWeight: '600',
+          letterSpacing: '0.12em'
+        }).add();
+      try { perLbl.element.setAttribute('text-anchor', 'middle'); } catch (e) {}
+
+      chart.endLabels = chart.endLabels || [];
+      chart.endLabels.push(subLbl, perLbl);
+    }
+
+    if (stats.best  && stats.best.pct > 0) place(stats.best.ts,  stats.best.pct,  '#22A65A', 'BEST');
+    if (stats.worst && stats.worst.pct < 0) place(stats.worst.ts, stats.worst.pct, '#C42E32', 'WORST');
+  }
+
+  function sharedYAxisPct() {
+    return {
+      title: { text: null },
+      gridLineColor: '#F2F2F5',
+      gridLineDashStyle: 'Dot',
+      startOnTick: false, endOnTick: false,
+      minPadding: 0.05, maxPadding: 0.05,
+      labels: { enabled: false },
+      tickWidth: 0, lineWidth: 0,
+      plotLines: [{ value: 0, color: '#D8D8DB', width: 1, dashStyle: 'Solid', zIndex: 1 }]
+    };
+  }
+
+  function lineSharedTooltip() {
+    return {
+      shared: true, useHTML: true, backgroundColor: 'transparent',
+      borderWidth: 0, shadow: false, padding: 0,
+      formatter: function() {
+        const rows = (this.points || []).slice().sort((a, b) => b.y - a.y);
+        let html = '<div class="pra-tooltip"><div class="pra-tooltip-date">' + formatDate(this.x) + '</div>';
+        for (const p of rows) {
+          const isPos = p.y >= 0;
+          html += '<div class="pra-tooltip-row">'
+                +   '<span class="pra-tooltip-name">'
+                +     '<span class="pra-tooltip-dot" style="background:' + p.series.color + '"></span>'
+                +     p.series.name
+                +   '</span>'
+                +   '<span class="pra-tooltip-value" style="color:' + (isPos ? '#1A8E4E' : '#B8242A') + '">' + formatPct(p.y) + '</span>'
+                + '</div>';
+        }
+        html += '</div>';
+        return html;
+      }
+    };
+  }
+
+  function barsSharedTooltip(months) {
+    return {
+      shared: true, useHTML: true, backgroundColor: 'transparent',
+      borderWidth: 0, shadow: false, padding: 0,
+      formatter: function() {
+        const m = months[this.x];
+        let html = '<div class="pra-tooltip"><div class="pra-tooltip-date">'
+                 + (m ? (monthName(m.monthIdx) + ' ' + m.year) : '') + '</div>';
+        for (const p of (this.points || [])) {
+          const isPos = p.y >= 0;
+          // Series → swatch color. Reinvest uses its own deeper green/red.
+          let dotColor;
+          if (p.series.name === 'ProRealAlgos') {
+            dotColor = isPos ? BAR_GRADIENTS.praUp[1] : BAR_GRADIENTS.praDn[1];
+          } else if (p.series.name === 'Reinvest') {
+            dotColor = isPos ? BAR_GRADIENTS.reinvestUp[1] : BAR_GRADIENTS.reinvestDn[1];
+          } else {
+            dotColor = BAR_GRADIENTS.spxUp[1];
+          }
+          html += '<div class="pra-tooltip-row">'
+                +   '<span class="pra-tooltip-name">'
+                +     '<span class="pra-tooltip-dot" style="background:' + dotColor + '"></span>'
+                +     p.series.name
+                +   '</span>'
+                +   '<span class="pra-tooltip-value" style="color:' + (isPos ? '#1A8E4E' : '#B8242A') + '">' + formatPct(p.y) + '</span>'
+                + '</div>';
+        }
+        html += '</div>';
+        return html;
+      }
+    };
+  }
+
+  function showChartError(msg) {
+    const el = $('chart-area');
+    if (el) el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#EC3B3D;font-family:Onest,sans-serif;font-size:13px;text-align:center;padding:20px">Chart library failed to load.<br><small style="color:#8A8A93;display:block;margin-top:6px">' + msg + '</small></div>';
+  }
+
+  // ============================================================
+  // STATS PANEL (9 cells)
+  // ============================================================
+  // Stats grid was removed — all metadata now lives on the chart as
+  // annotations (drawdown band, best/worst markers, end-of-line totals,
+  // total-gain badge). Function kept as a no-op so existing call sites
+  // don't break; can be removed if no other code references it.
+  function renderStatsPanel() {}
+
+  // ============================================================
+  // HEATMAP VIEW
+  // ============================================================
+  // Renders a year × month grid where each cell is one month's PRA
+  // return. Cells are colored by intensity (g1..g5 / r1..r4) to match
+  // the section 04 mockup. Always uses the FULL track record from
+  // state.monthly — the range pills aren't shown in heatmap view since
+  // the heatmap is about reading every month at a glance.
+
+  // Color bucket thresholds, mirroring the mockup's palette. Greens
+  // and reds get five and four buckets respectively (the mockup never
+  // uses g5 or r5 — keeping g5 as a "deep green" reserve for genuine
+  // outlier months >= 8%, and capping reds at r4).
+  function heatmapBucket(pct) {
+    if (pct >= 8)    return 'g5';
+    if (pct >= 4.5)  return 'g4';
+    if (pct >= 2.5)  return 'g3';
+    if (pct >= 1)    return 'g2';
+    if (pct >= 0)    return 'g1';
+    if (pct >= -1)   return 'r1';
+    if (pct >= -2.5) return 'r2';
+    if (pct >= -5)   return 'r3';
+    return 'r4';
+  }
+
+  function formatHeatPct(pct) {
+    if (Math.abs(pct) < 0.05) return '0.0%';
+    const sign = pct >= 0 ? '+' : '−';
+    return sign + Math.abs(pct).toFixed(1) + '%';
+  }
+
+  function renderHeatmap() {
+    const host = document.getElementById('heatmap-area');
+    if (!host) return;
+    if (!state.monthly || state.monthly.length < 2) {
+      host.innerHTML = '<div style="padding:40px;text-align:center;color:var(--ink-muted);font-size:13px">No data yet.</div>';
+      return;
+    }
+
+    // Build per-month rows using the same convention as computeStats():
+    // each row's display year/month is derived from ts (the END of the
+    // period the row represents), and the % is the change from the
+    // previous row. Skip the very first monthly entry — that's the
+    // anchor with no prior reference point.
+    const all = state.monthly;
+    const months = [];
+    for (let i = 1; i < all.length; i++) {
+      const prev = all[i - 1];
+      const cur  = all[i];
+      const pct  = prev.capitalPra === 0 ? 0 : (cur.capitalPra / prev.capitalPra - 1) * 100;
+      const dt = new Date(cur.ts);
+      months.push({
+        year:  dt.getUTCFullYear(),
+        month: dt.getUTCMonth(),     // 0..11
+        pct: pct
+      });
+    }
+    if (months.length === 0) {
+      host.innerHTML = '<div style="padding:40px;text-align:center;color:var(--ink-muted);font-size:13px">No data yet.</div>';
+      return;
+    }
+
+    // Group into year buckets so we can render row-by-row. Determine
+    // the year range from the data itself.
+    const minYear = months[0].year;
+    const maxYear = months[months.length - 1].year;
+    const today = new Date();
+    const curYear = today.getUTCFullYear();
+    const curMonth = today.getUTCMonth();
+    const byYear = {};
+    for (const m of months) {
+      if (!byYear[m.year]) byYear[m.year] = {};
+      byYear[m.year][m.month] = m.pct;
+    }
+
+    // Header row. Each month header carries both its 3-letter abbreviation
+    // and a single-letter initial; CSS shows the abbreviation normally and
+    // swaps to the initial on phones, where the columns are too narrow for
+    // three letters (see the 750px media block).
+    const monthHeaders  = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const monthInitials = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+    let html = '<div class="heatmap">';
+    html += '<div class="hm-month">YEAR</div>';
+    for (let mi = 0; mi < 12; mi++) {
+      html += '<div class="hm-month"><span class="hm-h-full">' + monthHeaders[mi] +
+              '</span><span class="hm-h-mini">' + monthInitials[mi] + '</span></div>';
+    }
+    html += '<div class="hm-total">YEAR</div>';
+
+    // Extend the row range to include the current calendar year even
+    // if no data has landed there yet — we still want to show (and
+    // animate) the current-month cell.
+    const maxYearExt = Math.max(maxYear, curYear);
+
+    // One row per year. For months before the first data point or after
+    // the current month in the current year, render an "empty" cell so
+    // the grid stays a perfect rectangle. The CURRENT calendar month
+    // gets special treatment: id="hm-live-cell" + .is-live class so
+    // the post-render animator below can pulse it and tick its value.
+    for (let y = minYear; y <= maxYearExt; y++) {
+      html += '<div class="hm-year">' + y + '</div>';
+      // Compound year total from the months we have data for.
+      let yearEquity = 1;
+      let hadAny = false;
+      for (let m = 0; m < 12; m++) {
+        const pct = byYear[y] ? byYear[y][m] : undefined;
+        const isFuture     = (y === curYear && m > curMonth) || y > curYear;
+        const isCurrentMonth = (y === curYear && m === curMonth);
+        if (pct === undefined) {
+          if (isCurrentMonth) {
+            // Live cell with no real data yet — starts at 0.0% and
+            // the animator below will bump it. Tag with bucket g1 so
+            // it visually reads as a "neutral / just started" cell.
+            html += '<div class="hm-cell g1 is-live" id="hm-live-cell" data-value="0">0.0%</div>';
+          } else {
+            html += '<div class="hm-cell empty">' + (isFuture ? '—' : '·') + '</div>';
+          }
+        } else {
+          const bucket  = heatmapBucket(pct);
+          const liveCls = isCurrentMonth ? ' is-live' : '';
+          const idAttr  = isCurrentMonth ? ' id="hm-live-cell" data-value="' + pct.toFixed(2) + '"' : '';
+          html += '<div class="hm-cell ' + bucket + liveCls + '"' + idAttr + '>' + formatHeatPct(pct) + '</div>';
+          yearEquity *= (1 + pct / 100);
+          hadAny = true;
+        }
+      }
+      if (hadAny) {
+        const yearPct = (yearEquity - 1) * 100;
+        const neg = yearPct < 0 ? ' neg' : '';
+        const sign = yearPct >= 0 ? '+' : '−';
+        html += '<div class="hm-cell total' + neg + '">' + sign + Math.abs(yearPct).toFixed(1) + '%</div>';
+      } else {
+        html += '<div class="hm-cell empty">—</div>';
+      }
+    }
+    html += '</div>';
+
+    // Legend bar and stats strip removed per spec — the heatmap grid
+    // itself is now the entire view, sized to match the chart-area
+    // height. The hm-legend / hm-stats CSS classes are kept defined in
+    // the stylesheet in case they're needed again later.
+
+    host.innerHTML = html;
+
+    // Kick off the live current-month animator (random wins/losses
+    // ticking inside the pulsating cell). innerHTML must be set first
+    // so #hm-live-cell exists for it to find.
+    animateLiveCell();
+  }
+
+  // Live-cell animator: same money-coming-in vibe as the headline,
+  // scaled to fit inside a single heatmap cell.
+  //   • Wins:  +0.10% to +0.90% (≈70% of bumps), cell pulses outward
+  //   • Losses: −0.05% to −0.40% (≈30%),         cell flinches inward
+  // Bump cadence: 1–4s, same as the headline. 20–30 total bumps per
+  // page load, then it sits at the final value. Color bucket updates
+  // live based on the running total, so heavy wins drift the cell
+  // toward deep green and a string of losses pushes it red.
+  function animateLiveCell() {
+    if (animateLiveCell._handle) clearTimeout(animateLiveCell._handle);
+
+    const cell = document.getElementById('hm-live-cell');
+    if (!cell) return;
+
+    let running = parseFloat(cell.getAttribute('data-value') || '0');
+    let remaining = 20 + Math.floor(Math.random() * 11);
+
+    const setBucketClass = () => {
+      // Replace bucket class without nuking is-live / is-bumping etc.
+      ['g1','g2','g3','g4','g5','r1','r2','r3','r4'].forEach(c => cell.classList.remove(c));
+      cell.classList.add(heatmapBucket(running));
+    };
+
+    const renderValue = () => {
+      cell.textContent = formatHeatPct(running);
+      cell.setAttribute('data-value', running.toFixed(2));
+    };
+
+    const tick = () => {
+      if (remaining <= 0) return;
+      const isLoss = Math.random() < 0.30;
+      const delta = isLoss
+        ? -(0.05 + Math.random() * 0.35)   // -0.05% to -0.40%
+        :  (0.10 + Math.random() * 0.80);  // +0.10% to +0.90%
+      running += delta;
+
+      setBucketClass();
+      renderValue();
+
+      // Trigger the per-bump scale animation. Strip + reflow + re-add
+      // so back-to-back bumps replay the animation each time.
+      cell.classList.remove('is-bumping', 'is-loss');
+      void cell.offsetWidth;
+      cell.classList.add('is-bumping');
+      if (isLoss) cell.classList.add('is-loss');
+
+      remaining--;
+      const delay = 1000 + Math.floor(Math.random() * 3001);  // 1–4s
+      animateLiveCell._handle = setTimeout(tick, delay);
+    };
+
+    // Brief delay before the first tick so the user sees the heatmap
+    // settle in before things start moving.
+    animateLiveCell._handle = setTimeout(tick, 1500);
+  }
+
+  // ============================================================
+  // ORCHESTRATION
+  // ============================================================
+  function rerenderViz() {
+    if      (state.view === 'line')    renderLine();
+    else if (state.view === 'bars')    renderBars();
+    else if (state.view === 'heatmap') renderHeatmap();
+  }
+  function rerenderAll() {
+    rerenderViz();
+    renderStatsPanel();
+  }
+
+  // ============================================================
+  // DYNAMIC HEADLINE
+  // ============================================================
+  // Computes the "€XX,XXX today" value from the live PRA track record.
+  // Uses the full MAX-range multiplier (end capital / start capital) and
+  // applies it to a hypothetical €10,000 starting stake. Always uses the
+  // full track record regardless of the chart's selected range — the
+  // headline is the all-time story, not the visible window.
+  //
+  // NOTE: the headline says "in 2015" but the underlying PRA data starts
+  // in May 2019, so the multiplier reflects PRA's actual track record
+  // from 2019 forward. If a true 2015→today figure is required, the
+  // earlier years would need to be bridged in (e.g. SPX returns
+  // 2015→2019) — see the boot() call site for where to add that.
+  function updateHeadline() {
+    const el = document.getElementById('dyn-headline-value');
+    if (!el || !state.monthly || state.monthly.length < 2) return;
+    const startCap = state.monthly[0].capitalPra;
+    const endCap   = state.monthly[state.monthly.length - 1].capitalPra;
+    if (!isFinite(startCap) || !isFinite(endCap) || startCap === 0) return;
+    const multiplier = endCap / startCap;
+    let currentAmount = Math.round(10000 * multiplier);
+
+    const textEl = document.getElementById('dyn-headline-text');
+    const gainEl = document.getElementById('dyn-gain-pct');
+    const render = () => {
+      if (textEl) textEl.textContent = '€' + currentAmount.toLocaleString('en-US');
+      if (gainEl) {
+        const gainPct = (currentAmount / 10000 - 1) * 100;
+        gainEl.textContent = '+' + Math.round(gainPct).toLocaleString('en-US') + '%';
+      }
+    };
+    render();
+
+    // Live "earnings ticker" animation: bumps the headline by a
+    // random €1–€9 every 4–19 seconds, then stops after 6 or 7
+    // bumps. Gives the page some life without claiming to be live
+    // real-time data. Clear any prior schedule so calling
+    // updateHeadline twice doesn't double up.
+    if (updateHeadline._handle) clearTimeout(updateHeadline._handle);
+
+    const totalBumps    = 20 + Math.floor(Math.random() * 11);  // 20–30
+    const randomDelayMs = () => 1000 + Math.floor(Math.random() * 3001);  // 1000–4000
+
+    // Each bump is either a win or a loss. Wins are larger (1-9 EUR)
+    // and more frequent (~70%); losses are smaller (1-4 EUR) and
+    // rarer (~30%) so the net trend is upward but the headline still
+    // visibly dips occasionally — which lands more honestly than a
+    // pure win streak.
+    const pickBump = () => {
+      if (Math.random() < 0.30) {
+        return { kind: 'loss', delta: -(1 + Math.floor(Math.random() * 4)) };
+      }
+      return { kind: 'win', delta: 1 + Math.floor(Math.random() * 9) };
+    };
+
+    // Per-bump animation: scale-pulse + glow on the number, plus a
+    // floating "+€X" / "−€X" badge that pops above the value and
+    // drifts up. Wins glow green and pulse outward; losses glow red
+    // and pulse slightly inward.
+    const playBumpAnimation = (bump) => {
+      // Restart the CSS pulse — strip the classes, force a reflow so
+      // the browser registers the change, then re-add. Without the
+      // reflow the animation wouldn't replay on back-to-back bumps.
+      el.classList.remove('is-bumping', 'is-loss');
+      void el.offsetWidth;
+      el.classList.add('is-bumping');
+      if (bump.kind === 'loss') el.classList.add('is-loss');
+
+      // Spawn the floater badge as a child of the accent span so its
+      // absolute positioning anchors to the number's location.
+      const floater = document.createElement('span');
+      floater.className = 'dyn-floater' + (bump.kind === 'loss' ? ' is-loss' : '');
+      const sign = bump.delta >= 0 ? '+' : '−';
+      floater.textContent = sign + '€' + Math.abs(bump.delta);
+      el.appendChild(floater);
+      // Self-cleanup once the float-and-fade animation finishes so we
+      // don't leak detached nodes if updateHeadline runs many times.
+      floater.addEventListener('animationend', () => {
+        if (floater.parentNode) floater.parentNode.removeChild(floater);
+      });
+    };
+
+    let remaining = totalBumps;
+    const scheduleNext = () => {
+      if (remaining <= 0) return;
+      updateHeadline._handle = setTimeout(() => {
+        const bump = pickBump();
+        currentAmount += bump.delta;
+        render();
+        playBumpAnimation(bump);
+        remaining--;
+        scheduleNext();
+      }, randomDelayMs());
+    };
+    scheduleNext();
+  }
+
+  function showError(msg) {
+    const loader = $('viz-loading');
+    if (!loader) return;
+    loader.classList.remove('is-hidden');
+    loader.innerHTML = '<div class="viz-loading-error">' + msg + '</div>';
+  }
+
+  async function boot() {
+    document.querySelectorAll('.vt').forEach(el => {
+      el.addEventListener('click', () => setView(el.dataset.view));
+    });
+    const reinvestInput = $('reinvest-toggle');
+    if (reinvestInput) reinvestInput.addEventListener('change', e => setReinvest(e.target.checked));
+
+    // Re-fit the chart to its container on resize. We fully re-render
+    // (rather than just reflow) so the right margin + end-label scaling
+    // recompute for the new width. Debounced to avoid thrashing during
+    // continuous drags. Heatmap is pure CSS grid, so it needs nothing.
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (state.monthly && (state.view === 'line' || state.view === 'bars')) rerenderViz();
+      }, 180);
+    });
+
+    try {
+      ensureHighcharts().catch(e => console.warn('[chart] Highcharts preload:', e.message));
+      const [csvText, spxBars] = await Promise.all([
+        fetchSheetCsv(),
+        fetchSpxBars().catch(e => {
+          console.warn('[spx] Yahoo fetch failed:', e.message);
+          return null;
+        })
+      ]);
+      parseSheet(csvText);
+      state.spxBars = spxBars;
+      if (spxBars) assignSpxToMonthly();
+
+      renderRangePills();
+      updateHeadline();
+      $('viz-loading').classList.add('is-hidden');
+      rerenderAll();
+    } catch (e) {
+      console.error('Sheet load failed:', e);
+      showError("Couldn't load data right now.<br><small style=\"display:block;margin-top:6px;color:#8A8A93\">" + (e.message || e) + "</small>");
+    }
+  }
+
+  boot();
+})();
+</script>
+
+</body>
+</html>

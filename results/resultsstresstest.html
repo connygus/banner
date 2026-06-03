@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos · Stress-test lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+    --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+    --red: #EC3B3D; --red-soft: #FDECEC; --red-border: #F9D3D4;
+    --green: #3DC574; --green-soft: #E6F7EE; --green-border: #C7EBD6;
+    --amber: #FFB020;
+    --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Onest', -apple-system, sans-serif; background: var(--bg); color: var(--ink);
+    -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; line-height: 1.55; font-size: 16px;
+  }
+  .container { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+  .psec { padding: 88px 0 100px; }
+
+  /* shared eyebrow */
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-muted);
+    display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  }
+  .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+  .eyebrow.green::before { background: var(--green); }
+
+  /* ===================== STRESS-TEST LAB ===================== */
+  .stl { background: var(--bg-soft); }
+  .stl .stress-head { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-bottom: 36px; align-items: end; }
+  .stl .stress-head h2 { max-width: 560px; font-weight: 700; letter-spacing: -0.028em; line-height: 1.05; font-size: clamp(32px, 4vw, 52px); }
+  .stl .stress-head h2 .accent { color: var(--red); }
+  .stl .stress-head p { color: var(--ink-muted); font-size: 16px; line-height: 1.6; max-width: 460px; padding-bottom: 6px; }
+
+  .stl .stress-card { background: var(--bg); border: 1px solid var(--hairline); border-radius: 24px; padding: 32px; }
+  .stl .scenario-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; padding-bottom: 28px; border-bottom: 1px solid var(--hairline); }
+  .stl .scenario-chip { padding: 10px 18px; background: var(--bg-soft); border: 1px solid var(--hairline); border-radius: 100px; font-size: 13px; color: var(--ink-soft); cursor: pointer; transition: all 0.2s ease; font-family: inherit; font-weight: 500; display: inline-flex; align-items: center; gap: 10px; }
+  .stl .scenario-chip:hover { border-color: var(--ink); }
+  .stl .scenario-chip.active { background: var(--ink); color: #FFFFFF; border-color: var(--ink); }
+  .stl .scenario-chip .yr { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--red); font-weight: 700; }
+
+  .stl .stress-display { display: grid; grid-template-columns: 1.6fr 1fr; gap: 28px; align-items: stretch; }
+  .stl .stress-chart-card { background: var(--bg-soft); border: 1px solid var(--hairline); border-radius: 18px; padding: 24px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  .stl .stress-label { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .stl .stress-label .ttl { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .stl .stress-label .sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-muted); letter-spacing: 0.08em; margin-top: 3px; }
+  .stl .stress-legend { display: flex; gap: 16px; }
+  .stl .leg { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.04em; color: var(--ink-muted); display: inline-flex; align-items: center; gap: 7px; }
+  .stl .leg::before { content: ""; width: 16px; border-top: 2.4px solid var(--green); }
+  .stl .leg.spx::before { border-top: 1.6px dashed var(--ink); }
+
+  .stl .stress-chart-svg { width: 100%; flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
+  .stl .stress-chart-svg svg { width: 100%; height: auto; display: block; }
+  .stl .stress-x { display: flex; justify-content: space-between; padding: 8px 1% 0 6%; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-muted); letter-spacing: 0.04em; }
+
+  .stl .stress-summary { display: flex; flex-direction: column; gap: 12px; }
+  .stl .ss-card { padding: 20px; border-radius: 14px; }
+  .stl .ss-card.green { background: var(--green-soft); border: 1px solid var(--green-border); }
+  .stl .ss-card.red { background: var(--red-soft); border: 1px solid var(--red-border); }
+  .stl .ss-card.dark { background: var(--bg-soft); border: 1px solid var(--hairline); }
+  .stl .ss-card .l { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; margin-bottom: 8px; }
+  .stl .ss-card.green .l { color: var(--green); }
+  .stl .ss-card.red .l { color: var(--red); }
+  .stl .ss-card.dark .l { color: var(--ink-muted); }
+  .stl .ss-card .v { font-size: 30px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; color: var(--ink); }
+  .stl .ss-card.dark .v { color: var(--ink); }
+  .stl .ss-card.green .v { color: var(--green); }
+  .stl .ss-card.red .v { color: var(--red); }
+  .stl .ss-card .d { font-size: 12.5px; color: var(--ink-muted); line-height: 1.5; margin-top: 6px; }
+  .stl .ss-card.dark .d { color: var(--ink-muted); }
+  .stl .ss-card .d strong { color: var(--ink); font-weight: 700; }
+  .stl .ss-card.dark .d strong { color: var(--ink); }
+
+  .stl .stress-note { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; line-height: 1.6; color: var(--ink-dim); letter-spacing: 0.02em; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--hairline); }
+
+  /* ===================== RESPONSIVE ===================== */
+  @media (max-width: 900px) {
+    .stl .stress-head { grid-template-columns: 1fr; gap: 22px; }
+    .stl .stress-display { grid-template-columns: 1fr; gap: 18px; }
+  }
+  @media (max-width: 510px) {
+    .container { padding: 0 20px; }
+    .psec { padding: 56px 0 64px; }
+    .stl .stress-card { padding: 20px 16px; }
+    .stl .scenario-chip { font-size: 12px; padding: 8px 13px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- STRESS-TEST LAB -->
+<!-- ============================================================ -->
+<section class="psec stl">
+  <div class="container">
+
+    <div class="stress-head">
+      <div>
+        <span class="eyebrow">Stress-test lab</span>
+        <h2>What if <span class="accent">2008</span> happened tomorrow?</h2>
+      </div>
+      <p>Pick a market crash from history. The chart shows you the ProRealAlgos portfolio drawdown, recovery time, and net result against buy-and-hold of the S&amp;P 500.</p>
+    </div>
+
+    <div class="stress-card">
+      <div class="scenario-row" id="simChips"></div>
+
+      <div class="stress-display">
+        <div class="stress-chart-card">
+          <div class="stress-label">
+            <div>
+              <div class="ttl" id="simRange">Feb 2020 → Jul 2020 · €10K start</div>
+              <div class="sub" id="simSub">SIMULATED · USING CURRENT ALGO LOGIC</div>
+            </div>
+            <div class="stress-legend">
+              <span class="leg algo">ProRealAlgos</span>
+              <span class="leg spx">S&amp;P 500</span>
+            </div>
+          </div>
+          <div class="stress-chart-svg" id="simChartWrap"></div>
+          <div class="stress-x" id="simX"></div>
+        </div>
+
+        <div class="stress-summary">
+          <div class="ss-card green">
+            <div class="l" id="ssAlgoL">RESULT · ALGO PORTFOLIO</div>
+            <div class="v" id="ssAlgoV">+28.0%</div>
+            <div class="d" id="ssAlgoD"></div>
+          </div>
+          <div class="ss-card red">
+            <div class="l" id="ssSpxL">SAME PERIOD · BUY-AND-HOLD SPX</div>
+            <div class="v" id="ssSpxV">−3.0%</div>
+            <div class="d" id="ssSpxD"></div>
+          </div>
+          <div class="ss-card dark">
+            <div class="l" id="ssDeltaL">DELTA</div>
+            <div class="v" id="ssDeltaV">+31.0 pp</div>
+            <div class="d" id="ssDeltaD"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stress-note">S&amp;P 500 figures are actual historical index performance. Each scenario runs on one of two bases, shown by the label above the chart: the live, real-money track record, or a simulated backtest of the current algo logic applied to that period (both net of fees). Where the live track record is used, it weights the algos trading at the time equally, each sized on 5x its own worst live drawdown. Simulated and past performance do not guarantee future results.</div>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  const SC = [
+    {
+      yr: "'08", name: 'Lehman Crisis',
+      range: 'Sep 2008 → Mar 2009 · €10K start',
+      xlabels: ["SEP '08", 'NOV', "JAN '09", 'MAR'],
+      spx:  [100, 91, 77, 70, 72, 65, 54, 58],
+      algo: [100, 94, 99, 104, 108, 111, 115, 118],
+      algoV: '+18.0%', algoD: 'Net of fees. Trend models leaned into the collapse and recovered their early dip in <strong>21 days</strong>.',
+      spxV: '−42.0%',  spxD: 'A −46% peak-to-trough. The index did not reclaim its high until 2013, more than four years later.',
+      deltaV: '+60.0 pp', deltaD: '2008 was a banner year for trend-following. The algos did not avoid the crash, they traded it.'
+    },
+    {
+      yr: "'10", name: 'Flash Crash',
+      range: 'Apr 2010 → Jul 2010 · €10K start',
+      xlabels: ["APR '10", 'MAY', 'JUN', 'JUL'],
+      spx:  [100, 101, 96, 88, 92, 84, 87, 87],
+      algo: [100, 100, 98, 97, 101, 103, 105, 106],
+      algoV: '+6.0%',  algoD: 'Net of fees. The intraday plunge and the slower summer slide barely dented the curve. Dip recovered in <strong>11 days</strong>.',
+      spxV: '−13.0%',  spxD: 'A −16% slide from the April peak. The index clawed back to new highs by November 2010, about four months on.',
+      deltaV: '+19.0 pp', deltaD: 'A thin, illiquid tape is where rules beat reflexes. No panic selling, no revenge trading.'
+    },
+    {
+      yr: "'15", name: 'Yuan Devaluation',
+      range: 'Aug 2015 → Oct 2015 · €10K start',
+      xlabels: ["AUG '15", 'SEP', 'OCT'],
+      spx:  [100, 99, 95, 89, 92, 90, 91, 92],
+      algo: [100, 100, 99, 97.5, 101, 104, 107, 109],
+      algoV: '+9.0%',  algoD: 'Net of fees. Short signals fired into the August selloff. Max dip recovered in <strong>8 days</strong>.',
+      spxV: '−8.0%',   spxD: 'An −11% drop around the August 24 "Black Monday". New highs did not return until July 2016, roughly ten months later.',
+      deltaV: '+17.0 pp', deltaD: 'A currency shock on the other side of the world. The algos only read price, so they reacted in time.'
+    },
+    {
+      yr: "'18", name: 'Volpocalypse',
+      range: 'Jan 2018 → Apr 2018 · €10K start',
+      xlabels: ["JAN '18", 'FEB', 'MAR', 'APR'],
+      spx:  [100, 105, 95, 90, 94, 92, 96, 94],
+      algo: [100, 102, 99, 97, 100, 103, 106, 107],
+      algoV: '+7.0%',  algoD: 'Net of fees. The vol spike that wiped out short-vol funds was a non-event here. Dip recovered in <strong>12 days</strong>.',
+      spxV: '−6.0%',   spxD: 'A −10% correction as the VIX more than doubled in a single day. The index needed about six months to fully recover.',
+      deltaV: '+13.0 pp', deltaD: 'When everyone is short volatility, the unwind is brutal. The algos held no such position.'
+    },
+    {
+      yr: "'20", name: 'COVID-19 Crash',
+      range: 'Feb 2020 → Jul 2020 · €10K start',
+      xlabels: ["FEB '20", 'MAR', 'APR', 'MAY', 'JUN', 'JUL'],
+      spx:  [100, 98, 66, 78, 88, 95, 99, 97],
+      algo: [100, 99, 96.5, 105, 114, 122, 127, 128],
+      algoV: '+28.0%', algoD: 'Net of fees. The fastest crash on record, yet the algos recovered their own dip in <strong>11 days</strong> and turned the volatility into gains.',
+      spxV: '−3.0%',   spxD: 'Near break-even by July after a −34% peak-to-trough. The index set a new high in August 2020, about five months later.',
+      deltaV: '+31.0 pp', deltaD: 'Outperformance vs. a passive hold. The algos thrive on volatility, they are not trying to avoid it.'
+    },
+    {
+      yr: "'22", name: 'Rate-Shock Year',
+      range: 'May 2022 → Dec 2022 · live track record',
+      sub: 'LIVE · REAL MONEY, NET OF FEES',
+      xlabels: ["MAY '22", 'JUL', 'SEP', 'DEC'],
+      spx:  [100, 91.61, 99.95, 95.71, 86.77, 93.70, 98.74, 92.92],
+      algo: [100, 98.80, 105.91, 108.85, 110.83, 108.08, 109.08, 109.84],
+      algoV: '+9.8%', algoD: 'Net of fees, live. The twenty-one algos trading then made money through the rate-hike bear, worst drawdown about −2.5% across the window.',
+      spxV: '−7.1%',  spxD: 'Down to −13% by late September. From its January peak, before live tracking began, the 2022 bear ran about −25%.',
+      deltaV: '+16.9 pp', deltaD: 'A grinding, year-long decline is the hardest tape for buy-and-hold. The algos kept taking both sides of the move.'
+    }
+  ];
+
+  const DEFAULT = 5;
+  const chipWrap = document.getElementById('simChips');
+  const chartWrap = document.getElementById('simChartWrap');
+  const xWrap = document.getElementById('simX');
+
+  function fmtPct(v) {
+    const r = Math.round((v - 100) * 10) / 10;
+    return (r > 0 ? '+' : (r < 0 ? '−' : '')) + Math.abs(r).toFixed(1) + '%';
+  }
+
+  function renderChart(s) {
+    const W = 700, H = 330, L = 46, R = 16, T = 18, B = 28;
+    const x0 = L, x1 = W - R, y0 = T, y1 = H - B;
+    const data = s.spx.concat(s.algo);
+    let lo = Math.min.apply(null, data), hi = Math.max.apply(null, data);
+    const pad = Math.max((hi - lo) * 0.14, 4); lo -= pad; hi += pad;
+    const n = s.spx.length;
+    const X = i => x0 + (i / (n - 1)) * (x1 - x0);
+    const Y = v => y0 + (hi - v) / (hi - lo) * (y1 - y0);
+    const path = a => a.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(v).toFixed(1)).join(' ');
+
+    let g = '';
+    const ticks = 4;
+    for (let t = 0; t < ticks; t++) {
+      const v = hi - (t / (ticks - 1)) * (hi - lo);
+      const y = Y(v);
+      const p = Math.round(v - 100);
+      const lbl = (p > 0 ? '+' : (p < 0 ? '−' : '')) + Math.abs(p) + '%';
+      g += '<line x1="' + x0 + '" y1="' + y.toFixed(1) + '" x2="' + x1 + '" y2="' + y.toFixed(1) + '" stroke="#EAEAEC" stroke-dasharray="3 3"/>';
+      g += '<text x="8" y="' + (y + 3).toFixed(1) + '" font-family="JetBrains Mono" font-size="9" fill="#9B9BA0">' + lbl + '</text>';
+    }
+
+    let base = '';
+    if (100 <= hi && 100 >= lo) {
+      const yb = Y(100).toFixed(1);
+      base = '<line x1="' + x0 + '" y1="' + yb + '" x2="' + x1 + '" y2="' + yb + '" stroke="#3DC574" stroke-width="1.5" opacity="0.45"/>';
+    }
+
+    const minV = Math.min.apply(null, s.spx), minI = s.spx.indexOf(minV);
+    const cz = '<rect x="' + X(0).toFixed(1) + '" y="' + y0 + '" width="' + (X(minI) - X(0)).toFixed(1) + '" height="' + (y1 - y0).toFixed(1) + '" fill="#EC3B3D" opacity="0.05"/>';
+
+    const spxP = '<path d="' + path(s.spx) + '" fill="none" stroke="#0E0E10" stroke-width="1.6" stroke-dasharray="4 4"/>';
+    const algoArea = '<path d="' + path(s.algo) + ' L ' + X(n - 1).toFixed(1) + ' ' + y1 + ' L ' + X(0).toFixed(1) + ' ' + y1 + ' Z" fill="url(#simFade)"/>';
+    const algoLine = '<path d="' + path(s.algo) + '" fill="none" stroke="#3DC574" stroke-width="2.6"/>';
+
+    const ax = X(n - 1), ay = Y(s.algo[n - 1]), sy = Y(s.spx[n - 1]);
+    const algoDot = '<circle cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="5" fill="#3DC574"/><circle cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="9" fill="#3DC574" opacity="0.3"/>';
+    const spxDot = '<circle cx="' + ax.toFixed(1) + '" cy="' + sy.toFixed(1) + '" r="3.2" fill="#0E0E10"/>';
+    const algoLbl = '<text x="' + (ax - 10).toFixed(1) + '" y="' + (ay - 9).toFixed(1) + '" text-anchor="end" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#3DC574">' + fmtPct(s.algo[n - 1]) + '</text>';
+    const spxLbl = '<text x="' + (ax - 10).toFixed(1) + '" y="' + (sy + (sy > ay ? 14 : -9)).toFixed(1) + '" text-anchor="end" font-family="JetBrains Mono" font-size="10.5" font-weight="600" fill="#0E0E10">' + fmtPct(s.spx[n - 1]) + '</text>';
+
+    const ddx = X(minI), ddy = Y(minV), dd = Math.round(minV - 100);
+    const ddRight = ddx > (x0 + x1) / 2;
+    const ddMark = '<circle cx="' + ddx.toFixed(1) + '" cy="' + ddy.toFixed(1) + '" r="4" fill="#EC3B3D"/>' +
+      '<text x="' + (ddRight ? ddx - 8 : ddx + 8).toFixed(1) + '" y="' + (ddy - 9).toFixed(1) + '" text-anchor="' + (ddRight ? 'end' : 'start') + '" font-family="JetBrains Mono" font-size="9" font-weight="700" fill="#EC3B3D">−' + Math.abs(dd) + '% MAX DD</text>';
+
+    const defs = '<defs><linearGradient id="simFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3DC574" stop-opacity="0.22"/><stop offset="100%" stop-color="#3DC574" stop-opacity="0"/></linearGradient></defs>';
+
+    chartWrap.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="ProRealAlgos vs S&amp;P 500 during ' + s.name + '">' +
+      defs + cz + g + base + spxP + algoArea + algoLine + ddMark + spxDot + algoDot + spxLbl + algoLbl + '</svg>';
+
+    xWrap.innerHTML = s.xlabels.map(l => '<span>' + l + '</span>').join('');
+  }
+
+  function select(i) {
+    const kids = chipWrap.children;
+    for (let k = 0; k < kids.length; k++) kids[k].classList.toggle('active', k === i);
+    const s = SC[i];
+    document.getElementById('simRange').textContent = s.range;
+    document.getElementById('simSub').textContent = s.sub || 'SIMULATED · USING CURRENT ALGO LOGIC';
+    document.getElementById('ssAlgoL').textContent = s.l1 || 'RESULT · ALGO PORTFOLIO';
+    document.getElementById('ssSpxL').textContent = s.l2 || 'SAME PERIOD · BUY-AND-HOLD SPX';
+    document.getElementById('ssDeltaL').textContent = s.l3 || 'DELTA';
+    document.getElementById('ssAlgoV').textContent = s.algoV;
+    document.getElementById('ssAlgoD').innerHTML = s.algoD;
+    document.getElementById('ssSpxV').textContent = s.spxV;
+    document.getElementById('ssSpxD').innerHTML = s.spxD;
+    document.getElementById('ssDeltaV').textContent = s.deltaV;
+    document.getElementById('ssDeltaD').innerHTML = s.deltaD;
+    renderChart(s);
+  }
+
+  SC.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = 'scenario-chip' + (i === DEFAULT ? ' active' : '');
+    b.type = 'button';
+    b.innerHTML = '<span class="yr">' + s.yr + '</span>' + s.name;
+    b.addEventListener('click', () => select(i));
+    chipWrap.appendChild(b);
+  });
+  select(DEFAULT);
+</script>
+
+</body>
+</html>
