@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Stats Banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+    body, html {overflow:hidden;}
+
+  :root {
+    --bg: #FFFFFF;
+    --bg-soft: #F7F7F8;
+    --ink: #0E0E10;
+    --red: #EC3B3D;
+    --green: #3DC574;
+    --ink-muted: #6B6B72;
+    --hairline: #EAEAEC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow: hidden; }
+  body {
+    font-family: 'Onest', -apple-system, sans-serif;
+    background: transparent;
+    color: var(--ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+
+  /* ===================== STATS BAND ===================== */
+  .stats-band {
+    padding: 100px 0;
+    background: var(--bg-soft);
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 40px; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .stat-c {
+    padding: 0 32px;
+    text-align: center;
+    border-right: 1px solid var(--hairline);
+  }
+  .stat-c:last-child { border-right: none; }
+  .stat-c .v {
+    font-size: clamp(48px, 5vw, 72px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    margin-bottom: 8px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-c .v .accent { color: var(--red); }
+  .stat-c .v.g, .stat-c .v .g { color: var(--green); }
+  .stat-c .l {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  /* ===================== TABLET (751–1000px) ===================== */
+  @media (max-width: 1000px) and (min-width: 511px) {
+    .stats-band { padding: 72px 0; }
+    .container { padding: 0 32px; }
+    .stats-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 48px 0;
+      max-width: 620px;
+    }
+    .stat-c { padding: 0 24px; border-right: none; }
+    .stat-c:nth-child(odd) { border-right: 1px solid var(--hairline); }
+    .stat-c .v { font-size: clamp(40px, 6vw, 56px); }
+  }
+
+  /* ===================== MOBILE ===================== */
+  @media (max-width: 510px) {
+    .stats-band { padding: 56px 0; }
+    .container { padding: 0 20px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 36px 0; }
+    .stat-c { padding: 0 14px; border-right: none; }
+    .stat-c:nth-child(odd) { border-right: 1px solid var(--hairline); }
+    .stat-c .v { font-size: clamp(28px, 8vw, 42px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- STATS BAND -->
+<section class="stats-band">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-c">
+        <div class="v g" id="stat-return">+1,447%</div>
+        <div class="l">ALL TIME RETURN</div>
+      </div>
+      <div class="stat-c">
+        <div class="v"><span id="stat-years">7</span><span class="accent">yrs</span></div>
+        <div class="l">LIVE CAPITAL</div>
+      </div>
+      <div class="stat-c">
+        <div class="v" id="stat-trades">10,056</div>
+        <div class="l">NBR OF TRADES</div>
+      </div>
+      <div class="stat-c">
+        <div class="v">30+</div>
+        <div class="l">COUNTRIES</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Local counters: LIVE CAPITAL (years) + NBR OF TRADES.
+     Both anchor on May 20th 2019 (first algo went live) and update on load. -->
+<script>
+(function () {
+  // Anchor: May 20, 2019 at local midnight (month is 0-indexed, 4 = May)
+  var startDate = new Date(2019, 4, 20);
+
+  function computeDays(date) {
+    var startMidnight = startDate.getTime();
+    var dateMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    return Math.round((dateMidnight - startMidnight) / 86400000);
+  }
+
+  var elapsedDays = computeDays(new Date());
+
+  // LIVE CAPITAL: whole years since May 2019 (7 as of mid-2026, climbs on its own)
+  var yearsEl = document.getElementById('stat-years');
+  if (yearsEl) {
+    yearsEl.textContent = Math.floor(elapsedDays / 365.25);
+  }
+
+  // NBR OF TRADES: ~119 trades per month since 20 May 2019
+  // (avg days per month = 30.4375; trades = (elapsedDays / 30.4375) * 119)
+  var tradesEl = document.getElementById('stat-trades');
+  if (tradesEl) {
+    var trades = Math.round((elapsedDays / 30.4375) * 119);
+    tradesEl.textContent = trades.toLocaleString('en-US');
+  }
+})();
+</script>
+
+<!-- MAX RETURN: live total account return since May 2019, from the same
+     Google Sheet the results pages use. Applies (end / base - 1) * 100 to
+     ACCOUNT EQUITY (= €5,000 starting capital + cumulative profit from
+     sheet column B). The May 2019 row of €0 profit is the pre-trading
+     anchor at equity = €5,000, so the percentage compounds from there.
+     Silent fallback: the hardcoded +1,447% stays if the fetch fails. -->
+<script>
+(function () {
+  var SHEET_ID   = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+  var SHEET_GID  = '1444969085';
+  var PROXY      = 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=';
+  var TIMEOUT_MS = 12000;
+  var SEED       = 5000;  // Starting capital in May 2019
+
+  function parseCsvRows(text) {
+    var rows = [], row = [], cell = '', inQ = false, i = 0;
+    while (i < text.length) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i += 2; }
+          else { inQ = false; i++; }
+        } else { cell += c; i++; }
+      } else {
+        if (c === '"')      { inQ = true; i++; }
+        else if (c === ',') { row.push(cell); cell = ''; i++; }
+        else if (c === '\n' || c === '\r') {
+          row.push(cell); rows.push(row);
+          row = []; cell = '';
+          if (c === '\r' && text[i + 1] === '\n') i += 2; else i++;
+        } else { cell += c; i++; }
+      }
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  var MONTH_MAP = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+    apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+    aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+    okt: 9, nov: 10, november: 10, dec: 11, december: 11
+  };
+
+  // Filter rows whose column-B holds a € figure (cumulative profit since
+  // May 2019); add SEED so every value is true account equity.
+  function extractMonthlyCapitalRows(csvText) {
+    var rows = parseCsvRows(csvText);
+    var out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.length < 2) continue;
+      var a = (r[0] || '').trim().toLowerCase().replace(/[^a-z].*$/, '');
+      var b = (r[1] || '').trim();
+      if (b.indexOf('€') === -1) continue;
+      var monthIdx = MONTH_MAP[a];
+      if (monthIdx == null) continue;
+      var num = parseFloat(b.replace(/[€\s,]/g, ''));
+      if (!isFinite(num)) continue;
+      out.push({ monthIdx: monthIdx, capital: num + SEED });
+    }
+    return out;
+  }
+
+  // MAX return = (end equity / May-2019 equity - 1) * 100
+  function computeMaxReturn(rows) {
+    if (!rows || rows.length < 2) return null;
+    var equityStart = rows[0].capital;               // May 2019 = €5,000
+    var equityEnd   = rows[rows.length - 1].capital;
+    if (!equityStart) return null;
+    return (equityEnd / equityStart - 1) * 100;
+  }
+
+  function formatGain(pct) {
+    var sign = pct >= 0 ? '+' : '−';
+    var abs = Math.abs(pct);
+    var num = abs >= 1000
+      ? Math.round(abs).toLocaleString('en-US')
+      : abs.toFixed(1);
+    return sign + num + '%';
+  }
+
+  function fetchWithTimeout(url, ms) {
+    return new Promise(function (resolve, reject) {
+      var ctrl  = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = setTimeout(function () {
+        if (ctrl) ctrl.abort();
+        reject(new Error('timeout'));
+      }, ms);
+      var opts = ctrl ? { signal: ctrl.signal } : {};
+      fetch(url, opts).then(function (res) {
+        clearTimeout(timer);
+        resolve(res);
+      }, function (err) {
+        clearTimeout(timer);
+        reject(err);
+      });
+    });
+  }
+
+  var sheetUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+                 '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID + '&range=A:B';
+  var proxyUrl = PROXY + encodeURIComponent(sheetUrl);
+
+  fetchWithTimeout(proxyUrl, TIMEOUT_MS)
+    .then(function (res) {
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function (text) {
+      var rows = extractMonthlyCapitalRows(text);
+      if (rows.length < 4) return;
+      var pct = computeMaxReturn(rows);
+      if (pct == null) return;
+      var el = document.getElementById('stat-return');
+      if (el) el.textContent = formatGain(pct);
+    })
+    .catch(function () {
+      // silent fallback — hardcoded +1,447% stays in place
+    });
+})();
+</script>
+
+</body>
+</html>

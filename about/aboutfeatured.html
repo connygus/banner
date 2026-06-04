@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — As Featured In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body, html {overflow:hidden;}
+  :root {
+    --bg-soft: #F7F7F8;
+    --ink: #0E0E10;
+    --ink-muted: #6B6B72;
+    --hairline: #EAEAEC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Onest', -apple-system, sans-serif; background: #FFFFFF; color: var(--ink); -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; }
+
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 40px; }
+
+  /* ===================== AS FEATURED IN ===================== */
+  .trust { padding: 28px 0; background: var(--bg-soft); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+  .trust-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 24px; }
+  .trust-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-muted); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500; }
+  .trust-logos { display: flex; flex-wrap: wrap; gap: 32px; align-items: center; }
+  .tlogo { font-weight: 600; font-size: 15px; color: var(--ink-muted); opacity: 0.6; transition: opacity 0.2s ease; }
+  .tlogo:hover { opacity: 1; }
+  .tlogo.serif { font-family: Georgia, serif; font-style: italic; font-weight: 500; }
+  .tlogo.tracked { text-transform: uppercase; letter-spacing: 0.14em; font-size: 11px; font-weight: 700; }
+
+  /* ===================== RESPONSIVE ===================== */
+  @media (max-width: 510px) {
+    .container { padding: 0 20px; }
+    .trust-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .trust-logos { gap: 18px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- AS FEATURED IN -->
+<section class="trust">
+  <div class="container">
+    <div class="trust-inner">
+      <div class="trust-label">As featured in</div>
+      <div class="trust-logos">
+        <span class="tlogo tracked">DAILY SCANNER</span>
+        <span class="tlogo serif">Hw.</span>
+        <span class="tlogo">Iberian</span>
+        <span class="tlogo serif">Ritz Herald</span>
+        <span class="tlogo">Fairmont Post</span>
+        <span class="tlogo serif">Affärsvärlden</span>
+        <span class="tlogo tracked">THE SIGNAL</span>
+        <span class="tlogo">Medium</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

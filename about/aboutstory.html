@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Why we exist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    body, html {overflow:hidden;}
+
+  :root {
+    --pra-bg:    #FFFFFF;
+    --pra-ink:   #0E0E10;
+    --pra-red:   #EC3B3D;
+    --pra-green: #3DC574;
+    --pra-muted: #6B6B72;
+    --pra-line:  #E8E8EA;
+    --pra-soft:  #F6F6F7;
+    --pra-font-sans: 'Onest', system-ui, -apple-system, sans-serif;
+    --pra-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--pra-font-sans); color: var(--pra-ink); background: var(--pra-bg); -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; }
+
+  .story { padding: 96px 0; background: var(--pra-bg); }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  .story-inner { max-width: 760px; margin: 0 auto; }
+
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--pra-font-mono); font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--pra-muted); margin-bottom: 22px; }
+  .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pra-green); }
+
+  .story-head { text-align: center; }
+  .story h2 { font-family: var(--pra-font-sans); font-weight: 700; font-size: clamp(28px, 4.5vw, 52px); line-height: 1.06; letter-spacing: -0.028em; margin-bottom: 56px; }
+  .story h2 .accent { color: var(--pra-red); }
+
+  .story-blocks { display: flex; flex-direction: column; gap: 56px; }
+  .story-block { display: grid; grid-template-columns: 120px 1fr; gap: 32px; align-items: start; }
+
+  .story-num { font-family: var(--pra-font-mono); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: var(--pra-green); padding-top: 8px; }
+  .story-num span { display: block; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--pra-muted); font-weight: 500; margin-top: 5px; }
+
+  .story-text h3 { font-family: var(--pra-font-sans); font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; margin-bottom: 14px; }
+  .story-text p { font-size: 16.5px; line-height: 1.7; color: var(--pra-ink); }
+  .story-text .hl-r { background: rgba(236,59,61,0.10); padding: 1px 5px; border-radius: 4px; }
+  .story-text .hl-g { background: rgba(61,197,116,0.12); padding: 1px 5px; border-radius: 4px; }
+
+  @media (max-width: 510px) {
+    .story { padding: 64px 0; }
+    .story h2 { margin-bottom: 40px; }
+    .story-blocks { gap: 40px; }
+    .story-block { grid-template-columns: 1fr; gap: 10px; }
+    .story-num { padding-top: 0; }
+    .story-text h3 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<section class="story">
+  <div class="container">
+    <div class="story-inner">
+      <div class="story-head">
+        <span class="eyebrow">The story</span>
+        <h2>Why ProRealAlgos <span class="accent">exists.</span></h2>
+      </div>
+
+      <div class="story-blocks">
+        <div class="story-block">
+          <div class="story-num">2015<span>The switch</span></div>
+          <div class="story-text">
+            <h3>Done with discretionary trading.</h3>
+            <p>I had traded by hand for years, and I had grown tired of discretionary trading. With a coding background to lean on, I started automating the strategies I had been running manually. Within a year I had <span class="hl-r">left manual trading behind entirely</span> and spent my time on algorithm development and backtesting instead, work I genuinely enjoyed more than the trading itself.</p>
+          </div>
+        </div>
+
+        <div class="story-block">
+          <div class="story-num">2019<span>The origin</span></div>
+          <div class="story-text">
+            <h3>The algos started spreading.</h3>
+            <p>It started informally in 2019. I shared a few of my algorithms with other traders, and after a while I felt compelled to bring more of them along with me. That is really how ProRealAlgos came about, a way to make the systems available beyond my own circle.</p>
+          </div>
+        </div>
+
+        <div class="story-block">
+          <div class="story-num">2023<span>The mission</span></div>
+          <div class="story-text">
+            <h3>The long game.</h3>
+            <p>The goal has stayed the same ever since, to <span class="hl-g">climb the net worth ladder</span> and bring the people using the algos along with me. By 2023 the algos had run roughly 120,000 trades across everyone using them, with gross exposure reaching 15 billion euros.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

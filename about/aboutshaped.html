@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos · The losses that shaped our algos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    body, html {overflow:hidden;}
+
+  :root {
+    /* Color */
+    --pra-bg:        #FFFFFF;
+    --pra-ink:       #0E0E10;
+    --pra-ink-soft:  #1F1F22;
+    --pra-red:       #EC3B3D;
+    --pra-green:     #3DC574;
+    --pra-muted:     #6B6B72;
+    --pra-line:      #E8E8EA;
+    --pra-soft:      #F6F6F7;
+
+    /* Type */
+    --pra-font-sans: 'Onest', system-ui, -apple-system, sans-serif;
+    --pra-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+    /* Radius */
+    --pra-r-card:    22px;
+    --pra-r-pill:    999px;
+    --pra-r-input:   12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--pra-font-sans);
+    background: var(--pra-bg);
+    color: var(--pra-ink);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+    font-size: 16px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+  /* ===================== SECTION SHELL ===================== */
+  .dd { padding: 96px 0; background: var(--pra-bg); }
+
+  .dd-head { text-align: center; margin: 0 auto 56px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--pra-font-mono);
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--pra-muted); font-weight: 500; margin-bottom: 18px;
+  }
+  .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pra-red); }
+  .dd-head h2 {
+    font-weight: 700; letter-spacing: -0.022em; line-height: 1.06;
+    font-size: clamp(32px, 4vw, 50px); margin-bottom: 16px;
+  }
+  .dd-head h2 .accent { color: var(--pra-red); }
+  .dd-head p.lead { color: var(--pra-muted); font-size: 17px; line-height: 1.6; max-width: 760px; margin: 0 auto; }
+
+  /* ===================== CARDS ===================== */
+  .dd-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+
+  .dd-card {
+    background: var(--pra-bg);
+    border: 1px solid var(--pra-line);
+    border-radius: var(--pra-r-card);
+    padding: 28px;
+    display: flex; flex-direction: column;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .dd-card:hover {
+    border-color: var(--pra-ink);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 14px rgba(14,14,16,0.05);
+  }
+
+  .dd-rank-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; padding-bottom: 18px;
+    border-bottom: 1px solid var(--pra-line);
+  }
+  .dd-when {
+    font-family: var(--pra-font-mono); font-size: 12px;
+    letter-spacing: 0.1em; color: var(--pra-muted); font-weight: 600;
+    text-transform: uppercase;
+  }
+  .dd-when .arrow { color: var(--pra-ink); margin: 0 2px; }
+  .dd-loss {
+    font-family: var(--pra-font-mono); font-size: 14px;
+    padding: 4px 12px;
+    background: rgba(236,59,61,0.08);
+    border: 1px solid rgba(236,59,61,0.20);
+    color: var(--pra-red); border-radius: var(--pra-r-pill);
+    font-weight: 700; letter-spacing: 0.02em;
+  }
+
+  .dd-card h3 {
+    font-size: 16px; font-weight: 600; letter-spacing: -0.02em;
+    line-height: 1.3; margin-bottom: 10px;
+    white-space: nowrap;
+  }
+  .dd-card p.what {
+    font-size: 14px; color: var(--pra-muted); line-height: 1.62; margin-bottom: 16px;
+  }
+
+  .dd-meta {
+    font-family: var(--pra-font-mono); font-size: 11px;
+    color: var(--pra-ink-soft); line-height: 1.5; letter-spacing: 0.01em;
+    padding: 12px 14px; background: var(--pra-soft);
+    border-radius: var(--pra-r-input); margin-bottom: 18px;
+  }
+  .dd-meta .dn { color: var(--pra-red); font-weight: 600; }
+  .dd-meta .sep { color: var(--pra-muted); margin: 0 6px; }
+
+  .dd-rule {
+    margin-top: auto;
+    padding: 14px;
+    background: rgba(61,197,116,0.09);
+    border: 1px solid rgba(61,197,116,0.22);
+    border-radius: var(--pra-r-input);
+  }
+  .dd-rule .l {
+    font-family: var(--pra-font-mono); font-size: 10px;
+    letter-spacing: 0.13em; color: var(--pra-green); font-weight: 700;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .dd-rule p { font-size: 13px; color: var(--pra-ink-soft); line-height: 1.5; font-weight: 500; }
+
+  /* ===================== FOOT ===================== */
+  .dd-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 20px; margin-top: 36px;
+    padding-top: 28px; border-top: 1px solid var(--pra-line);
+  }
+  .dd-foot p {
+    font-size: 13px; color: var(--pra-muted); line-height: 1.55; max-width: 720px;
+  }
+  .dd-foot p strong { color: var(--pra-ink-soft); font-weight: 600; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 24px; flex-shrink: 0;
+    font-family: var(--pra-font-sans); font-size: 15px; font-weight: 600;
+    background: var(--pra-ink); color: #FFFFFF;
+    border: 0; border-radius: var(--pra-r-pill); cursor: pointer; text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,14,16,0.18); }
+  .btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pra-red); }
+
+  /* ===================== RESPONSIVE ===================== */
+  /* Titles stay on one line only while cards are wide enough, so step the grid
+     down 3 -> 2 -> 1 instead of cramming three narrow columns. */
+  @media (max-width: 1180px) {
+    .dd-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .dd-rule { margin-top: 18px; }
+  }
+  @media (max-width: 800px) {
+    .dd-grid { grid-template-columns: 1fr; }
+  }
+  /* Mobile breakpoint Wix expects from the embedded iframe. */
+  @media (max-width: 510px) {
+    .dd { padding: 64px 0; }
+    .container { padding: 0 20px; }
+    .dd-head { margin-bottom: 40px; }
+    .dd-card { padding: 24px; }
+    .dd-card h3 { font-size: 14px; }
+    .dd-foot { flex-direction: column; align-items: flex-start; }
+    .btn { width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+
+<section class="dd">
+  <div class="container">
+
+    <div class="dd-head">
+      <span class="eyebrow">Published, not hidden</span>
+      <h2>The <span class="accent">losses</span> that shaped our algos.</h2>
+      <p class="lead">Seven years of live trading, and three drawdowns we still talk about. The worst single months, the worst peak-to-trough stretches, measured on real capital and net of fees. Each one cost us something. Each one left behind a rule the algos still run today.</p>
+    </div>
+
+    <div class="dd-grid">
+
+      <!-- DRAWDOWN 1 -->
+      <div class="dd-card">
+        <div class="dd-rank-row">
+          <span class="dd-when">APR <span class="arrow">&rarr;</span> SEP 2021</span>
+          <span class="dd-loss">&minus;15.7%</span>
+        </div>
+        <h3>The summer the tape went dead.</h3>
+        <p class="what">Our deepest drawdown on record, and the slowest. Through a low-volatility 2021 summer the market just drifted, with no clean swings to mean-revert against. The algos kept buying shallow dips that kept sliding a little lower, nicking us for one small loss after another. Five months of bleed, no single bad trade to point at.</p>
+        <div class="dd-meta"><span class="dn">&minus;&euro;2,659</span> off a &euro;16,930 account <span class="sep">&middot;</span> back to new highs in 1 month</div>
+        <div class="dd-rule">
+          <div class="l">&rarr; The rule it left behind</div>
+          <p>Doing nothing is a position. We added a volatility floor, so the mean-reversion algos stand down when realised volatility drops below threshold instead of forcing trades into dead tape.</p>
+        </div>
+      </div>
+
+      <!-- DRAWDOWN 2 -->
+      <div class="dd-card">
+        <div class="dd-rank-row">
+          <span class="dd-when">JUL <span class="arrow">&rarr;</span> OCT 2023</span>
+          <span class="dd-loss">&minus;14.8%</span>
+        </div>
+        <h3>When the whole book became one trade.</h3>
+        <p class="what">As ten-year yields marched toward 5% in the autumn of 2023, every equity index sold off together. Our DAX, S&amp;P 500 and Nasdaq algos were all leaning the same way, so a book that looked diversified by market was really one big correlated bet. They fell in lockstep, and so did we.</p>
+        <div class="dd-meta"><span class="dn">&minus;&euro;5,598</span> off a &euro;37,836 account <span class="sep">&middot;</span> back to new highs in 1 month</div>
+        <div class="dd-rule">
+          <div class="l">&rarr; The rule it left behind</div>
+          <p>Different instruments are not different risk if they move together. We further diversified our portfolio with new algorithms for new markets based on completely new market edges. No one macro move should hit every algo at once.</p>
+        </div>
+      </div>
+
+      <!-- DRAWDOWN 3 -->
+      <div class="dd-card">
+        <div class="dd-rank-row">
+          <span class="dd-when">FEB <span class="arrow">&rarr;</span> MAR 2026</span>
+          <span class="dd-loss">&minus;13.3%</span>
+        </div>
+        <h3>Our most expensive month, on purpose.</h3>
+        <p class="what">After a standout +15% February, March handed back 13.3% in a single fast volatility spike. In cash that was roughly &euro;11,098, comfortably the largest euro loss in our history, for one plain reason: the account had never been this big. Same percentage of risk, a much scarier number on the statement.</p>
+        <div class="dd-meta"><span class="dn">&minus;&euro;11,098</span> off an &euro;83,154 account <span class="sep">&middot;</span> still climbing back to the high</div>
+        <div class="dd-rule">
+          <div class="l">&rarr; The rule it left behind</div>
+          <p>The euros scale with the account, the pain of a loss as well. Added new reinvestment of profit code to not scale reinvesting linearly. A 13% month should always feel like 13%, never like a new car.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="dd-foot">
+      <p>Figures are peak-to-trough drawdowns on the live results account, net of fees, pulled from the same sheet that powers our public performance page. <strong>We publish every month we've ever traded, the red ones included.</strong></p>
+      <a class="btn" href="https://prorealalgos.com/results" target="_parent" rel="noopener"><span class="dot"></span> See the full track record</a>
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>
