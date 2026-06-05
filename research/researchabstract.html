@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Research · ProRealAlgos · Abstract</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pra-bg:#FFFFFF; --pra-ink:#0E0E10; --pra-red:#EC3B3D; --pra-green:#3DC574;
+  --pra-muted:#6B6B72; --pra-dim:#9B9BA0;
+  --pra-line:#E8E8EA; --pra-line-strong:#D8D8DB; --pra-soft:#F6F6F7; --pra-paper:#FAFAFB;
+  --pra-font-sans:'Onest',system-ui,-apple-system,sans-serif;
+  --pra-font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --pra-r-card:22px; --pra-r-pill:999px; --pra-r-input:12px;
+}
+
+*{box-sizing:border-box}
+body, html {overflow:hidden;}
+
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--pra-bg);
+  color:var(--pra-ink);
+  font-family:var(--pra-font-sans);
+  font-weight:400;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:rgba(236,59,61,0.14);color:var(--pra-ink)}
+
+/* ---------- layout primitives ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 40px}
+.sec-pad{padding:82px 0}
+
+/* ===========================================================
+   ABSTRACT (standfirst)
+   =========================================================== */
+.abstract{background:var(--pra-paper);border-top:1px solid var(--pra-line);border-bottom:1px solid var(--pra-line)}
+.abstract-grid{
+  display:grid;grid-template-columns:0.5fr 1.5fr;gap:54px;align-items:start;
+}
+.abstract-label{
+  font-family:var(--pra-font-mono);
+  font-size:11.5px;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--pra-muted);line-height:1.8;
+  margin-top:26px;   /* drop the label so "Abstract" lines up with the top of the standfirst */
+}
+.abstract-label .big{
+  display:block;font-size:13px;color:var(--pra-ink);font-weight:600;
+  margin-bottom:14px;letter-spacing:0.12em;
+}
+.standfirst{
+  font-size:clamp(18px,2.2vw,24px);
+  line-height:1.4;
+  letter-spacing:-0.014em;
+  font-weight:500;
+  color:var(--pra-ink);
+}
+/* green "marker pen" — a full-character-height band, centered on the text.
+   Sized in em and centered so it covers caps to descenders (not just the
+   lower third), and cloned across line breaks if the phrase wraps. */
+.standfirst .hl{
+  background-image:linear-gradient(rgba(61,197,116,0.24), rgba(61,197,116,0.24));
+  background-repeat:no-repeat;
+  background-position:0 center;
+  background-size:100% 1.05em;
+  -webkit-box-decoration-break:clone;
+  box-decoration-break:clone;
+}
+.standfirst .em{color:var(--pra-muted);font-weight:400}
+
+/* ===========================================================
+   RESPONSIVE
+   =========================================================== */
+@media (max-width:1000px){
+  .abstract-grid{grid-template-columns:1fr;gap:24px}
+  .abstract-label{margin-top:0}   /* columns stack, no alignment offset needed */
+}
+@media (max-width:510px){
+  .wrap{padding:0 22px}
+  .sec-pad{padding:48px 0}
+  .standfirst{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===========================================================
+     ABSTRACT / standfirst
+     =========================================================== -->
+<section class="abstract sec-pad">
+  <div class="wrap">
+    <div class="abstract-grid">
+      <div class="abstract-label">
+        <span class="big">Abstract</span>
+        The study in one paragraph.
+      </div>
+      <p class="standfirst">
+        Most retail strategies start with a hunch. <span class="hl">This study started with the data:</span> roughly 150 years of market history, 18 research papers, and nine years spent compiling them into something tradeable. <span class="em">The conclusion is not a single magic signal. It is a small set of principles about risk, simplicity, and execution that survive across every market regime we tested, and a refusal to ship anything that violates them.</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

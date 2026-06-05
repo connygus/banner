@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Research · ProRealAlgos · The premise</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    body, html {overflow:hidden;}
+
+:root{
+  --pra-bg:#FFFFFF; --pra-ink:#0E0E10; --pra-red:#EC3B3D; --pra-green:#3DC574;
+  --pra-muted:#6B6B72; --pra-dim:#9B9BA0;
+  --pra-line:#E8E8EA; --pra-line-strong:#D8D8DB; --pra-soft:#F6F6F7; --pra-paper:#FAFAFB;
+  --pra-font-sans:'Onest',system-ui,-apple-system,sans-serif;
+  --pra-font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --pra-r-card:22px; --pra-r-pill:999px; --pra-r-input:12px;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:var(--pra-bg);
+  color:var(--pra-ink);
+  font-family:var(--pra-font-sans);
+  font-weight:400;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+::selection{background:rgba(236,59,61,0.14);color:var(--pra-ink)}
+p{margin:0}
+
+/* ---------- layout primitives (identical to the abstract) ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 40px}
+.sec-pad{padding:106px 0}
+
+/* ===========================================================
+   SECTION LABEL  (same component / sizes as the abstract)
+   =========================================================== */
+.section-label{
+  font-family:var(--pra-font-mono);
+  font-size:11.5px;letter-spacing:0.15em;text-transform:uppercase;
+  color:var(--pra-muted);line-height:1.8;
+  margin-top:3px;   /* line "The premise" up with the top of the body text */
+}
+.section-label .big{
+  display:block;font-size:13px;color:var(--pra-ink);font-weight:600;
+  margin-bottom:14px;letter-spacing:0.12em;
+}
+
+/* ===========================================================
+   PREMISE  (same grid, gap and column widths as the abstract)
+   =========================================================== */
+.premise-grid{
+  display:grid;grid-template-columns:0.5fr 1.5fr;gap:54px;align-items:start;
+}
+/* body prose: same size/scale as the abstract standfirst (24px),
+   regular weight so it reads as narrative under the emphasised lead */
+.premise-body p{
+  font-size:clamp(18px,2.2vw,24px);
+  line-height:1.5;
+  letter-spacing:-0.012em;
+  color:var(--pra-ink);
+}
+.premise-body p + p{margin-top:26px}
+.premise-body .softp{color:var(--pra-muted)}
+
+.premise-figure{margin:44px 0 0}
+.pullquote{
+  font-size:clamp(24px,3vw,30px);
+  line-height:1.2;
+  letter-spacing:-0.02em;
+  font-weight:700;
+  margin:0;
+  max-width:20ch;
+}
+.pullquote .accent{color:var(--pra-red)}
+.pq-cite{
+  font-family:var(--pra-font-mono);
+  font-size:11px;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--pra-dim);margin-top:18px;
+}
+.premise-after{margin-top:44px}
+
+/* ===========================================================
+   RESPONSIVE  (same breakpoints as the abstract)
+   =========================================================== */
+@media (max-width:1000px){
+  .premise-grid{grid-template-columns:1fr;gap:24px}
+  .section-label{margin-top:0}
+}
+@media (max-width:510px){
+  .wrap{padding:0 22px}
+  .sec-pad{padding:64px 0}
+  .premise-body p{font-size:18px;line-height:1.55}
+  .premise-body p + p{margin-top:20px}
+  .premise-figure{margin:32px 0 0}
+  .premise-after{margin-top:32px}
+  .pullquote{font-size:clamp(22px,7vw,26px);max-width:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ===========================================================
+     THE PREMISE
+     =========================================================== -->
+<section class="premise sec-pad">
+  <div class="wrap">
+    <div class="premise-grid">
+      <div class="section-label">
+        <span class="big">The premise</span>
+        Why the study exists.
+      </div>
+      <div class="premise-body">
+        <p>Nine years ago the question was simple, and a little uncomfortable: after a century and a half of price data, how much of what retail traders believe actually holds up? Not in a single backtest tuned to look good, but across booms, crashes, inflation, deflation, and the long flat stretches where nothing happens and most edges quietly die.</p>
+        <p class="softp">The answer was humbling. The vast majority of popular ideas, the indicator stacks, the "secret" setups, the systems that look perfect on a screenshot, do not survive contact with out-of-sample data. What remained after the cull was small. It was also boring, repeatable, and, traded with discipline, genuinely durable.</p>
+        <figure class="premise-figure">
+          <blockquote class="pullquote">The edges that survive are <span class="accent">few</span>, simple, and mostly about risk.</blockquote>
+          <figcaption class="pq-cite">RP-18 · What 150 Years Say About What Doesn't Work</figcaption>
+        </figure>
+        <p class="premise-after">Everything that follows is built on that one observation. Five principles came out of the research. Each is traceable back to the papers that produced it, and each is enforced, not aspirational, in the algos we run.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Research · ProRealAlgos · The archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    body, html {overflow:hidden;}
+
+:root{
+  --pra-bg:#FFFFFF; --pra-ink:#0E0E10; --pra-red:#EC3B3D; --pra-green:#3DC574;
+  --pra-muted:#6B6B72; --pra-dim:#9B9BA0;
+  --pra-line:#E8E8EA; --pra-line-strong:#D8D8DB; --pra-soft:#F6F6F7; --pra-paper:#FAFAFB;
+  --pra-font-sans:'Onest',system-ui,-apple-system,sans-serif;
+  --pra-font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --pra-r-card:22px; --pra-r-pill:999px; --pra-r-input:12px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--pra-bg);color:var(--pra-ink);
+  font-family:var(--pra-font-sans);font-weight:400;line-height:1.55;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(236,59,61,0.14);color:var(--pra-ink)}
+
+.wrap{max-width:1240px;margin:0 auto;padding:0 40px;position:relative}
+.archive{padding:72px 0}
+h2{font-weight:700;letter-spacing:-0.02em;line-height:1.08;margin:0}
+.muted{color:var(--pra-muted)}
+.rail-kicker{
+  font-family:var(--pra-font-mono);font-size:11px;font-weight:600;
+  letter-spacing:0.16em;text-transform:uppercase;color:var(--pra-dim);margin:0 0 8px;
+}
+
+/* ---------- header + filter bar ---------- */
+.papers-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  margin-bottom:30px;
+}
+.papers-head h2{font-size:clamp(26px,3.4vw,38px);letter-spacing:-0.024em;line-height:1.06;margin-top:16px;}
+.papers-head .ph-right{display:flex;flex-direction:column;align-items:flex-end;gap:12px;}
+.filterbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.filterbar button{
+  font-family:var(--pra-font-mono);font-size:10.5px;font-weight:500;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--pra-muted);
+  background:var(--pra-bg);border:1px solid var(--pra-line);border-radius:var(--pra-r-pill);
+  padding:7px 14px;cursor:pointer;transition:all .15s ease;
+}
+.filterbar button:hover{border-color:var(--pra-line-strong);color:var(--pra-ink);}
+.filterbar button[aria-pressed="true"]{background:var(--pra-ink);color:#fff;border-color:var(--pra-ink);}
+.filterbar button:focus-visible{outline:2px solid var(--pra-ink);outline-offset:2px;}
+.papers-count{font-family:var(--pra-font-mono);font-size:11px;color:var(--pra-dim);letter-spacing:0.04em;}
+
+/* ---------- the 18 paper cards (each card is a link to its PDF) ---------- */
+.papers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.paper{
+  position:relative;background:var(--pra-bg);
+  border:1px solid var(--pra-line);border-radius:14px;
+  padding:18px 20px;cursor:pointer;
+  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  display:flex;flex-direction:column;
+}
+.paper:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(14,14,16,0.05);border-color:var(--pra-line-strong);}
+.paper:focus-visible{outline:2px solid var(--pra-ink);outline-offset:2px;}
+.paper.is-hidden{display:none;}
+.paper .p-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.paper .p-id{
+  font-family:var(--pra-font-mono);font-size:11.5px;font-weight:700;letter-spacing:0.04em;color:var(--pra-ink);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.paper .p-id .iddot{width:7px;height:7px;border-radius:50%;background:var(--iddot,var(--pra-ink));flex:none;}
+.paper .p-year{font-family:var(--pra-font-mono);font-size:11px;color:var(--pra-dim);}
+.paper .p-title{font-size:15px;font-weight:700;letter-spacing:-0.016em;line-height:1.28;}
+.paper .p-gloss{font-size:12.5px;line-height:1.5;color:var(--pra-muted);margin-top:9px;flex:1;}
+.paper .p-foot{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.tag{
+  font-family:var(--pra-font-mono);font-size:9.5px;font-weight:500;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--pra-muted);
+  border:1px solid var(--pra-line);border-radius:var(--pra-r-pill);padding:4px 10px;
+}
+.paper .p-open{
+  font-family:var(--pra-font-mono);font-size:10.5px;color:var(--pra-dim);
+  display:inline-flex;align-items:center;gap:5px;transition:color .15s ease;white-space:nowrap;
+}
+.paper .p-open .ext{transition:transform .15s ease;}
+.paper:hover .p-open{color:var(--pra-ink);}
+.paper:hover .p-open .ext{transform:translate(1px,-1px);}
+.papers-empty{
+  display:none;text-align:center;padding:40px 0;color:var(--pra-muted);
+  font-family:var(--pra-font-mono);font-size:13px;
+}
+
+/* ---------- responsive ---------- */
+@media (max-width:1000px){ .papers-grid{grid-template-columns:repeat(2,1fr);} }
+@media (max-width:520px){
+  .wrap{padding:0 22px;}
+  .archive{padding:56px 0;}
+  .papers-head{flex-direction:column;align-items:flex-start;}
+  .papers-head .ph-right{align-items:flex-start;width:100%;}
+  .filterbar{justify-content:flex-start;}
+  .papers-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===========================================================
+     THE ARCHIVE  (the 18 research papers, each linked to its PDF)
+     =========================================================== -->
+<section class="archive" id="papers" aria-label="The 18 research papers">
+  <div class="wrap">
+    <div class="papers-head">
+      <div>
+        <p class="rail-kicker">The archive</p>
+        <h2>The 18 papers behind the study.</h2>
+      </div>
+      <div class="ph-right">
+        <div class="filterbar" role="group" aria-label="Filter papers by category">
+          <button type="button" data-cat="all" aria-pressed="true">All <span class="muted">18</span></button>
+          <button type="button" data-cat="Risk" aria-pressed="false">Risk</button>
+          <button type="button" data-cat="Execution" aria-pressed="false">Execution</button>
+          <button type="button" data-cat="Market Structure" aria-pressed="false">Market Structure</button>
+          <button type="button" data-cat="Behavioral" aria-pressed="false">Behavioral</button>
+          <button type="button" data-cat="Methodology" aria-pressed="false">Methodology</button>
+          <button type="button" data-cat="Strategy Design" aria-pressed="false">Strategy Design</button>
+        </div>
+        <span class="papers-count" id="papersCount" aria-live="polite">Showing 18 of 18 papers</span>
+      </div>
+    </div>
+
+    <div class="papers-grid" id="papersGrid"></div>
+    <div class="papers-empty" id="papersEmpty">No papers in this category.</div>
+  </div>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  // PDFs are served from GitHub Pages, so each card links straight to the file.
+  var BASE = "https://connygus.github.io/banner/research/";
+
+  // [ id, title, category, year, gloss, pdf-filename ]
+  var papers = [
+    ["RP-01","The Best Days Myth","Market Structure","2018","Why the 'miss the ten best days' argument quietly misleads, and what the full return distribution actually shows.","research_note_01_best_days_myth.pdf"],
+    ["RP-02","The Anatomy of a Bear Market","Market Structure","2018","What bear markets across 150 years share, where they differ, and how they tend to end.","research_note_02_bear_market_anatomy.pdf"],
+    ["RP-03","Inflation Regimes and Asset Returns","Market Structure","2019","How stocks, bonds, and commodities behave across the inflation regimes markets keep cycling through.","research_note_03_inflation_regimes.pdf"],
+    ["RP-04","The Moving-Average Filter, Re-examined","Strategy Design","2019","Whether a simple moving-average filter still adds anything once trading costs are counted.","research_note_04_ma_filter.pdf"],
+    ["RP-05","Decomposing the Equity Risk Premium","Market Structure","2020","Splitting long-run equity returns into the parts that persist and the parts that do not.","research_note_05_erp_decomposition.pdf"],
+    ["RP-06","Dollar-Cost Averaging vs Lump Sum","Risk","2020","When averaging in beats deploying all at once, and when it just quietly costs you return.","research_note_06_dca_vs_lump.pdf"],
+    ["RP-07","Trend Following Across a Century","Strategy Design","2020","How a simple trend rule holds up across 150 years and every regime in between.","research_note_07_trend_following.pdf"],
+    ["RP-08","Return Concentration: Do Stocks Beat Cash?","Market Structure","2021","Most stocks underperform Treasury bills. A handful carry the entire market.","research_note_08_bessembinder_concentration.pdf"],
+    ["RP-09","Carry as a Cross-Asset Strategy","Strategy Design","2021","Where the carry trade pays, where it turns on you, and what it really costs to hold.","research_note_09_carry.pdf"],
+    ["RP-10","The 60/40 Portfolio: A Verdict","Risk","2022","Whether the classic balanced portfolio still earns its keep after the 2022 stress test.","research_note_10_60_40_verdict.pdf"],
+    ["RP-11","Is Gold Actually a Hedge?","Market Structure","2022","Testing gold's reputation against inflation, drawdowns, and currency debasement.","research_note_11_gold_hedge.pdf"],
+    ["RP-12","CAPE and the Limits of Valuation Timing","Methodology","2022","How much valuation signals like CAPE really tell you about the next decade of returns.","research_note_12_cape_predictors.pdf"],
+    ["RP-13","A Survivorship-Bias Audit","Methodology","2023","What re-running the classics with dead and delisted names does to their published results.","research_note_13_survivorship_audit.pdf"],
+    ["RP-14","When Manual Overrides Underperform","Behavioral","2023","What happens to returns every time the operator steps in to 'help' the system.","research_note_14_override_underperform.pdf"],
+    ["RP-15","Position Sizing and Long-Run Return","Risk","2024","How much you bet explains more of your equity curve than what you bet on.","research_note_15_position_sizing.pdf"],
+    ["RP-16","Drawdowns and the Abandonment Point","Risk","2024","Systems rarely die from low returns, they die from drawdowns nobody can sit through.","research_note_16_drawdown_abandonment.pdf"],
+    ["RP-17","Knowledge Transfer and the Onboarding Problem","Behavioral","2025","Why handing a working system to a new trader is where most of the risk actually lives.","research_note_17_knowledge_transfer.pdf"],
+    ["RP-18","Implementation Shortfall: The Hidden Cost","Execution","2025","What slippage, latency, and hesitation quietly remove from a live strategy.","research_note_18_implementation_shortfall.pdf"]
+  ];
+
+  var grid = document.getElementById("papersGrid");
+  if (grid) {
+    var frag = document.createDocumentFragment();
+    papers.forEach(function (p, i) {
+      var dotInk = (i % 2 === 0);
+      var a = document.createElement("a");
+      a.className = "paper";
+      a.setAttribute("data-cat", p[2]);
+      a.setAttribute("href", BASE + p[5]);
+      a.setAttribute("target", "_blank");
+      a.setAttribute("rel", "noopener");
+      a.setAttribute("aria-label", p[0] + ": " + p[1] + " (opens PDF in a new tab)");
+      a.innerHTML =
+        '<div class="p-top">' +
+          '<span class="p-id"><span class="iddot" style="--iddot:' + (dotInk ? "var(--pra-ink)" : "var(--pra-green)") + '" aria-hidden="true"></span>' + p[0] + '</span>' +
+          '<span class="p-year">' + p[3] + '</span>' +
+        '</div>' +
+        '<div class="p-title">' + p[1] + '</div>' +
+        '<p class="p-gloss">' + p[4] + '</p>' +
+        '<div class="p-foot">' +
+          '<span class="tag">' + p[2] + '</span>' +
+          '<span class="p-open">Read PDF <span class="ext" aria-hidden="true">&#8599;</span></span>' +
+        '</div>';
+      frag.appendChild(a);
+    });
+    grid.appendChild(frag);
+  }
+
+  /* ---------- category filtering ---------- */
+  var buttons = Array.prototype.slice.call(document.querySelectorAll(".filterbar button"));
+  var countEl = document.getElementById("papersCount");
+  var emptyEl = document.getElementById("papersEmpty");
+  function applyFilter(cat) {
+    var shown = 0;
+    var cards = grid ? grid.querySelectorAll(".paper") : [];
+    Array.prototype.forEach.call(cards, function (c) {
+      var match = (cat === "all" || c.getAttribute("data-cat") === cat);
+      c.classList.toggle("is-hidden", !match);
+      if (match) shown++;
+    });
+    if (countEl) countEl.textContent = "Showing " + shown + " of 18 papers";
+    if (emptyEl) emptyEl.style.display = shown === 0 ? "block" : "none";
+  }
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+      applyFilter(b.getAttribute("data-cat"));
+    });
+  });
+})();
+</script>
+</body>
+</html>
