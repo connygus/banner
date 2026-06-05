@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Research · ProRealAlgos · What we concluded</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { overflow: hidden; }
+  :root{
+    --pra-bg:#FFFFFF; --pra-ink:#0E0E10; --pra-red:#EC3B3D; --pra-green:#3DC574;
+    --pra-muted:#6B6B72; --pra-dim:#9B9BA0;
+    --pra-line:#E8E8EA; --pra-line-strong:#D8D8DB; --pra-soft:#F6F6F7; --pra-paper:#FAFAFB;
+    --pra-font-sans:'Onest',system-ui,-apple-system,sans-serif;
+    --pra-font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+    --pra-r-card:22px; --pra-r-pill:999px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:var(--pra-font-sans);background:var(--pra-bg);color:var(--pra-ink);
+    line-height:1.55;-webkit-font-smoothing:antialiased;letter-spacing:-0.005em;font-size:16px;
+  }
+  ::selection{background:rgba(14,14,16,0.92);color:#fff;}
+
+  .container{max-width:1240px;margin:0 auto;padding:0 40px;}
+  h2,h3{font-weight:700;letter-spacing:-0.026em;line-height:1.08;color:var(--pra-ink);}
+  h2{font-size:clamp(28px,3.6vw,42px);letter-spacing:-0.028em;}
+  h3{font-size:20px;letter-spacing:-0.02em;}
+
+  /* eyebrow */
+  .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--pra-font-mono);
+    font-size:11.5px;text-transform:uppercase;letter-spacing:0.16em;color:var(--pra-muted);font-weight:500;}
+  .eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--pra-red);flex-shrink:0;}
+
+  /* section rhythm */
+  section{padding:96px 0;}
+  .section-soft{background:var(--pra-soft);border-top:1px solid var(--pra-line);border-bottom:1px solid var(--pra-line);}
+  .section-head{max-width:680px;margin-bottom:48px;}
+  .section-head .eyebrow{margin-bottom:18px;}
+  .section-head h2{margin-bottom:16px;}
+
+  /* ============== FINDINGS STRIP ============== */
+  .findings{padding:64px 0;}
+  .findings-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1px solid var(--pra-line);
+    border-radius:var(--pra-r-card);overflow:hidden;background:var(--pra-bg);}
+  .finding{padding:26px 22px;border-right:1px solid var(--pra-line);transition:background .2s ease;}
+  .finding:last-child{border-right:none;}
+  .finding:hover{background:var(--pra-paper);}
+  .finding .n{font-family:var(--pra-font-mono);font-size:12px;font-weight:600;color:var(--pra-red);letter-spacing:0.04em;margin-bottom:14px;}
+  .finding:nth-child(n+4) .n{color:var(--pra-muted);}
+  .finding h3{font-size:15.5px;letter-spacing:-0.015em;line-height:1.22;margin-bottom:9px;}
+  .finding p{font-size:13px;line-height:1.5;color:var(--pra-muted);}
+
+  /* ============== RESPONSIVE ============== */
+  @media (max-width:980px){
+    .findings-grid{grid-template-columns:repeat(2,1fr);}
+    .finding:nth-child(odd){border-right:1px solid var(--pra-line);}
+    .finding:nth-child(even){border-right:none;}
+    .finding:nth-child(-n+4){border-bottom:1px solid var(--pra-line);}
+    .finding:last-child{grid-column:1 / -1;border-right:none;}
+  }
+  @media (max-width:510px){
+    .container{padding:0 20px;}
+    .findings{padding:48px 0;}
+    .findings-grid{grid-template-columns:1fr;}
+    .finding{border-right:none !important;border-bottom:1px solid var(--pra-line) !important;}
+    .finding:last-child{border-bottom:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============== WHAT WE CONCLUDED (five principles distilled) ============== -->
+<section class="findings section-soft" aria-labelledby="findings-title">
+  <div class="container">
+    <div class="section-head" style="margin-bottom:34px;">
+      <div class="eyebrow" style="margin-bottom:16px;">What we concluded</div>
+      <h2 id="findings-title" style="font-size:clamp(24px,3vw,34px);">Five principles, distilled.</h2>
+    </div>
+    <div class="findings-grid">
+      <div class="finding">
+        <div class="n">01</div>
+        <h3>Risk management is the strategy.</h3>
+        <p>Sizing and drawdown limits decide outcomes, not signals.</p>
+      </div>
+      <div class="finding">
+        <div class="n">02</div>
+        <h3>Complexity is usually compensation.</h3>
+        <p>Fourteen indicators often hide that none of them work.</p>
+      </div>
+      <div class="finding">
+        <div class="n">03</div>
+        <h3>Automatic execution removes ego.</h3>
+        <p>Take the operator's psychology out of the loop entirely.</p>
+      </div>
+      <div class="finding">
+        <div class="n">04</div>
+        <h3>Onboarding one trader at a time.</h3>
+        <p>Personal handover, because capacity sets the pace.</p>
+      </div>
+      <div class="finding">
+        <div class="n">05</div>
+        <h3>If we don't run it, we don't sell it.</h3>
+        <p>Every algo runs on the founder's own capital, live.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
