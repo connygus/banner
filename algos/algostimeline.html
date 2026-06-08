@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Release timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { overflow: hidden; }
+:root {
+  --pra-bg:#FFFFFF; --pra-ink:#0E0E10; --pra-red:#EC3B3D; --pra-green:#3DC574;
+  --pra-muted:#6B6B72; --pra-line:#E8E8EA; --pra-soft:#F6F6F7;
+  --pra-gold:#b58a3a; --pra-fx:#6b6b72;
+  --pra-font-sans:'Onest',system-ui,-apple-system,sans-serif;
+  --pra-font-mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --pra-r-card:22px; --pra-r-pill:999px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--pra-font-sans);color:var(--pra-ink);background:var(--pra-bg);-webkit-font-smoothing:antialiased;line-height:1.5}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+.t-eyebrow{font-family:var(--pra-font-mono);font-weight:500;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--pra-muted)}
+.t-h2{font-weight:700;font-size:clamp(28px,3.6vw,44px);line-height:1.1;letter-spacing:-.015em}
+.t-lead{font-size:18px;line-height:1.5;color:var(--pra-muted)}
+.accent{color:var(--pra-red)}
+
+.s-timeline{padding:96px 0;background:var(--pra-bg)}
+
+.sx-head{display:grid;grid-template-columns:1.3fr 1fr;gap:48px;align-items:end;margin-bottom:48px}
+.sx-head h2{max-width:580px}
+.sx-head h2 + .t-lead{margin-top:14px}
+.sx-head .lead{padding-bottom:4px;max-width:460px}
+@media(max-width:800px){.sx-head{grid-template-columns:1fr;gap:16px;margin-bottom:32px}}
+
+.timeline-card{background:var(--pra-bg);border:1px solid var(--pra-line);border-radius:var(--pra-r-card);padding:32px 32px 28px;position:relative}
+
+.state{padding:60px 28px;text-align:center;color:var(--pra-muted);font-size:14px}
+.state[hidden]{display:none!important}
+.state.loading{display:flex;align-items:center;justify-content:center;gap:12px;font-family:var(--pra-font-mono);letter-spacing:.08em;font-size:11px;text-transform:uppercase}
+.state.loading::after{content:'';width:14px;height:14px;border:1.5px solid var(--pra-line);border-top-color:var(--pra-ink);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.state.error{color:var(--pra-ink);text-align:left;max-width:580px;margin:0 auto}
+.state.error strong{font-weight:600;display:block;margin-bottom:10px;font-size:16px;letter-spacing:-.01em}
+.state.error p{color:var(--pra-muted);font-size:14px;line-height:1.55}
+.state.error code{font-family:var(--pra-font-mono);font-size:12px;background:var(--pra-soft);padding:2px 6px;border-radius:4px}
+
+.timeline-legend{display:none}
+
+/* Track layout */
+.timeline-track{
+  position:relative;
+  padding:0 8px;
+}
+.year-axis{
+  position:relative;
+  height:32px;
+  margin-bottom:0;
+}
+.year-label{
+  position:absolute;
+  top:0;
+  transform:translateX(-50%);
+  font-family:var(--pra-font-mono);
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.06em;
+  color:var(--pra-ink);
+}
+.year-label.first{transform:translateX(0)}
+.year-label.last{transform:translateX(-100%)}
+.year-tick{
+  position:absolute;
+  top:20px;
+  width:1px;
+  height:10px;
+  background:var(--pra-line);
+}
+.axis-row{
+  position:relative;
+  height:32px;
+}
+.axis-row::before{
+  content:'';
+  position:absolute;
+  top:50%;
+  left:0;right:0;
+  height:1px;
+  background:var(--pra-line);
+  transform:translateY(-50%);
+}
+.algo-dot{
+  position:absolute;
+  top:50%;
+  background:var(--pra-ink);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  cursor:pointer;
+  transition:transform .15s, box-shadow .15s;
+  z-index:1;
+}
+.algo-dot.old{opacity:.32}
+.algo-dot:hover{
+  transform:translate(-50%,-50%) scale(1.35);
+  box-shadow:0 0 0 5px rgba(14,14,16,.06);
+  opacity:1;
+  z-index:10;
+}
+
+/* Stats */
+.timeline-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:36px;border:1px solid var(--pra-line);border-radius:var(--pra-r-card);overflow:hidden;background:var(--pra-bg)}
+.timeline-stats[hidden]{display:none!important}
+.timeline-stat{padding:22px 20px;border-right:1px solid var(--pra-line)}
+.timeline-stat:last-child{border-right:0}
+.timeline-stat .v{font-family:var(--pra-font-mono);font-size:28px;font-weight:600;letter-spacing:-.015em;line-height:1}
+.timeline-stat .v small{font-size:13px;color:var(--pra-muted);margin-left:6px;letter-spacing:0;font-weight:500}
+.timeline-stat .l{font-family:var(--pra-font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--pra-muted);margin-top:8px}
+
+/* Tooltip */
+.tt{position:fixed;background:var(--pra-ink);color:#fff;padding:12px 14px;border-radius:10px;pointer-events:none;opacity:0;z-index:100;transform:translateX(-50%) translateY(-10px);transition:opacity .15s;font-family:var(--pra-font-mono);font-size:11px;letter-spacing:.02em;box-shadow:0 6px 20px rgba(14,14,16,.18);max-width:280px}
+.tt.on{opacity:1}
+.tt-head{font-family:var(--pra-font-sans);font-weight:600;font-size:13px;letter-spacing:-.005em;display:block;margin-bottom:2px}
+.tt-sub{display:block;color:rgba(255,255,255,.55);font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.tt-section-title{font-family:var(--pra-font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.45);margin-bottom:6px}
+.tt-section + .tt-section{margin-top:10px}
+.tt-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.tt-list li{font-family:var(--pra-font-sans);font-size:12px;letter-spacing:-.005em;color:#fff;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt-list li.old{color:rgba(255,255,255,.5);text-decoration:line-through;text-decoration-thickness:1px;text-decoration-color:rgba(255,255,255,.35)}
+
+@media(max-width:800px){
+  .timeline-stats{grid-template-columns:repeat(2,1fr)}
+  .timeline-stat:nth-child(2){border-right:0}
+  .timeline-stat:nth-child(1),.timeline-stat:nth-child(2){border-bottom:1px solid var(--pra-line)}
+}
+@media(max-width:510px){
+  .s-timeline{padding:64px 0}
+  .container{padding:0 20px}
+  .timeline-card{padding:24px 20px 22px}
+  .year-label{font-size:9.5px}
+  .algo-dot{width:8px;height:8px}
+}
+</style>
+</head>
+<body>
+
+<section class="s-timeline">
+  <div class="container">
+
+    <div class="sx-head">
+      <div>
+        <span class="t-eyebrow">History</span>
+        <h2 class="t-h2"><span id="liveCount">—</span> algos live. <span class="accent">Seven years.</span> Built deliberately.</h2>
+      </div>
+      <p class="t-lead lead">Every algorithm we have ever shipped, plotted by release month. We aim to have around 20 algos active at all time.</p>
+    </div>
+
+    <div class="timeline-card">
+      <div class="state loading" id="loading">Loading from Google Sheets</div>
+
+      <div class="state error" id="error" hidden>
+        <strong>Could not load the timeline data.</strong>
+        <p id="errorDetail" style="margin-bottom:10px;font-family:var(--pra-font-mono);font-size:11px;color:var(--pra-red)"></p>
+        <p>Open the browser console for full details.</p>
+      </div>
+
+      <div id="content" hidden>
+        <div class="timeline-track">
+          <div class="year-axis" id="yearAxis"></div>
+          <div class="axis-row" id="dotArea"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-stats" id="stats" hidden>
+      <div class="timeline-stat">
+        <div class="v" id="statActive">—</div>
+        <div class="l">Currently live</div>
+      </div>
+      <div class="timeline-stat">
+        <div class="v" id="statTotal">—</div>
+        <div class="l">Total ever built</div>
+      </div>
+      <div class="timeline-stat">
+        <div class="v" id="statBiggest">—</div>
+        <div class="l">Biggest release year</div>
+      </div>
+      <div class="timeline-stat">
+        <div class="v" id="statDiscontinued">—</div>
+        <div class="l">Discontinued</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="tt" id="tooltip"></div>
+
+<script>
+(function(){
+  const SHEET_ID='1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+  const GID='1444969085';
+  const SHEET_URL='https://docs.google.com/spreadsheets/d/'+SHEET_ID+'/gviz/tq?tqx=out:csv&gid='+GID;
+  const CORS_PROXIES=[
+    url=>'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url='+encodeURIComponent(url),
+    url=>'https://corsproxy.io/?'+encodeURIComponent(url)
+  ];
+
+  const ALGO_START_COL=11;
+  const START_YEAR=2019;
+  const START_MONTH=4; // May
+  const EARLY_DATA_THRESHOLD=2;
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  // Only these 13 are shown as discontinued. Every other "old " column
+  // in the sheet is filtered out. Match is case-insensitive on the name
+  // with any leading "old " stripped.
+  const DISCONTINUED_NAMES=new Set([
+    'cuts dax m10',
+    'cuts dax m15',
+    'cuts mib m5',
+    'cuts us100 h1',
+    'plus nikkei m5',
+    'cuts sp500 h1',
+    'prime dax m2c',
+    'prime gold m30',
+    'patf us100 m15',
+    'cuts us100 m3b',
+    'prime us100 m10',
+    'cuts us100 m1b',
+    'cuts cac m5'
+  ]);
+
+  function normalizeName(name){
+    return name.toLowerCase().trim().replace(/^old\s+/,'');
+  }
+
+  function parseCSV(text){
+    const rows=[];let row=[],field='',inQ=false,i=0;
+    while(i<text.length){
+      const c=text[i],n=text[i+1];
+      if(inQ){
+        if(c==='"'&&n==='"'){field+='"';i+=2}
+        else if(c==='"'){inQ=false;i++}
+        else{field+=c;i++}
+      }else{
+        if(c==='"'){inQ=true;i++}
+        else if(c===','){row.push(field);field='';i++}
+        else if(c==='\n'||c==='\r'){
+          if(c==='\r'&&n==='\n')i++;
+          row.push(field);rows.push(row);row=[];field='';i++;
+        }else{field+=c;i++}
+      }
+    }
+    if(field!==''||row.length>0){row.push(field);rows.push(row)}
+    return rows;
+  }
+
+  function idxToYear(idx){return START_YEAR+Math.floor((START_MONTH+idx)/12)}
+  function idxToMonth(idx){return (START_MONTH+idx)%12}
+  function formatIdx(idx){return MONTHS[idxToMonth(idx)]+' '+idxToYear(idx)}
+  function janOfYearToIdx(year){return (year-START_YEAR)*12-START_MONTH}
+
+  function processData(rows){
+    const header=rows[0];
+    // Stop at first blank in column A (main monthly block only)
+    const dataRows=[];
+    for(let i=1;i<rows.length;i++){
+      const r=rows[i];
+      if(!r[0]||r[0].trim()==='')break;
+      dataRows.push(r);
+    }
+
+    // Walk all algo columns, dedupe by normalized name. Skip "old "
+    // columns that aren't in the explicit discontinued whitelist.
+    const byNorm=new Map();
+    for(let col=ALGO_START_COL;col<header.length;col++){
+      const rawName=(header[col]||'').trim();
+      if(!rawName)continue;
+      const normName=normalizeName(rawName);
+      const hasOldPrefix=/^old\s/i.test(rawName);
+      const inList=DISCONTINUED_NAMES.has(normName);
+
+      // Filter out any "old" column not on the keep list
+      if(hasOldPrefix&&!inList)continue;
+
+      let firstIdx=-1,lastIdx=-1;
+      for(let r=0;r<dataRows.length;r++){
+        const cell=(dataRows[r][col]||'').trim();
+        if(cell!==''){
+          if(firstIdx===-1)firstIdx=r;
+          lastIdx=r;
+        }
+      }
+      if(firstIdx===-1)continue;
+      const releaseIdx=firstIdx<EARLY_DATA_THRESHOLD?0:firstIdx;
+
+      // Display name without any "old " prefix
+      const displayName=hasOldPrefix?rawName.replace(/^old\s+/i,''):rawName;
+
+      if(byNorm.has(normName)){
+        // Two columns for the same algo: take earliest release and latest data
+        const ex=byNorm.get(normName);
+        if(releaseIdx<ex.releaseIdx)ex.releaseIdx=releaseIdx;
+        if(lastIdx>ex.lastIdx)ex.lastIdx=lastIdx;
+        if(!hasOldPrefix)ex.name=displayName; // prefer the un-prefixed version
+      }else{
+        byNorm.set(normName,{
+          name:displayName,
+          isOld:inList,
+          releaseIdx:releaseIdx,
+          lastIdx:lastIdx
+        });
+      }
+    }
+
+    const algos=Array.from(byNorm.values()).map(a=>({
+      name:a.name,
+      isOld:a.isOld,
+      releaseIdx:a.releaseIdx,
+      endIdx:a.isOld?a.lastIdx:null
+    }));
+
+    return {algos:algos,totalMonths:dataRows.length};
+  }
+
+  function dotSize(count){
+    // 1 algo: 8px, scales gently with count, caps around 22
+    return Math.min(8+Math.sqrt(count-1)*4.5,22);
+  }
+
+  // Three buckets: solo months grey, multi green, monster batches red
+  function dotColor(count){
+    if(count<=1)return '#0E0E10';  // dark grey (brand ink)
+    if(count<=7)return '#3DC574';  // brand green
+    return '#EC3B3D';              // brand red
+  }
+
+  function render(data){
+    const algos=data.algos;
+    const total=data.totalMonths;
+
+    // Group algos by release month
+    const groups=new Map(); // releaseIdx -> [algos]
+    algos.forEach(a=>{
+      if(!groups.has(a.releaseIdx))groups.set(a.releaseIdx,[]);
+      groups.get(a.releaseIdx).push(a);
+    });
+    // Sort each group: live first, then by name
+    groups.forEach(g=>{
+      g.sort((a,b)=>{
+        if(a.isOld!==b.isOld)return a.isOld?1:-1;
+        return a.name.localeCompare(b.name);
+      });
+    });
+
+    // Year markers
+    const yearsEl=document.getElementById('yearAxis');
+    const lastYear=idxToYear(total-1);
+    for(let y=START_YEAR;y<=lastYear;y++){
+      const monthsIn=(y===START_YEAR)?0:janOfYearToIdx(y);
+      const pct=monthsIn/total*100;
+      if(pct<0||pct>100)continue;
+      const m=document.createElement('span');
+      m.className='year-label'+(y===START_YEAR?' first':(y===lastYear?' last':''));
+      m.style.left=pct+'%';
+      m.textContent=y;
+      yearsEl.appendChild(m);
+      const t=document.createElement('span');
+      t.className='year-tick';
+      t.style.left=pct+'%';
+      yearsEl.appendChild(t);
+    }
+
+    // One dot per month
+    const dotArea=document.getElementById('dotArea');
+    const sortedKeys=Array.from(groups.keys()).sort((a,b)=>a-b);
+    sortedKeys.forEach(releaseIdx=>{
+      const group=groups.get(releaseIdx);
+      const count=group.length;
+      const allOld=group.every(a=>a.isOld);
+      const size=dotSize(count);
+
+      const dot=document.createElement('div');
+      dot.className='algo-dot'+(allOld?' old':'');
+      dot.style.width=size+'px';
+      dot.style.height=size+'px';
+      dot.style.background=dotColor(count);
+      dot.style.left=(releaseIdx/total*100)+'%';
+      dot.addEventListener('mouseenter',e=>showTooltip(e,group,releaseIdx));
+      dot.addEventListener('mousemove',moveTooltip);
+      dot.addEventListener('mouseleave',hideTooltip);
+      dotArea.appendChild(dot);
+    });
+
+    // Stats
+    const active=algos.filter(a=>!a.isOld);
+    const discontinued=algos.filter(a=>a.isOld);
+    const releaseYears={};
+    algos.forEach(a=>{
+      const y=idxToYear(a.releaseIdx);
+      releaseYears[y]=(releaseYears[y]||0)+1;
+    });
+    let biggest={year:'—',count:0};
+    for(const k in releaseYears){
+      if(releaseYears[k]>biggest.count)biggest={year:k,count:releaseYears[k]};
+    }
+
+    document.getElementById('statActive').textContent=active.length;
+    document.getElementById('statTotal').textContent=algos.length;
+    document.getElementById('statBiggest').innerHTML=biggest.year+'<small>'+biggest.count+' algos</small>';
+    document.getElementById('statDiscontinued').textContent=discontinued.length;
+    document.getElementById('liveCount').textContent=active.length;
+
+    document.getElementById('loading').hidden=true;
+    document.getElementById('content').hidden=false;
+    document.getElementById('stats').hidden=false;
+  }
+
+  function renderAlgoList(items,oldClass){
+    return items.map(a=>{
+      const cls=(oldClass||a.isOld)?' class="old"':'';
+      return '<li'+cls+'>'+escapeHTML(a.name)+'</li>';
+    }).join('');
+  }
+
+  const tooltipEl=document.getElementById('tooltip');
+  function showTooltip(e,group,releaseIdx){
+    const live=group.filter(a=>!a.isOld);
+    const old=group.filter(a=>a.isOld);
+    const count=group.length;
+    const monthStr=formatIdx(releaseIdx);
+
+    let head,sub;
+    if(live.length===count){
+      head='Released '+monthStr;
+      sub=count+' algo'+(count!==1?'s':'');
+    }else if(old.length===count){
+      head='Discontinued';
+      sub='Released '+monthStr;
+    }else{
+      head='Released '+monthStr;
+      sub=live.length+' live · '+old.length+' discontinued';
+    }
+
+    let body='';
+    if(live.length>0&&old.length>0){
+      body+='<div class="tt-section"><div class="tt-section-title">Live</div><ul class="tt-list">'+renderAlgoList(live,false)+'</ul></div>';
+      body+='<div class="tt-section"><div class="tt-section-title">Discontinued</div><ul class="tt-list">'+renderAlgoList(old,true)+'</ul></div>';
+    }else{
+      body+='<ul class="tt-list">'+renderAlgoList(group)+'</ul>';
+    }
+
+    tooltipEl.innerHTML=
+      '<span class="tt-head">'+head+'</span>'+
+      '<span class="tt-sub">'+sub+'</span>'+
+      body;
+    tooltipEl.classList.add('on');
+    moveTooltip(e);
+  }
+  function escapeHTML(s){
+    return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function moveTooltip(e){
+    const pad=10;
+    const rect=tooltipEl.getBoundingClientRect();
+    let x=e.clientX;
+    let y=e.clientY-rect.height-14;
+    if(y<pad)y=e.clientY+18; // flip below if no room above
+    const halfW=rect.width/2;
+    if(x-halfW<pad)x=halfW+pad;
+    if(x+halfW>window.innerWidth-pad)x=window.innerWidth-halfW-pad;
+    tooltipEl.style.left=x+'px';
+    tooltipEl.style.top=y+'px';
+    tooltipEl.style.transform='translateX(-50%)';
+  }
+  function hideTooltip(){tooltipEl.classList.remove('on')}
+
+  async function fetchSheetCsv(){
+    const attempts=CORS_PROXIES.map(p=>
+      fetch(p(SHEET_URL)).then(r=>r.ok?r.text():Promise.reject(new Error('HTTP '+r.status)))
+    );
+    return Promise.any(attempts);
+  }
+
+  function showError(msg){
+    console.error('[timeline]',msg);
+    document.getElementById('loading').hidden=true;
+    document.getElementById('error').hidden=false;
+    const d=document.getElementById('errorDetail');
+    if(d)d.textContent=msg;
+  }
+
+  async function load(){
+    let text;
+    try{
+      text=await fetchSheetCsv();
+    }catch(err){
+      const reasons=(err&&err.errors)?err.errors.map(e=>e.message||String(e)).join(' | '):'';
+      showError('All proxies failed. '+(reasons||(err.message||String(err))));
+      return;
+    }
+    console.log('[timeline] response length:',text.length);
+    if(text.length<100){showError('Response too short.');return}
+    if(/^\s*<!doctype|<html/i.test(text.trim())){showError('Got HTML instead of CSV.');return}
+
+    let rows;
+    try{rows=parseCSV(text)}catch(err){showError('CSV parse failed: '+err.message);return}
+    console.log('[timeline] parsed rows:',rows.length,'cols in row 0:',rows[0]?rows[0].length:0);
+    if(rows.length<5){showError('Only '+rows.length+' rows.');return}
+    if(!rows[0]||rows[0].length<ALGO_START_COL+1){showError('Header row too short.');return}
+
+    const data=processData(rows);
+    console.log('[timeline] algos found:',data.algos.length,'months:',data.totalMonths);
+    if(data.algos.length===0){showError('No algos detected.');return}
+    render(data);
+  }
+  load();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Algos page hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { overflow: hidden; }
+/* ============================================================
+   Brand tokens — ProRealAlgos design system
+   ============================================================ */
+:root {
+  --pra-bg:        #FFFFFF;
+  --pra-ink:       #0E0E10;
+  --pra-red:       #EC3B3D;
+  --pra-green:     #3DC574;
+  --pra-muted:     #6B6B72;
+  --pra-line:      #E8E8EA;
+  --pra-soft:      #F6F6F7;
+
+  --pra-font-sans: 'Onest', system-ui, -apple-system, sans-serif;
+  --pra-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --pra-r-card:    22px;
+  --pra-r-pill:    999px;
+  --pra-r-input:   12px;
+
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  24px;
+  --s-6:  32px;
+  --s-7:  48px;
+  --s-8:  64px;
+  --s-9:  96px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: var(--pra-font-sans);
+  color: var(--pra-ink);
+  background: var(--pra-bg);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--s-5);
+}
+
+/* ============================================================
+   Buttons (system)
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  padding: 14px 24px;
+  font-family: var(--pra-font-sans);
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: var(--pra-r-pill);
+  border: 0;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--pra-ink);
+  color: #fff;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(14, 14, 16, 0.18);
+}
+.btn-secondary {
+  background: transparent;
+  color: var(--pra-ink);
+  border: 1px solid var(--pra-line);
+}
+.btn-secondary:hover {
+  background: var(--pra-soft);
+}
+
+/* ============================================================
+   Diptych hero
+   ============================================================ */
+.hero-diptych {
+  padding: 96px 0;
+  background: var(--pra-bg);
+}
+
+.hero-diptych .head {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto var(--s-8);
+}
+
+.hero-diptych .eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--pra-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pra-muted);
+  margin-bottom: var(--s-3);
+}
+.hero-diptych .eyebrow::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--pra-red);
+}
+
+.hero-diptych .headline {
+  font-family: var(--pra-font-sans);
+  font-weight: 700;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: var(--s-4);
+}
+
+.hero-diptych .lede {
+  font-family: var(--pra-font-sans);
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--pra-muted);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Split card */
+.hero-diptych .split {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  background: var(--pra-bg);
+  border: 1px solid var(--pra-line);
+  border-radius: var(--pra-r-card);
+  overflow: hidden;
+}
+.hero-diptych .split .divider {
+  background: var(--pra-line);
+}
+
+.hero-diptych .col {
+  padding: 36px 32px;
+  display: flex; flex-direction: column;
+  gap: var(--s-4);
+}
+
+.hero-diptych .col-isnt { background: var(--pra-soft); }
+.hero-diptych .col-is   { background: var(--pra-bg); }
+
+.hero-diptych .col-label {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  font-family: var(--pra-font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding-bottom: var(--s-3);
+  border-bottom: 1px solid var(--pra-line);
+  margin-bottom: var(--s-2);
+}
+.hero-diptych .col-isnt .col-label { color: var(--pra-red); }
+.hero-diptych .col-isnt .col-label::before {
+  content: "×";
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+}
+.hero-diptych .col-is .col-label { color: var(--pra-green); }
+.hero-diptych .col-is .col-label::before {
+  content: "";
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--pra-green);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.hero-diptych .col-title {
+  font-family: var(--pra-font-sans);
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.018em;
+  line-height: 1.1;
+  margin-bottom: var(--s-2);
+}
+.hero-diptych .col-isnt .col-title {
+  color: var(--pra-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: var(--pra-red);
+}
+.hero-diptych .col-is .col-title {
+  color: var(--pra-ink);
+}
+
+.hero-diptych .col-list {
+  display: flex; flex-direction: column;
+  gap: 10px;
+  margin-top: var(--s-2);
+}
+.hero-diptych .col-list .item {
+  font-family: var(--pra-font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  display: flex; gap: 10px;
+  align-items: baseline;
+  padding: var(--s-1) 0;
+}
+.hero-diptych .col-list .item .sym {
+  font-family: var(--pra-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-top: 1px;
+  min-width: 16px;
+}
+.hero-diptych .col-isnt .col-list .item { color: var(--pra-muted); }
+.hero-diptych .col-isnt .col-list .item .sym { color: var(--pra-red); }
+.hero-diptych .col-is .col-list .item { color: var(--pra-ink); }
+.hero-diptych .col-is .col-list .item .sym { color: var(--pra-green); }
+
+.hero-diptych .cta-row {
+  display: flex; gap: var(--s-3);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--s-7);
+}
+
+/* ============================================================
+   Responsive — 510px Wix breakpoint
+   ============================================================ */
+@media (max-width: 700px) {
+  .hero-diptych .split { grid-template-columns: 1fr; }
+  .hero-diptych .split .divider { display: none; }
+  .hero-diptych .col-is { border-top: 1px solid var(--pra-line); }
+}
+
+@media (max-width: 510px) {
+  .hero-diptych { padding: 64px 0; }
+  .hero-diptych .col { padding: var(--s-5) 22px; }
+  .hero-diptych .head { margin-bottom: var(--s-7); }
+  .hero-diptych .col-title { font-size: 24px; }
+  .hero-diptych .lede { font-size: 16px; }
+  .container { padding: 0 20px; }
+}
+</style>
+</head>
+<body>
+
+<section class="hero-diptych">
+  <div class="container">
+
+    <div class="head">
+      <span class="eyebrow">Setting expectations</span>
+      <h1 class="headline">Before you scroll the catalog, here's what you're looking at.</h1>
+      <p class="lede">Most algo services overpromise the upside and hide the downside. This one does the opposite. Read what this is, and what it isn't.</p>
+    </div>
+
+    <div class="split">
+
+      <div class="col col-isnt">
+        <span class="col-label">What this isn't</span>
+        <h2 class="col-title">A magic money machine.</h2>
+        <div class="col-list">
+          <div class="item"><span class="sym">01</span> 1,000 indicators for €19 a month</div>
+          <div class="item"><span class="sym">02</span> Secret signals "the banks don't want you to see"</div>
+          <div class="item"><span class="sym">03</span> A guru's course about trading the course</div>
+          <div class="item"><span class="sym">04</span> Backtests selected to look pretty</div>
+          <div class="item"><span class="sym">05</span> Promised returns "or your money back"</div>
+          <div class="item"><span class="sym">06</span> Anything you can run on a phone in 5 minutes</div>
+          <div class="item"><span class="sym">07</span> Risk-free trading</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="col col-is">
+        <span class="col-label">What it is</span>
+        <h2 class="col-title">20 systems we actually trade.</h2>
+        <div class="col-list">
+          <div class="item"><span class="sym">01</span> 20 ProRealTime systems, live since 2019</div>
+          <div class="item"><span class="sym">02</span> Receipts you can read and audit, trade by trade</div>
+          <div class="item"><span class="sym">03</span> The same broker setup we use ourselves</div>
+          <div class="item"><span class="sym">04</span> Every losing trade, every drawdown, published</div>
+          <div class="item"><span class="sym">05</span> Real capital. Real losing months. Real gains.</div>
+          <div class="item"><span class="sym">06</span> Proper onboarding and a calm hour to set up</div>
+          <div class="item"><span class="sym">07</span> Yours to trade, ours to keep improving</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+</body>
+</html>
