@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Algos page hero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- Founder signature face (used only for the signature SVG, same as resultshero.html) -->
+<link rel="stylesheet" href="https://fonts.cdnfonts.com/css/pauline-signature">
+<style>
+  html, body { overflow: hidden; }
+/* ============================================================
+   BRAND TOKENS — ProRealAlgos design system
+   ============================================================ */
+:root {
+  --pra-bg:        #FFFFFF;
+  --pra-ink:       #0E0E10;
+  --pra-red:       #EC3B3D;
+  --pra-green:     #3DC574;
+  --pra-muted:     #6B6B72;
+  --pra-line:      #E8E8EA;
+  --pra-soft:      #F6F6F7;
+  --pra-font-sans: 'Onest', system-ui, -apple-system, sans-serif;
+  --pra-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --pra-r-card:    22px;
+  --pra-r-pill:    999px;
+  --pra-r-input:   12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  margin: 0;
+  font-family: var(--pra-font-sans);
+  color: var(--pra-ink);
+  background: var(--pra-bg);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+/* type */
+.t-display { font-weight: 700; font-size: clamp(40px, 6vw, 72px); line-height: 1.05; letter-spacing: -0.02em; }
+.t-lead    { font-size: 18px; line-height: 1.5; color: var(--pra-muted); }
+.accent { color: var(--pra-red); }
+
+/* buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 24px;
+  font-size: 16px; font-weight: 600;
+  border-radius: var(--pra-r-pill);
+  border: 0;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+.btn-primary { background: var(--pra-ink); color: #fff; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,14,16,0.18); }
+.btn-secondary { background: transparent; color: var(--pra-ink); border: 1px solid var(--pra-line); }
+.btn-secondary:hover { background: var(--pra-soft); }
+
+/* ============================================================
+   HERO — section 01 layout, enriched with newspaper 07 content
+   ============================================================ */
+.s-hero { padding: 96px 0 88px; background: var(--pra-bg); }
+
+.hero-grid {
+  display: grid; grid-template-columns: 1.3fr 1fr;
+  gap: 64px; align-items: stretch;
+}
+
+/* kicker (from newspaper 07) */
+.hero-kicker {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--pra-font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--pra-muted);
+  margin-bottom: 18px;
+}
+.hero-kicker::before { content: ""; width: 24px; height: 1px; background: var(--pra-red); }
+
+.hero-copy h1 { margin-top: 0; }
+.hero-copy h1 .accent { display: inline; }
+.hero-copy .t-lead { margin-top: 22px; max-width: 540px; }
+
+/* founder signature (from resultshero.html) */
+.hero-sign {
+  margin-top: 14px;
+  display: flex; align-items: center;
+  gap: 16px; flex-wrap: wrap;
+}
+.hero-sign .sign-svg {
+  display: block;
+  width: 180px; max-width: 100%;
+  height: auto;
+  overflow: visible;
+  flex-shrink: 0;
+  transform: translateY(-4px);
+}
+.hero-sign .sign-role {
+  font-family: var(--pra-font-mono); font-size: 11px;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--pra-muted); font-weight: 600;
+}
+
+.hero-copy .cta-row { margin-top: 20px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* 1x6 stat strip — full width, below the hero grid */
+.hero-stats {
+  display: grid; grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--pra-line);
+  border: 1px solid var(--pra-line);
+  border-radius: var(--pra-r-card);
+  overflow: hidden;
+  margin-top: 48px;
+}
+.hero-stat {
+  background: var(--pra-bg);
+  padding: 22px 18px;
+}
+.hero-stat .v {
+  font-family: var(--pra-font-mono);
+  font-size: 34px; font-weight: 600; letter-spacing: -0.02em;
+  color: var(--pra-ink); line-height: 1;
+}
+.hero-stat .v .accent { color: var(--pra-red); }
+.hero-stat .v.up { color: var(--pra-green); }
+.hero-stat .v.down { color: var(--pra-red); }
+.hero-stat .l {
+  font-family: var(--pra-font-mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--pra-muted);
+  margin-top: 8px;
+}
+
+/* ============================================================
+   LIVE ACTIVITY FEED — right column, iframes the Azure page
+   ============================================================ */
+@keyframes pulse {
+  0%   { transform: scale(1); opacity: 0.4; }
+  70%  { transform: scale(2.4); opacity: 0; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.live-dot {
+  display: inline-block; width: 7px; height: 7px;
+  border-radius: 50%; background: var(--pra-green);
+  position: relative; flex-shrink: 0;
+}
+.live-dot::after {
+  content: ""; position: absolute; inset: -3px;
+  border-radius: 50%; background: var(--pra-green);
+  animation: pulse 2s ease-out infinite;
+}
+.hero-feed {
+  background: var(--pra-soft);
+  border-radius: var(--pra-r-card);
+  padding: 22px;
+  display: flex; flex-direction: column; gap: 12px;
+  position: relative;
+  min-height: 380px;
+}
+.hero-feed .feed-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 2px 6px 12px;
+  border-bottom: 1px solid var(--pra-line);
+  font-family: var(--pra-font-mono); font-size: 11px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--pra-muted); font-weight: 500;
+}
+.hero-feed .live-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; background: var(--pra-bg);
+  border-radius: var(--pra-r-pill);
+  color: var(--pra-ink); font-size: 10px;
+}
+.hero-feed .feed-frame {
+  flex: 1; min-height: 0;
+  width: 100%; border: 0; display: block;
+  background: transparent;
+}
+.hero-feed::before {
+  content: "";
+  position: absolute;
+  top: 56px; left: 22px; right: 22px;
+  height: 34px;
+  background: linear-gradient(180deg, var(--pra-soft) 0%, transparent 100%);
+  pointer-events: none; z-index: 2;
+}
+.hero-feed .feed-foot {
+  align-self: center;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding-top: 2px;
+  font-family: var(--pra-font-mono); font-size: 10.5px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--pra-muted);
+}
+
+/* ============================================================
+   GET-FULL-CATALOG POPOVER — anchored to the CTA, no backdrop.
+   Ported from resultscohort.html; submission posts to the parent
+   Wix page (Velo) via window.postMessage.
+   ============================================================ */
+.cta-popover {
+  position: fixed;
+  z-index: 9999;
+  width: 430px;
+  max-width: calc(100vw - 24px);
+  background: #FFFFFF;
+  border: 1px solid #D8D8DB;
+  border-radius: 14px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 16px 40px rgba(8, 8, 14, 0.16), 0 2px 8px rgba(8, 8, 14, 0.06);
+  display: flex; flex-direction: column; gap: 12px;
+  text-align: left;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0.24s;
+}
+.cta-popover.is-open {
+  opacity: 1; visibility: visible; pointer-events: auto;
+  transform: translateY(0);
+  transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 0s;
+}
+.cta-popover-close {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 8px;
+  color: var(--pra-muted); cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.cta-popover-close:hover { background: var(--pra-soft); color: var(--pra-ink); }
+.cta-popover-close svg { width: 14px; height: 14px; }
+.cta-popover-title {
+  font-family: var(--pra-font-sans);
+  font-size: 18px; font-weight: 700;
+  letter-spacing: -0.015em; line-height: 1.2;
+  color: var(--pra-ink);
+  margin: 0; padding-right: 28px;
+  white-space: nowrap;
+}
+.cta-popover-alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  background: #FDECEC; border: 1px solid #F9D3D4;
+  border-radius: 10px;
+}
+.cta-popover-alert-icon {
+  flex-shrink: 0; width: 18px; height: 18px;
+  color: var(--pra-red); margin-top: 1px;
+}
+.cta-popover-alert-text {
+  font-family: var(--pra-font-sans);
+  font-size: 13px; line-height: 1.4; color: var(--pra-ink);
+}
+.cta-popover-alert-text strong { display: block; font-weight: 700; margin-bottom: 2px; }
+.cta-popover-alert-text span { display: block; color: #1F1F22; font-weight: 400; white-space: nowrap; }
+.cta-popover-form {
+  display: flex; flex-direction: column; gap: 8px;
+  width: 100%; margin-top: 2px;
+}
+.cta-popover-email {
+  width: 100%; height: 44px; padding: 0 14px;
+  background: #FFFFFF; border: 1px solid #D8D8DB; border-radius: 10px;
+  font-family: var(--pra-font-sans); font-size: 14px; color: var(--pra-ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.cta-popover-email::placeholder { color: #9B9BA0; }
+.cta-popover-email:focus { border-color: var(--pra-ink); box-shadow: 0 0 0 3px rgba(14, 14, 16, 0.06); }
+.cta-popover-email.is-invalid { border-color: var(--pra-red); box-shadow: 0 0 0 3px rgba(236, 59, 61, 0.10); }
+.cta-popover-submit {
+  width: 100%; height: 44px; padding: 0 16px;
+  background: var(--pra-ink); color: #FFFFFF;
+  border: none; border-radius: 10px;
+  font-family: var(--pra-font-sans); font-size: 14px; font-weight: 700;
+  letter-spacing: -0.005em; cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.08s ease;
+}
+.cta-popover-submit:hover { background: var(--pra-red); }
+.cta-popover-submit:active { transform: translateY(1px); }
+.cta-popover-submit:disabled { opacity: 0.55; cursor: not-allowed; }
+.cta-popover-submit:disabled:hover { background: var(--pra-ink); }
+.cta-popover-status {
+  font-family: var(--pra-font-sans);
+  font-size: 12.5px; font-weight: 500; line-height: 1.4;
+  opacity: 0; max-height: 0; overflow: hidden;
+  transition: opacity 0.2s ease, max-height 0.2s ease;
+}
+.cta-popover-status.is-visible { opacity: 1; max-height: 60px; }
+.cta-popover-status.is-success { color: #1a8a4a; }
+.cta-popover-status.is-error { color: var(--pra-red); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+  .hero-stats { grid-template-columns: repeat(3, 1fr); margin-top: 36px; }
+}
+@media (max-width: 510px) {
+  .s-hero { padding: 64px 0; }
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .hero-stat { padding: 18px 16px; }
+  .hero-stat .v { font-size: 27px; }
+  /* keep the alert sub-line on one row on narrow iframes too */
+  .cta-popover-alert-text span { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<section class="s-hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <span class="hero-kicker">The algo catalog</span>
+        <h1 class="t-display"><span id="headline-count">21</span> algorithms on <span class="accent"><span id="headline-markets">6</span> different markets.</span></h1>
+        <p class="t-lead">Every one traded live with real capital since 2019, on the same broker you already use. No paper trading, no backtests dressed up as results.</p>
+
+        <div class="hero-sign">
+          <svg class="sign-svg" viewBox="0 0 272 84" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Carl C.G. Eriksson signature">
+            <defs>
+              <filter id="ink-flow" x="-5%" y="-5%" width="110%" height="110%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="2" seed="11" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.6"/>
+              </filter>
+            </defs>
+            <text x="6" y="58" text-anchor="start" font-family="'Pauline Signature', cursive" font-size="54" fill="#0E0E10" filter="url(#ink-flow)">Carl C.G. Eriksson</text>
+          </svg>
+          <div class="sign-role">Founder · Stockholm</div>
+        </div>
+
+        <div class="cta-row">
+          <a href="/pricing" class="btn btn-primary" id="catalog-cta">Get full catalog access</a>
+          <a href="#catalog" class="btn btn-secondary" id="browse-cta"><span>Browse all <span id="cta-count">21</span> algos</span></a>
+        </div>
+      </div>
+
+      <div class="hero-feed">
+        <div class="feed-head">
+          <span>Algo activity</span>
+          <span class="live-pill"><span class="live-dot"></span> LIVE</span>
+        </div>
+        <iframe class="feed-frame"
+                src="https://prorealalgos.azurewebsites.net/liveactivity10?count=15"
+                title="Live activity feed" loading="lazy"></iframe>
+        <div class="feed-foot"><span class="live-dot"></span> Updates automatically · live from IG</div>
+      </div>
+    </div>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="v"><span class="accent" id="stat-algos">21</span></div>
+        <div class="l">Algorithms</div>
+      </div>
+      <div class="hero-stat">
+        <div class="v" id="stat-markets">6</div>
+        <div class="l">Markets covered</div>
+      </div>
+      <div class="hero-stat">
+        <div class="v">2019</div>
+        <div class="l">Live since</div>
+      </div>
+      <div class="hero-stat">
+        <div class="v up" id="stat-aggregate">+1,507%</div>
+        <div class="l"><span id="stat-years">7</span>Y aggregate</div>
+      </div>
+      <div class="hero-stat">
+        <div class="v down" id="stat-drawdown">−15.7%</div>
+        <div class="l">Worst drawdown</div>
+      </div>
+      <div class="hero-stat">
+        <div class="v" id="stat-trades">10,071</div>
+        <div class="l">Trades placed</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     LIVE DATA — same Google Sheet + proxy as resultshero.html.
+       · Results pipeline (range A:B): aggregate gain + max drawdown,
+         using the (equity / startEquity - 1) * 100 method on
+         €5,000 seed + cumulative profit (column B). Reused verbatim.
+       · Catalog pipeline (header row): counts algo columns that are
+         NOT prefixed "old " (= active), and derives distinct markets
+         from the names. Drives the algo count + markets + headline.
+       · Date math (no network): years-live label + trades estimate.
+     All values fall back to the hardcoded markup if a fetch fails.
+     ============================================================ -->
+<script>
+(function () {
+  var SHEET_ID   = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+  var SHEET_GID  = '1444969085';
+  var PROXY      = 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=';
+  var TIMEOUT_MS = 12000;
+  var SEED       = 5000;                   // starting capital, May 2019
+  var START      = new Date(2019, 4, 20);  // 20 May 2019, local midnight
+
+  function setText(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+
+  // ---- date-derived stats (no network) --------------------------------
+  function daysSinceStart() {
+    var n = new Date();
+    var today = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+    return Math.round((today - START.getTime()) / 86400000);
+  }
+  (function () {
+    var d = daysSinceStart();
+    setText('stat-years', Math.floor(d / 365.25));                 // 7Y -> 8Y -> 9Y ...
+    setText('stat-trades', Math.round((d / 30.4375) * 119).toLocaleString('en-US')); // ~119 trades/mo
+  })();
+
+  // ---- CSV + stats helpers (reused from resultshero.html) -------------
+  function parseCsvRows(text) {
+    var rows = [], row = [], cell = '', inQ = false, i = 0;
+    while (i < text.length) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { cell += '"'; i += 2; }
+          else { inQ = false; i++; }
+        } else { cell += c; i++; }
+      } else {
+        if (c === '"')      { inQ = true; i++; }
+        else if (c === ',') { row.push(cell); cell = ''; i++; }
+        else if (c === '\n' || c === '\r') {
+          row.push(cell); rows.push(row);
+          row = []; cell = '';
+          if (c === '\r' && text[i + 1] === '\n') i += 2; else i++;
+        } else { cell += c; i++; }
+      }
+    }
+    if (cell || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  var MONTH_MAP = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+    apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+    aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+    okt: 9, nov: 10, november: 10, dec: 11, december: 11
+  };
+
+  function extractMonthlyCapitalRows(csvText) {
+    var rows = parseCsvRows(csvText), out = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.length < 2) continue;
+      var a = (r[0] || '').trim().toLowerCase().replace(/[^a-z].*$/, '');
+      var b = (r[1] || '').trim();
+      if (b.indexOf('€') === -1) continue;          // column B holds € values
+      var monthIdx = MONTH_MAP[a];
+      if (monthIdx == null) continue;
+      var num = parseFloat(b.replace(/[€\s,]/g, ''));
+      if (!isFinite(num)) continue;
+      out.push({ monthIdx: monthIdx, capital: num + SEED });
+    }
+    return out;
+  }
+
+  function computeStats(rows) {
+    if (!rows || rows.length < 2) return null;
+    var equityStart = rows[0].capital;
+    var equityEnd   = rows[rows.length - 1].capital;
+    if (!equityStart) return null;
+    var gainPct = (equityEnd / equityStart - 1) * 100;
+    var peak = equityStart, maxDD = 0;
+    for (var j = 0; j < rows.length; j++) {
+      var eq = rows[j].capital;
+      if (eq > peak) peak = eq;
+      if (peak > 0) { var dd = (peak - eq) / peak; if (dd > maxDD) maxDD = dd; }
+    }
+    return { gainPct: gainPct, ddPct: maxDD * 100 };
+  }
+
+  function formatGain(pct) {
+    var sign = pct >= 0 ? '+' : '−';
+    var abs = Math.abs(pct);
+    var num = abs >= 1000 ? Math.round(abs).toLocaleString('en-US') : abs.toFixed(1);
+    return sign + num + '%';
+  }
+  function formatDD(pct) { return '−' + Math.abs(pct).toFixed(1) + '%'; }
+
+  function fetchWithTimeout(url, ms) {
+    return new Promise(function (resolve, reject) {
+      var ctrl  = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); reject(new Error('timeout')); }, ms);
+      fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function (res) {
+        clearTimeout(timer); resolve(res);
+      }, function (err) { clearTimeout(timer); reject(err); });
+    });
+  }
+
+  function proxiedCsv(range) {
+    var u = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+            '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID + '&range=' + range;
+    return PROXY + encodeURIComponent(u);
+  }
+
+  // ---- results: aggregate gain + max drawdown (column A:B) -------------
+  fetchWithTimeout(proxiedCsv('A:B'), TIMEOUT_MS)
+    .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
+    .then(function (text) {
+      var rows = extractMonthlyCapitalRows(text);
+      if (rows.length < 4) return;
+      var s = computeStats(rows);
+      if (!s) return;
+      setText('stat-aggregate', formatGain(s.gainPct));
+      setText('stat-drawdown', formatDD(s.ddPct));
+    })
+    .catch(function () { /* silent — hardcoded fallbacks stay */ });
+
+  // ---- catalog: active algo count + markets (header row) --------------
+  var TF_RE  = /\b[MH]\d+/i;                       // a timeframe token marks an algo column
+  var FAM_RE = /^(prime|cuts|patf|plus|fx)$/i;     // strategy-family words to drop
+  fetchWithTimeout(proxiedCsv('A1:CZ1'), TIMEOUT_MS)
+    .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); })
+    .then(function (text) {
+      var header = parseCsvRows(text)[0] || [];
+      var active = 0, markets = {};
+      for (var i = 0; i < header.length; i++) {
+        var name = (header[i] || '').trim();
+        if (!name || !TF_RE.test(name)) continue;   // skip metadata columns
+        if (/^old\b/i.test(name)) continue;         // skip retired algos
+        active++;
+        var mkt = name.split(/\s+/).filter(function (t) {
+          return !FAM_RE.test(t) && !/^[MH]\d+/i.test(t);
+        }).join(' ').trim();
+        if (mkt) markets[mkt] = 1;
+      }
+      if (active > 0) {
+        setText('stat-algos', active);
+        setText('headline-count', active);
+        setText('cta-count', active);
+        setText('stat-markets', Object.keys(markets).length);
+        setText('headline-markets', Object.keys(markets).length);
+      }
+    })
+    .catch(function () { /* silent — hardcoded fallbacks stay */ });
+})();
+</script>
+
+<!-- ============================================================
+     GET-FULL-CATALOG POPOVER — anchored to the CTA, no backdrop.
+     Ported from resultscohort.html. Submission posts a message to
+     the parent Wix page (Velo) which handles the actual signup.
+     ============================================================ -->
+<div class="cta-popover" id="ctaPopover" role="dialog" aria-labelledby="ctaPopoverTitle">
+  <button type="button" class="cta-popover-close" id="ctaPopoverClose" aria-label="Close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  <h3 class="cta-popover-title" id="ctaPopoverTitle">Get full catalog access</h3>
+  <div class="cta-popover-alert">
+    <svg class="cta-popover-alert-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <div class="cta-popover-alert-text">
+      <strong>Sign up is paused. All spots are currently filled.</strong>
+      <span>Leave your email and we&rsquo;ll reach out as slots open.</span>
+    </div>
+  </div>
+  <form class="cta-popover-form" id="ctaPopoverForm" novalidate>
+    <input type="email" class="cta-popover-email" id="ctaPopoverEmail" name="email" placeholder="your@email.com" required autocomplete="email">
+    <button type="submit" class="cta-popover-submit" id="ctaPopoverSubmit">Join waitlist</button>
+  </form>
+  <div class="cta-popover-status" id="ctaPopoverStatus" aria-live="polite"></div>
+</div>
+
+<script>
+(function setupCatalogPopover() {
+  var $ = function (id) { return document.getElementById(id); };
+  var trigger    = $('catalog-cta');
+  var popover    = $('ctaPopover');
+  var closeBtn   = $('ctaPopoverClose');
+  var emailForm  = $('ctaPopoverForm');
+  var emailInput = $('ctaPopoverEmail');
+  var submitBtn  = $('ctaPopoverSubmit');
+  var statusEl   = $('ctaPopoverStatus');
+  if (!trigger || !popover) return;
+
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var EDGE_PAD = 12;
+  var GAP      = 8;
+  var lastFocus = null;
+  var isOpen    = false;
+
+  function setStatus(message, kind) {
+    statusEl.textContent = message || '';
+    statusEl.classList.remove('is-success', 'is-error');
+    if (kind) statusEl.classList.add('is-' + kind);
+    statusEl.classList.toggle('is-visible', Boolean(message));
+  }
+  function setLoading(loading) {
+    submitBtn.disabled = loading;
+    submitBtn.textContent = loading ? 'Submitting…' : 'Join waitlist';
+  }
+  // Anchor the popover to the button: left edge aligned to the button,
+  // preferring just above it, flipping below when there isn't room.
+  function positionPopover() {
+    var rect = trigger.getBoundingClientRect();
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var pw = popover.offsetWidth, ph = popover.offsetHeight;
+
+    var left = Math.min(Math.max(rect.left, EDGE_PAD), vw - pw - EDGE_PAD);
+    popover.style.left = left + 'px';
+    popover.style.right = '';
+
+    var top;
+    if (rect.top - GAP - ph >= EDGE_PAD) {
+      top = rect.top - GAP - ph;                 // above the button
+    } else if (rect.bottom + GAP + ph <= vh - EDGE_PAD) {
+      top = rect.bottom + GAP;                    // below the button
+    } else {
+      top = Math.max(EDGE_PAD, Math.min(rect.bottom + GAP, vh - ph - EDGE_PAD));
+    }
+    popover.style.top = top + 'px';
+    popover.style.bottom = '';
+  }
+  function onDocClick(e) {
+    if (popover.contains(e.target)) return;
+    if (e.target === trigger || trigger.contains(e.target)) return;
+    closePopover();
+  }
+  function openPopover() {
+    if (isOpen) return;
+    isOpen = true;
+    lastFocus = document.activeElement;
+    positionPopover();
+    requestAnimationFrame(function () { popover.classList.add('is-open'); });
+    requestAnimationFrame(function () { document.addEventListener('click', onDocClick, true); });
+    window.addEventListener('resize', positionPopover);
+    window.addEventListener('scroll', positionPopover, true);
+    setTimeout(function () { emailInput.focus(); }, 240);
+  }
+  function closePopover() {
+    if (!isOpen) return;
+    isOpen = false;
+    popover.classList.remove('is-open');
+    setStatus('', null);
+    setLoading(false);
+    document.removeEventListener('click', onDocClick, true);
+    window.removeEventListener('resize', positionPopover);
+    window.removeEventListener('scroll', positionPopover, true);
+    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+  }
+
+  trigger.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (isOpen) closePopover(); else openPopover();
+  });
+  closeBtn.addEventListener('click', closePopover);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && isOpen) closePopover();
+  });
+  emailInput.addEventListener('input', function () {
+    emailInput.classList.remove('is-invalid');
+    if (statusEl.classList.contains('is-error')) setStatus('', null);
+  });
+
+  emailForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var email = emailInput.value.trim();
+    if (!EMAIL_RE.test(email)) {
+      emailInput.classList.add('is-invalid');
+      setStatus('Please enter a valid email address.', 'error');
+      emailInput.focus();
+      return;
+    }
+    setLoading(true);
+    setStatus('', null);
+    // Hand off to Wix Velo on the parent page; it should listen for
+    // { type: 'waitlistSubmit', email } and reply with
+    // { type: 'waitlistResult', status: 'success' | 'error', message? }.
+    window.parent.postMessage({ type: 'waitlistSubmit', email: email }, '*');
+  });
+
+  window.addEventListener('message', function (event) {
+    var data = event.data;
+    if (!data || typeof data !== 'object') return;
+    if (data.type === 'waitlistResult') {
+      setLoading(false);
+      if (data.status === 'success') {
+        emailForm.reset();
+        setStatus('You’re on the list. We’ll be in touch.', 'success');
+      } else {
+        setStatus(data.message || 'Something went wrong. Please try again.', 'error');
+      }
+    }
+  });
+})();
+</script>
+
+<!-- ============================================================
+     BROWSE ALL ALGOS — scroll the parent Wix page to the catalog.
+     This section lives inside the Wix HTML embed #html18, so an
+     in-page #anchor can't reach the catalog iframe (#html19) on the
+     parent page. Instead we post a message up to Wix Velo, which
+     does the actual scrollTo on #html19. See the Velo snippet Carl
+     pastes into the page code.
+     ============================================================ -->
+<script>
+(function setupBrowseScroll() {
+  var browse = document.getElementById('browse-cta');
+  if (!browse) return;
+  browse.addEventListener('click', function (e) {
+    e.preventDefault();
+    window.parent.postMessage({ type: 'scrollTo', target: 'html19' }, '*');
+  });
+})();
+</script>
+
+</body>
+</html>
