@@ -708,18 +708,21 @@ a { color: inherit; text-decoration: none; }
       updateSortIndicators();
     });
   })();
-  // expand / collapse detail rows
+  // expand / collapse detail rows — accordion: opening one closes any other
   (function () {
+    function closeAll() {
+      [].forEach.call(document.querySelectorAll('.detail-row'), function (dr) { dr.parentNode.removeChild(dr); });
+      [].forEach.call(document.querySelectorAll('.expand-btn.is-open'), function (b) { b.classList.remove('is-open'); });
+    }
     document.addEventListener('click', function (e) {
       var exp = e.target.closest ? e.target.closest('.expand-btn') : null;
       if (!exp) return;
       e.preventDefault();
       var tr = exp.closest('tr');
       var next = tr.nextElementSibling;
-      if (next && next.classList.contains('detail-row')) {
-        next.parentNode.removeChild(next);
-        exp.classList.remove('is-open');
-      } else {
+      var wasOpen = next && next.classList.contains('detail-row');
+      closeAll();                       // collapse whatever is open first
+      if (!wasOpen) {                   // clicking the open row just collapses it (toggle off)
         var name = exp.getAttribute('data-algo'), row = null;
         for (var i = 0; i < ROWS.length; i++) { if (ROWS[i].name === name) { row = ROWS[i]; break; } }
         tr.insertAdjacentHTML('afterend', detailHtml(name, row ? row.m : null));
