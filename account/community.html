@@ -199,6 +199,7 @@
   .empty { text-align: center; color: var(--pra-muted); padding: 30px 18px; font-size: 15px; }
   .loading { text-align: center; color: var(--pra-muted); padding: 28px 0; font-size: 13px; font-family: var(--pra-font-mono); }
   .demo-banner { flex: 0 0 auto; background: #FFF7E6; color: #8A6D00; border-bottom: 1px solid #F0E2B8; font-family: var(--pra-font-mono); font-size: 11px; letter-spacing: 0.04em; text-align: center; padding: 6px 12px; }
+  .build-badge { position: fixed; bottom: 6px; right: 8px; z-index: 9998; font-family: var(--pra-font-mono); font-size: 10px; color: var(--pra-muted); background: rgba(255,255,255,0.9); border: 1px solid var(--pra-line); border-radius: 6px; padding: 2px 7px; pointer-events: none; }
 
   .lightbox { position: fixed; inset: 0; background: rgba(14,14,16,0.86); display: flex; align-items: center; justify-content: center; z-index: 400; padding: 24px; cursor: zoom-out; }
   .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
@@ -222,6 +223,7 @@
   <div class="scroll" id="scroll"></div>
   <div class="composer-wrap" id="composerHost"></div>
 </div>
+<div class="build-badge" id="buildBadge"></div>
 
 <script>
 (function () {
@@ -281,7 +283,7 @@
   /* ---------------- state ---------------- */
   var me = null, posts = [], openThread = null, isDemo = false, _picker = null;
   var firstFeedLoad = true, lastFeedSig = null, lastThreadSig = null;
-  var BUILD = "jun9";
+  var BUILD = "jun9c";
   var DEBUG = /[?&]debug=1/.test(location.search || "");
   var _dbgEl = null, _dbg = {};
   function dbg(k, v) {
@@ -311,6 +313,7 @@
     renderChan(false);
     var embedded = (window.parent !== window);
     dbg("build", BUILD); dbg("embedded", embedded);
+    var bb = document.getElementById("buildBadge"); if (bb) bb.textContent = "build " + BUILD + (embedded ? " · embedded" : " · standalone");
     clear($scroll).appendChild(el("div", { class: "loading", text: "Loading " + CHANNEL + ".." }));
     var qs = location.search || "";
     // Demo (mock user + posts) ONLY when opened standalone, e.g. GitHub Pages / this preview.
