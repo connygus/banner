@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Community</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pra-bg:#FFFFFF; --pra-ink:#0E0E10; --pra-red:#EC3B3D; --pra-green:#3DC574;
+    --pra-muted:#6B6B72; --pra-line:#E8E8EA; --pra-soft:#F6F6F7;
+    --pra-font-sans:'Onest', system-ui, -apple-system, sans-serif;
+    --pra-font-mono:'JetBrains Mono', ui-monospace, Menlo, monospace;
+    --pra-r-pill:999px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { font-family: var(--pra-font-sans); color: var(--pra-ink); background: var(--pra-bg); -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; color: inherit; }
+
+  .app { display: flex; flex-direction: column; height: 100%; max-width: 860px; margin: 0 auto; }
+
+  /* ---- channel header ---- */
+  .chan { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--pra-line); flex: 0 0 auto; }
+  .chan-left { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .chan-name { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: baseline; gap: 3px; }
+  .chan-name .hash { color: var(--pra-muted); font-weight: 600; }
+  .chan-count { font-family: var(--pra-font-mono); font-size: 12px; color: var(--pra-muted); white-space: nowrap; }
+  .me { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+  .me-name { font-size: 13px; font-weight: 500; }
+  .hdr-back { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; cursor: pointer; font-size: 15px; font-weight: 600; padding: 4px 6px; border-radius: 8px; }
+  .hdr-back:hover { background: var(--pra-soft); }
+  .hdr-back svg { width: 18px; height: 18px; }
+
+  /* ---- scroll area ---- */
+  .scroll { flex: 1 1 auto; overflow-y: auto; padding: 12px 0 10px; }
+  .scroll::-webkit-scrollbar { width: 10px; }
+  .scroll::-webkit-scrollbar-thumb { background: var(--pra-line); border-radius: 999px; border: 3px solid var(--pra-bg); }
+
+  /* ---- day divider ---- */
+  .day { position: relative; text-align: center; margin: 16px 0 8px; }
+  .day::before { content: ""; position: absolute; left: 18px; right: 18px; top: 50%; height: 1px; background: var(--pra-line); }
+  .day span { position: relative; background: var(--pra-bg); border: 1px solid var(--pra-line); border-radius: 999px; padding: 3px 13px; font-size: 12px; font-weight: 600; color: var(--pra-ink); }
+
+  /* ---- message (inline, slack-style) ---- */
+  .msg { position: relative; display: flex; gap: 10px; padding: 5px 18px; }
+  .msg:hover { background: var(--pra-soft); }
+  .msg.grouped { padding-top: 1px; padding-bottom: 1px; }
+  .gutter { width: 38px; flex: 0 0 38px; }
+  .av { width: 38px; height: 38px; border-radius: 10px; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; color: #fff; overflow: hidden; }
+  .av.sm { width: 22px; height: 22px; border-radius: 6px; font-size: 10px; }
+  .ts-mini { display: none; font-family: var(--pra-font-mono); font-size: 10px; color: var(--pra-muted); text-align: right; padding-top: 4px; line-height: 1; }
+  .msg.grouped:hover .ts-mini { display: block; }
+  .body { flex: 1 1 auto; min-width: 0; }
+  .head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 1px; }
+  .author { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+  .time { font-family: var(--pra-font-mono); font-size: 11px; color: var(--pra-muted); }
+  .pin-tag { font-family: var(--pra-font-mono); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--pra-red); }
+
+  .text { font-size: 15px; line-height: 1.48; word-break: break-word; }
+  .text p { margin: 0; }
+  .text a { color: var(--pra-red); text-decoration: none; }
+  .text a:hover { text-decoration: underline; }
+  .text strong { font-weight: 700; }
+  .text em { font-style: italic; }
+  .text del { text-decoration: line-through; color: var(--pra-muted); }
+  .text code { font-family: var(--pra-font-mono); font-size: 13px; background: var(--pra-soft); border: 1px solid var(--pra-line); border-radius: 5px; padding: 1px 5px; }
+  .text pre { background: var(--pra-soft); border: 1px solid var(--pra-line); border-radius: 10px; padding: 10px 12px; overflow-x: auto; margin: 6px 0; }
+  .text pre code { background: none; border: 0; padding: 0; font-size: 13px; }
+  .text blockquote { margin: 4px 0; padding: 2px 0 2px 12px; border-left: 3px solid var(--pra-line); color: var(--pra-ink); }
+  .text ul, .text ol { margin: 4px 0; padding-left: 22px; }
+  .text li { margin: 1px 0; }
+  .cashtag { font-family: var(--pra-font-mono); font-size: 0.92em; font-weight: 600; background: var(--pra-soft); border: 1px solid var(--pra-line); border-radius: 6px; padding: 0 5px; color: var(--pra-ink); text-decoration: none; white-space: nowrap; }
+  .cashtag:hover { border-color: var(--pra-red); color: var(--pra-red); }
+
+  /* ---- media ---- */
+  .media { margin-top: 7px; max-width: 520px; }
+  .media img.photo { width: 100%; max-height: 460px; object-fit: cover; border-radius: 12px; border: 1px solid var(--pra-line); display: block; cursor: zoom-in; }
+  .media img.gif { max-width: 100%; border-radius: 12px; display: block; }
+  .embed { position: relative; width: 100%; padding-top: 56.25%; border-radius: 12px; overflow: hidden; border: 1px solid var(--pra-line); background: #000; }
+  .embed iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .linkcard { display: flex; gap: 10px; align-items: center; border: 1px solid var(--pra-line); border-radius: 12px; padding: 11px 13px; text-decoration: none; color: var(--pra-ink); }
+  .linkcard:hover { background: var(--pra-soft); }
+  .linkcard .lc-host { font-family: var(--pra-font-mono); font-size: 12px; color: var(--pra-muted); }
+  .tvchart { margin-top: 7px; border: 1px solid var(--pra-line); border-radius: 12px; overflow: hidden; background: var(--pra-bg); max-width: 520px; }
+  .tvchart .tradingview-widget-container { min-height: 200px; }
+  .tvchart .tv-cap { display: block; padding: 7px 11px; border-top: 1px solid var(--pra-line); font-family: var(--pra-font-mono); font-size: 12px; color: var(--pra-muted); text-decoration: none; }
+  .tvchart .tv-cap:hover { color: var(--pra-red); }
+
+  /* ---- reactions ---- */
+  .reactions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+  .rxn { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--pra-line); background: var(--pra-bg); border-radius: var(--pra-r-pill); padding: 2px 9px 2px 7px; font-size: 13px; cursor: pointer; transition: background 120ms ease, border-color 120ms ease; line-height: 1.4; }
+  .rxn:hover { background: var(--pra-soft); }
+  .rxn.me { border-color: rgba(236,59,61,0.55); background: rgba(236,59,61,0.07); }
+  .rxn .cnt { font-family: var(--pra-font-mono); font-weight: 600; font-size: 12px; }
+  .rxn-add { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 24px; border: 1px solid var(--pra-line); background: var(--pra-bg); border-radius: var(--pra-r-pill); cursor: pointer; color: var(--pra-muted); padding: 0; }
+  .rxn-add:hover { background: var(--pra-soft); color: var(--pra-ink); }
+  .rxn-add svg { width: 15px; height: 15px; }
+
+  /* ---- thread indicator ---- */
+  .thread-link { display: inline-flex; align-items: center; gap: 8px; margin-top: 7px; padding: 3px 10px 3px 4px; border: 1px solid transparent; border-radius: 10px; cursor: pointer; background: transparent; }
+  .thread-link:hover { border-color: var(--pra-line); background: var(--pra-bg); }
+  .ra { display: flex; }
+  .ra .av { box-shadow: 0 0 0 2px var(--pra-bg); margin-right: -6px; }
+  .thread-count { color: var(--pra-red); font-size: 13px; font-weight: 600; }
+  .thread-last { color: var(--pra-muted); font-size: 12px; }
+
+  /* ---- hover actions ---- */
+  .msg-actions { position: absolute; top: -14px; right: 16px; display: none; background: var(--pra-bg); border: 1px solid var(--pra-line); border-radius: 10px; box-shadow: 0 4px 16px rgba(14,14,16,0.10); padding: 2px; gap: 1px; z-index: 5; }
+  .msg:hover .msg-actions, .msg.active .msg-actions { display: flex; }
+  .act { width: 32px; height: 30px; border: 0; background: transparent; border-radius: 7px; cursor: pointer; color: var(--pra-muted); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; }
+  .act:hover { background: var(--pra-soft); color: var(--pra-ink); }
+  .act svg { width: 17px; height: 17px; }
+
+  .menu { position: absolute; right: 0; top: 34px; background: #fff; border: 1px solid var(--pra-line); border-radius: 12px; box-shadow: 0 6px 24px rgba(14,14,16,0.12); padding: 6px; z-index: 20; min-width: 140px; }
+  .menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .menu button:hover { background: var(--pra-soft); }
+  .menu button.danger { color: var(--pra-red); }
+
+  /* ---- thread parent banner ---- */
+  .thread-head { padding: 4px 18px 10px; }
+  .thread-divider { display: flex; align-items: center; gap: 10px; padding: 4px 18px; color: var(--pra-muted); font-size: 13px; font-weight: 600; }
+  .thread-divider::after { content: ""; flex: 1; height: 1px; background: var(--pra-line); }
+
+  /* ---- composer ---- */
+  .composer-wrap { flex: 0 0 auto; padding: 0 16px 16px; position: relative; }
+  .composer-note { font-size: 11px; color: var(--pra-muted); text-align: center; padding: 7px 4px 0; }
+  .ac { position: absolute; left: 16px; right: 16px; bottom: 100%; margin-bottom: 8px; background: #fff; border: 1px solid var(--pra-line); border-radius: 12px; box-shadow: 0 8px 28px rgba(14,14,16,0.14); padding: 6px; max-height: 244px; overflow-y: auto; z-index: 60; }
+  .ac-head { font-family: var(--pra-font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--pra-muted); padding: 4px 10px 6px; }
+  .ac-item { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .ac-item.sel, .ac-item:hover { background: var(--pra-soft); }
+  .ac-hash { font-family: var(--pra-font-mono); color: var(--pra-red); font-weight: 600; }
+  .algotag { font-family: var(--pra-font-mono); font-size: 0.9em; font-weight: 600; background: rgba(236,59,61,0.07); border: 1px solid rgba(236,59,61,0.28); color: var(--pra-ink); border-radius: 6px; padding: 1px 7px 1px 5px; white-space: nowrap; }
+  .algo-flag { display: inline-block; width: 17px; height: 12px; border-radius: 2px; overflow: hidden; vertical-align: -1px; margin-right: 5px; box-shadow: inset 0 0 0 1px rgba(14,14,16,0.10); }
+  .algo-flag svg { display: block; width: 100%; height: 100%; }
+  .ac-item .algo-flag { margin-right: 0; }
+  .composer { border: 1px solid var(--pra-line); border-radius: 14px; background: var(--pra-bg); transition: border-color 140ms ease; overflow: hidden; }
+  .composer:focus-within { border-color: var(--pra-ink); }
+  .fmt { display: flex; flex-wrap: wrap; gap: 1px; padding: 6px 8px; border-bottom: 1px solid var(--pra-line); }
+  .fmt.hidden { display: none; }
+  .fbtn { min-width: 30px; height: 30px; padding: 0 6px; border: 0; background: transparent; border-radius: 7px; cursor: pointer; color: var(--pra-muted); font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+  .fbtn:hover { background: var(--pra-soft); color: var(--pra-ink); }
+  .fbtn svg { width: 16px; height: 16px; }
+  .fbtn .b { font-weight: 800; }
+  .fbtn .i { font-style: italic; font-weight: 600; }
+  .fbtn .s { text-decoration: line-through; font-weight: 600; }
+  .fbtn-sep { width: 1px; align-self: center; height: 18px; background: var(--pra-line); margin: 0 4px; }
+  .composer textarea { display: block; width: 100%; border: 0; outline: none; resize: none; font-family: var(--pra-font-sans); font-size: 15px; line-height: 1.5; color: var(--pra-ink); background: transparent; padding: 11px 14px; min-height: 24px; max-height: 220px; }
+  .composer textarea::placeholder { color: var(--pra-muted); }
+  .cbar { display: flex; align-items: center; gap: 2px; padding: 5px 8px 7px; }
+  .cbtn { width: 32px; height: 32px; border: 0; background: transparent; border-radius: 8px; cursor: pointer; color: var(--pra-muted); display: inline-flex; align-items: center; justify-content: center; font-size: 16px; }
+  .cbtn:hover { background: var(--pra-soft); color: var(--pra-ink); }
+  .cbtn svg { width: 18px; height: 18px; }
+  .cbar-sep { width: 1px; height: 20px; background: var(--pra-line); margin: 0 5px; }
+  .send { margin-left: auto; width: 36px; height: 36px; border-radius: 9px; border: 0; background: var(--pra-soft); color: var(--pra-muted); cursor: default; display: inline-flex; align-items: center; justify-content: center; transition: background 140ms ease, color 140ms ease; }
+  .send.on { background: var(--pra-ink); color: #fff; cursor: pointer; }
+  .send svg { width: 18px; height: 18px; }
+
+  /* attachment preview chips */
+  .attachments { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 12px 0; }
+  .attachment { position: relative; border: 1px solid var(--pra-line); border-radius: 10px; overflow: hidden; background: var(--pra-soft); }
+  .attachment img { display: block; max-width: 110px; max-height: 84px; object-fit: cover; }
+  .attachment .att-link { display: flex; align-items: center; gap: 8px; padding: 9px 11px; max-width: 240px; font-size: 13px; }
+  .attachment .att-x { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 999px; border: 0; background: rgba(14,14,16,0.72); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .attachment .att-x svg { width: 10px; height: 10px; }
+
+  /* attach + popover menu */
+  .pop { border: 1px solid var(--pra-line); border-radius: 12px; padding: 10px; margin: 4px 12px 0; background: var(--pra-bg); box-shadow: 0 2px 14px rgba(14,14,16,0.05); }
+  .pop .input { width: 100%; padding: 11px 13px; font-family: var(--pra-font-sans); font-size: 14px; background: var(--pra-bg); border: 1px solid var(--pra-line); border-radius: 10px; outline: none; }
+  .pop .input:focus { border-color: var(--pra-ink); }
+  .pop-row { display: flex; gap: 8px; margin-top: 8px; }
+  .pop-hint { font-size: 12px; color: var(--pra-muted); margin-top: 8px; }
+  .btn-ghost { background: transparent; border: 1px solid var(--pra-line); border-radius: var(--pra-r-pill); padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-ghost:hover { background: var(--pra-soft); }
+  .attach-menu { display: flex; flex-direction: column; gap: 2px; }
+  .attach-menu button { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 9px 10px; border-radius: 8px; font-size: 14px; cursor: pointer; text-align: left; }
+  .attach-menu button:hover { background: var(--pra-soft); }
+  .attach-menu svg { width: 17px; height: 17px; color: var(--pra-muted); }
+  .gif-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; max-height: 230px; overflow-y: auto; }
+  .gif-grid img { width: 100%; height: 86px; object-fit: cover; border-radius: 8px; cursor: pointer; background: var(--pra-soft); }
+  .gif-grid img:hover { outline: 2px solid var(--pra-ink); }
+
+  /* ---- emoji picker ---- */
+  .picker { position: fixed; z-index: 300; background: #fff; border: 1px solid var(--pra-line); border-radius: 12px; box-shadow: 0 8px 28px rgba(14,14,16,0.16); padding: 8px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 1px; width: 296px; max-height: 240px; overflow-y: auto; }
+  .emo { border: 0; background: transparent; font-size: 19px; line-height: 1; padding: 5px; border-radius: 8px; cursor: pointer; }
+  .emo:hover { background: var(--pra-soft); }
+
+  /* ---- gate / empty / loading ---- */
+  .pad { padding: 0 18px; }
+  .gate { border: 1px solid var(--pra-line); border-radius: 18px; padding: 40px 28px; text-align: center; margin: 24px 18px; }
+  .gate .lock { width: 44px; height: 44px; margin: 0 auto 16px; color: var(--pra-ink); }
+  .gate .lock svg { width: 44px; height: 44px; }
+  .gate h2 { font-size: 23px; font-weight: 700; margin: 0 0 8px; }
+  .gate p { color: var(--pra-muted); font-size: 15px; line-height: 1.5; margin: 0 auto 20px; max-width: 360px; }
+  .btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px; font-size: 15px; font-weight: 600; border-radius: var(--pra-r-pill); border: 0; background: var(--pra-ink); color: #fff; cursor: pointer; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,14,16,0.18); }
+  .empty { text-align: center; color: var(--pra-muted); padding: 30px 18px; font-size: 15px; }
+  .loading { text-align: center; color: var(--pra-muted); padding: 28px 0; font-size: 13px; font-family: var(--pra-font-mono); }
+
+  .lightbox { position: fixed; inset: 0; background: rgba(14,14,16,0.86); display: flex; align-items: center; justify-content: center; z-index: 400; padding: 24px; cursor: zoom-out; }
+  .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+  .hidden { display: none !important; }
+
+  @media (max-width: 510px) {
+    .chan { padding: 10px 14px; }
+    .me-name { display: none; }
+    .msg { padding-left: 14px; padding-right: 14px; }
+    .composer-wrap { padding: 0 10px 12px; }
+    .fbtn-extra { display: none; }
+    .msg-actions { top: -13px; right: 10px; }
+    .media { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="chan" id="chan"></div>
+  <div class="scroll" id="scroll"></div>
+  <div class="composer-wrap" id="composerHost"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- config ---------------- */
+  var CHANNEL = "community";
+  var GIPHY_KEY = "";                 // <-- paste Giphy API key for in-app GIF search
+  var POLL_MS = 6000;
+  var MAX_IMAGE_PX = 1600;
+  var IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+  var EMOJIS = "👍 ❤️ 😂 🎉 🔥 ✨ 🙌 👀 ✅ 💯 🚀 😍 😎 🤔 👏 🙏 💪 📈 📉 💰 ⚡ 🥳 😅 😭 🤝 👋 🫡 🤩 😬 🙈 💡 ⭐ 🎯 🏆 ☕ 🍻 📊 🧠 ❓ ❗".split(" ");
+  // Active algo names are the sheet's header columns (timeframe token, not prefixed "old "), via the same CORS proxy used for hero stats.
+  var ALGO_SHEET = { id: "1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY", gid: "1444969085", proxy: "https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=" };
+  // Canonical active algo list (mirrors the /algos catalog SPECS keys = the sheet's active column headers).
+  var DEMO_ALGOS = ["Prime DAX M1", "Prime DAX M2(DC)", "Prime DAX M2b", "Prime DAX M3", "Prime DAX M3b", "Prime DAX M3c", "Prime DAX M15", "Prime DAX H1", "Prime DOW M5", "Prime US100 M2", "Prime US100 M30", "Prime SP500 M3", "Prime SP500 M3b", "Cuts DAX M3", "Cuts US100 M5(DC)", "Cuts US100 M5b", "Cuts SP500 M10", "Cuts SP500 M15", "Cuts Gold H1", "FX USD/JPY H1", "PATF DOW M15(FC)"];
+  var ALGOS = DEMO_ALGOS.slice();
+  var _algoRe = null;
+
+  /* ---------------- dom helpers ---------------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else if (k === "html") n.innerHTML = attrs[k];
+      else if (k.slice(0, 2) === "on" && typeof attrs[k] === "function") n.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] != null) n.setAttribute(k, attrs[k]);
+    }
+    if (kids) (Array.isArray(kids) ? kids : [kids]).forEach(function (c) { if (c == null) return; n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return n;
+  }
+  function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+  var $chan = document.getElementById("chan"), $scroll = document.getElementById("scroll"), $comp = document.getElementById("composerHost");
+
+  /* ---------------- icons ---------------- */
+  var I = {
+    photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+    gif:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M9 9.5H7.5A1.5 1.5 0 006 11v2a1.5 1.5 0 001.5 1.5H9V12"/><path d="M12.5 9.5v5"/><path d="M16 14.5v-5h2.5M16 12h2"/></svg>',
+    link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.5.5l3-3a5 5 0 00-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 00-7.5-.5l-3 3a5 5 0 007 7L12 19"/></svg>',
+    comment:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8 8 0 01-11.6 7.1L3 21l2.4-6.4A8 8 0 1121 11.5z"/></svg>',
+    more:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
+    back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+    x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>',
+    lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7a4 4 0 018 0v3.5"/></svg>',
+    smile:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4 4 0 007 0"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+    ol:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6h11M10 12h11M10 18h11"/><path d="M4 5l1.5-.6V8M3.6 8h2.4"/><path d="M3.5 14.5c0-.8 2-1 2 .2 0 .8-2 1.3-2 2.3h2.2"/></svg>',
+    ul:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h12M9 12h12M9 18h12"/><circle cx="4" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1.4" fill="currentColor" stroke="none"/></svg>',
+    quote:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7H4v6h3l2 4V7H7zm9 0h-3v6h3l2 4V7h-2z" stroke="currentColor" stroke-width="1" fill="none" stroke-linejoin="round"/></svg>',
+    code:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg>',
+    codeblock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 9l-2.2 3L9 15M15 9l2.2 3L15 15"/></svg>',
+    chart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 4-5"/></svg>'
+  };
+
+  /* ---------------- state ---------------- */
+  var me = null, posts = [], openThread = null, isDemo = false, _picker = null;
+  var firstFeedLoad = true, lastFeedSig = null, lastThreadSig = null;
+
+  /* ---------------- transport (postMessage + demo fallback) ---------------- */
+  var reqSeq = 0, pending = {};
+  function postMsg(type, payload, timeout) {
+    return new Promise(function (resolve, reject) {
+      var id = ++reqSeq; pending[id] = { resolve: resolve, reject: reject };
+      try { window.parent.postMessage(Object.assign({ source: "pra-community", type: type, reqId: id }, payload || {}), "*"); } catch (e) {}
+      setTimeout(function () { if (pending[id]) { delete pending[id]; reject(new Error("timeout")); } }, timeout || 8000);
+    });
+  }
+  window.addEventListener("message", function (e) {
+    var d = e.data; if (!d || d.source !== "pra-community-parent") return;
+    if (d.reqId && pending[d.reqId]) { var p = pending[d.reqId]; delete pending[d.reqId]; d.error ? p.reject(new Error(d.error)) : p.resolve(d.payload); }
+  });
+  function call(type, payload) { return isDemo ? demo(type, payload || {}) : postMsg(type, payload); }
+
+  /* ---------------- boot ---------------- */
+  function boot() {
+    renderChan(false);
+    $scroll.appendChild(el("div", { class: "loading", text: "Loading " + CHANNEL + ".." }));
+    postMsg("whoami", {}, 1200).then(function (m) { me = m; afterAuth(); })
+      .catch(function () { isDemo = true; me = DEMO_ME; afterAuth(); });
+  }
+  function afterAuth() {
+    renderChan(false);
+    if (!me || !me.loggedIn) return renderGate("loggedOut");
+    if (!me.approved) return renderGate("locked");
+    // ALGOS is pinned to the canonical 21 (DEMO_ALGOS) so it always matches the /algos catalog exactly.
+    // To auto-sync the list from the results sheet instead, uncomment: if (!isDemo) loadAlgos();
+    loadFeed(true);
+    startPolling();
+  }
+
+  /* ---------------- header ---------------- */
+  function renderChan(thread) {
+    clear($chan);
+    if (thread) {
+      $chan.appendChild(el("button", { class: "hdr-back", html: I.back + "<span>Thread</span>", onclick: backToFeed }));
+    } else {
+      $chan.appendChild(el("div", { class: "chan-left" }, [
+        el("div", { class: "chan-name", html: '<span class="hash">#</span>' + escapeHtml(CHANNEL) }),
+        el("div", { class: "chan-count", id: "chanCount" })
+      ]));
+    }
+    var meBox = el("div", { class: "me" });
+    if (me && me.loggedIn) { meBox.appendChild(avatarEl(me)); meBox.appendChild(el("span", { class: "me-name", text: me.name || "You" })); }
+    $chan.appendChild(meBox);
+  }
+  function setCount(n) { var c = document.getElementById("chanCount"); if (c) c.textContent = n ? n + " members" : ""; }
+
+  /* ---------------- feed ---------------- */
+  function loadFeed(showLoading) {
+    if (showLoading) { clear($scroll).appendChild(el("div", { class: "loading", text: "Loading.." })); }
+    call("loadFeed", {}).then(function (res) {
+      posts = (res && res.posts) || [];
+      posts.sort(function (a, b) { return new Date(a.createdDate) - new Date(b.createdDate); });
+      if (!openThread) { var sig = feedSig(); if (showLoading || firstFeedLoad || sig !== lastFeedSig) renderFeed(firstFeedLoad); }
+      firstFeedLoad = false;
+      setCount(res && res.memberCount);
+    }).catch(function () { if (!openThread) clear($scroll).appendChild(el("div", { class: "empty", text: "Could not load messages. Retrying.." })); });
+  }
+
+  function renderFeed(toBottom) {
+    var wasBottom = toBottom || isNearBottom();
+    var prevTop = $scroll.scrollTop;
+    clear($scroll);
+    if (!posts.length) { $scroll.appendChild(el("div", { class: "empty", text: "No messages yet. Say hello to the community 👋" })); }
+    else renderList($scroll, posts, { inThread: false });
+    renderComposer(null);
+    restoreScroll(wasBottom, prevTop);
+    lastFeedSig = feedSig();
+  }
+
+  /* renders a message list with day dividers + author grouping */
+  function renderList(container, items, opts) {
+    var prev = null;
+    items.forEach(function (it) {
+      var newDay = !prev || !sameDay(prev.createdDate, it.createdDate);
+      if (newDay) container.appendChild(el("div", { class: "day" }, [el("span", { text: dayLabel(it.createdDate) })]));
+      var grouped = !newDay && prev && prev.authorId === it.authorId && (new Date(it.createdDate) - new Date(prev.createdDate) < 5 * 60000);
+      container.appendChild(buildMessage(it, { grouped: grouped, inThread: opts.inThread }));
+      prev = it;
+    });
+  }
+
+  /* ---------------- a single message ---------------- */
+  function buildMessage(item, o) {
+    var msg = el("div", { class: "msg" + (o.grouped ? " grouped" : "") });
+
+    var gutter = el("div", { class: "gutter" });
+    if (o.grouped) gutter.appendChild(el("div", { class: "ts-mini", text: clockTime(item.createdDate) }));
+    else gutter.appendChild(avatarEl(item));
+    msg.appendChild(gutter);
+
+    var body = el("div", { class: "body" });
+    if (!o.grouped) {
+      body.appendChild(el("div", { class: "head" }, [
+        el("span", { class: "author", text: item.authorName || "Member" }),
+        el("span", { class: "time", text: clockTime(item.createdDate) }),
+        item.pinned ? el("span", { class: "pin-tag", text: "📌 pinned" }) : null
+      ]));
+    }
+    if (item.text) body.appendChild(renderMarkdown(el("div", { class: "text" }), item.text));
+    if (item.media && item.media.length) body.appendChild(buildMedia(item.media));
+    if (item.reactions && item.reactions.some(function (r) { return r.count; })) body.appendChild(buildReactions(item));
+    if (!o.inThread && (item.replyCount || 0) > 0) body.appendChild(buildThreadLink(item));
+    msg.appendChild(body);
+
+    msg.appendChild(buildActions(item, o));
+
+    msg.addEventListener("click", function (e) {
+      if (e.target.closest("a,button,.rxn,.thread-link,.media")) return;
+      document.querySelectorAll(".msg.active").forEach(function (m) { if (m !== msg) m.classList.remove("active"); });
+      msg.classList.toggle("active");
+    });
+    return msg;
+  }
+
+  function buildActions(item, o) {
+    var bar = el("div", { class: "msg-actions" });
+    ["🚀", "📈", "🔥"].forEach(function (em) { bar.appendChild(el("button", { class: "act", title: "React " + em, text: em, onclick: function (e) { e.stopPropagation(); toggleReaction(item, em, true); } })); });
+    bar.appendChild(el("button", { class: "act", title: "React", html: I.smile, onclick: function (e) { e.stopPropagation(); openPicker(e.currentTarget, function (emoji) { toggleReaction(item, emoji, true); }); } }));
+    if (!o.inThread) bar.appendChild(el("button", { class: "act", title: "Reply in thread", html: I.comment, onclick: function (e) { e.stopPropagation(); openThreadView(item); } }));
+    if (canModerate(item)) {
+      var wrap = el("div", { style: "position:relative" });
+      var mb = el("button", { class: "act", title: "More", html: I.more });
+      var menu = el("div", { class: "menu hidden" });
+      if (me.admin && !o.inThread) menu.appendChild(el("button", { text: item.pinned ? "Unpin" : "Pin", onclick: function () { menu.classList.add("hidden"); doPin(item); } }));
+      menu.appendChild(el("button", { class: "danger", text: "Delete", onclick: function () { menu.classList.add("hidden"); doDelete(item, o.inThread); } }));
+      mb.addEventListener("click", function (e) { e.stopPropagation(); menu.classList.toggle("hidden"); });
+      document.addEventListener("click", function () { menu.classList.add("hidden"); });
+      wrap.appendChild(mb); wrap.appendChild(menu); bar.appendChild(wrap);
+    }
+    return bar;
+  }
+
+  /* ---------------- reactions ---------------- */
+  function buildReactions(item) {
+    var wrap = el("div", { class: "reactions" });
+    (item.reactions || []).forEach(function (r) {
+      if (!r.count) return;
+      wrap.appendChild(el("button", { class: "rxn" + (r.me ? " me" : ""), onclick: function (e) { e.stopPropagation(); toggleReaction(item, r.emoji); } },
+        [el("span", { text: r.emoji }), el("span", { class: "cnt", text: String(r.count) })]));
+    });
+    wrap.appendChild(el("button", { class: "rxn-add", title: "Add reaction", html: I.smile, onclick: function (e) { e.stopPropagation(); openPicker(e.currentTarget, function (emoji) { toggleReaction(item, emoji, true); }); } }));
+    return wrap;
+  }
+  function toggleReaction(item, emoji, addMode) {
+    var list = item.reactions || (item.reactions = []);
+    var r = null; for (var i = 0; i < list.length; i++) if (list[i].emoji === emoji) r = list[i];
+    var on;
+    if (r) {
+      if (addMode && r.me) return;
+      r.me = !r.me; r.count += r.me ? 1 : -1; on = r.me;
+      if (r.count <= 0) list.splice(list.indexOf(r), 1);
+    } else { list.push({ emoji: emoji, count: 1, me: true }); on = true; }
+    rerender();
+    call("react", { id: item._id, emoji: emoji, on: on }).catch(function () {});
+  }
+  function rerender() { if (openThread) renderThread(); else renderFeed(false); }
+
+  /* ---------------- thread indicator + view ---------------- */
+  function buildThreadLink(item) {
+    var link = el("div", { class: "thread-link", onclick: function (e) { e.stopPropagation(); openThreadView(item); } });
+    if (item.repliers && item.repliers.length) {
+      var ra = el("div", { class: "ra" });
+      item.repliers.slice(0, 3).forEach(function (p) { ra.appendChild(avatarEl(p, true)); });
+      link.appendChild(ra);
+    }
+    var n = item.replyCount || 0;
+    link.appendChild(el("span", { class: "thread-count", text: n + (n === 1 ? " reply" : " replies") }));
+    if (item.lastReplyDate) link.appendChild(el("span", { class: "thread-last", text: "Last reply " + timeAgo(item.lastReplyDate) }));
+    return link;
+  }
+
+  function openThreadView(p) {
+    openThread = { post: p, replies: null };
+    renderThread(true);
+    call("loadThread", { postId: p._id }).then(function (res) {
+      if (!openThread || openThread.post._id !== p._id) return;
+      openThread.replies = (res && res.replies) || []; renderThread(true);
+    }).catch(function () { if (openThread) { openThread.replies = []; renderThread(true); } });
+  }
+  function backToFeed() { openThread = null; renderChan(false); renderFeed(true); }
+
+  function renderThread(toBottom) {
+    renderChan(true);
+    var wasBottom = toBottom || isNearBottom();
+    var prevTop = $scroll.scrollTop;
+    clear($scroll);
+    var head = el("div", { class: "thread-head" });
+    head.appendChild(buildMessage(openThread.post, { grouped: false, inThread: true }));
+    $scroll.appendChild(head);
+    var n = (openThread.replies && openThread.replies.length) || openThread.post.replyCount || 0;
+    $scroll.appendChild(el("div", { class: "thread-divider", text: n ? n + (n === 1 ? " reply" : " replies") : "No replies yet" }));
+    if (openThread.replies == null) $scroll.appendChild(el("div", { class: "loading", text: "Loading replies.." }));
+    else renderList($scroll, openThread.replies, { inThread: true });
+    renderComposer(openThread.post._id);
+    restoreScroll(wasBottom, prevTop);
+    lastThreadSig = threadSig();
+  }
+
+  /* ---------------- composer ---------------- */
+  function renderComposer(threadPostId) {
+    clear($comp);
+    if (isDemo && !me) return;
+    var attachments = [];
+    var box = el("div", { class: "composer" });
+    var popHost = el("div");
+    var attBox = el("div", { class: "attachments hidden" });
+
+    /* formatting toolbar */
+    var ta = el("textarea", { rows: 1, placeholder: threadPostId ? "Reply.." : "Message #" + CHANNEL });
+    function grow() { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 220) + "px"; updateSend(); }
+    ta.addEventListener("input", function () { grow(); acScan(); });
+    ta.addEventListener("keydown", function (e) {
+      if (acState.open && acState.items.length) {
+        if (e.key === "ArrowDown") { e.preventDefault(); acState.idx = (acState.idx + 1) % acState.items.length; acRender(); return; }
+        if (e.key === "ArrowUp") { e.preventDefault(); acState.idx = (acState.idx - 1 + acState.items.length) % acState.items.length; acRender(); return; }
+        if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); acPick(acState.idx); return; }
+        if (e.key === "Escape") { e.preventDefault(); acClose(); return; }
+      }
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); }
+    });
+    ta.addEventListener("blur", function () { setTimeout(acClose, 150); });
+    var ac = el("div", { class: "ac hidden" });
+    var acState = { open: false, items: [], idx: 0, start: -1 };
+    function acClose() { acState.open = false; ac.classList.add("hidden"); }
+    function acRender() {
+      clear(ac);
+      if (!acState.items.length) { acClose(); return; }
+      ac.appendChild(el("div", { class: "ac-head", text: "Algos" }));
+      acState.items.forEach(function (name, i) {
+        ac.appendChild(el("div", { class: "ac-item" + (i === acState.idx ? " sel" : ""), onmousedown: function (e) { e.preventDefault(); acPick(i); } }, [flagEl(name), el("span", { text: name })]));
+      });
+      ac.classList.remove("hidden"); acState.open = true;
+    }
+    function acScan() {
+      // Trigger on a "#" that starts a token; the query may contain spaces (algo names are multi-word).
+      var pos = ta.selectionStart, before = ta.value.slice(0, pos);
+      var mt = before.match(/(^|\s)#([^#\n]{0,40})$/);
+      if (!mt) { acClose(); return; }
+      var query = mt[2];
+      acState.start = pos - query.length - 1;
+      var q = query.toLowerCase().trim();
+      acState.items = ALGOS.filter(function (n) { return n.toLowerCase().indexOf(q) >= 0; })
+        .sort(function (a, b) { var ai = a.toLowerCase().indexOf(q) === 0 ? 0 : 1, bi = b.toLowerCase().indexOf(q) === 0 ? 0 : 1; return ai - bi || a.localeCompare(b); })
+        .slice(0, 25);
+      acState.idx = 0; acRender();
+    }
+    function acPick(i) {
+      var name = acState.items[i]; if (name == null) return;
+      var v = ta.value, pos = ta.selectionStart;
+      ta.value = v.slice(0, acState.start) + name + " " + v.slice(pos);
+      ta.selectionStart = ta.selectionEnd = acState.start + name.length + 1;
+      acClose(); ta.focus(); grow();
+    }
+    ta.addEventListener("paste", function (e) {
+      var items = (e.clipboardData && e.clipboardData.items) || [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type && items[i].type.indexOf("image") === 0) {
+          var f = items[i].getAsFile(); if (!f) continue;
+          e.preventDefault();
+          if (f.size > IMAGE_MAX_BYTES) { toast("Image is over 8 MB. Try a smaller one."); return; }
+          (function (file) {
+            readImage(file, function (out) {
+              attachments.push(file.type === "image/gif" ? { kind: "gif", dataUrl: out.dataUrl, previewUrl: out.dataUrl, name: file.name || "pasted.gif" } : { kind: "image", dataUrl: out.dataUrl, previewUrl: out.dataUrl, name: file.name || "pasted.png", w: out.w, h: out.h });
+              refreshAtt();
+            });
+          })(f);
+          return;
+        }
+      }
+    });
+
+    function wrapSel(b, a, ph) {
+      var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value, sel = v.slice(s, e) || ph || "";
+      ta.value = v.slice(0, s) + b + sel + a + v.slice(e);
+      ta.focus(); ta.selectionStart = s + b.length; ta.selectionEnd = s + b.length + sel.length; grow();
+    }
+    function linePref(pfx) {
+      var s = ta.selectionStart, v = ta.value, ls = v.lastIndexOf("\n", s - 1) + 1;
+      ta.value = v.slice(0, ls) + pfx + v.slice(ls); ta.focus(); ta.selectionStart = ta.selectionEnd = s + pfx.length; grow();
+    }
+    var fmt = el("div", { class: "fmt" }, [
+      el("button", { class: "fbtn", title: "Bold", html: '<span class="b">B</span>', onclick: function () { wrapSel("**", "**", "bold"); } }),
+      el("button", { class: "fbtn", title: "Italic", html: '<span class="i">i</span>', onclick: function () { wrapSel("_", "_", "italic"); } }),
+      el("button", { class: "fbtn", title: "Strikethrough", html: '<span class="s">S</span>', onclick: function () { wrapSel("~~", "~~", "strike"); } }),
+      el("span", { class: "fbtn-sep" }),
+      el("button", { class: "fbtn", title: "Link", html: I.link, onclick: function () { wrapSel("[", "](https://)", "text"); } }),
+      el("button", { class: "fbtn fbtn-extra", title: "Ordered list", html: I.ol, onclick: function () { linePref("1. "); } }),
+      el("button", { class: "fbtn fbtn-extra", title: "Bulleted list", html: I.ul, onclick: function () { linePref("- "); } }),
+      el("button", { class: "fbtn fbtn-extra", title: "Blockquote", html: I.quote, onclick: function () { linePref("> "); } }),
+      el("span", { class: "fbtn-sep fbtn-extra" }),
+      el("button", { class: "fbtn", title: "Code", html: I.code, onclick: function () { wrapSel("`", "`", "code"); } }),
+      el("button", { class: "fbtn fbtn-extra", title: "Code block", html: I.codeblock, onclick: function () { wrapSel("```\n", "\n```", "code"); } })
+    ]);
+
+    /* attachment helpers (reused) */
+    function refreshAtt() {
+      clear(attBox);
+      if (!attachments.length) { attBox.classList.add("hidden"); updateSend(); return; }
+      attBox.classList.remove("hidden");
+      attachments.forEach(function (a, i) {
+        var chip;
+        if (a.kind === "video") chip = el("div", { class: "attachment" }, [el("div", { class: "att-link" }, [icon(I.link), el("span", { text: a.url })])]);
+        else if (a.kind === "chart") chip = el("div", { class: "attachment" }, [el("div", { class: "att-link" }, [icon(I.chart), el("span", { text: "$" + a.symbol + " chart" })])]);
+        else chip = el("div", { class: "attachment" }, [el("img", { src: a.previewUrl || a.url })]);
+        chip.appendChild(el("button", { class: "att-x", title: "Remove", html: I.x, onclick: function () { attachments.splice(i, 1); refreshAtt(); } }));
+        attBox.appendChild(chip);
+      });
+      updateSend();
+    }
+    var fileInput = el("input", { type: "file", accept: "image/*", class: "hidden" });
+    fileInput.addEventListener("change", function () {
+      var f = fileInput.files && fileInput.files[0]; fileInput.value = ""; if (!f) return;
+      if (f.size > IMAGE_MAX_BYTES) return toast("Image is over 8 MB. Try a smaller one.");
+      readImage(f, function (out) {
+        attachments.push(f.type === "image/gif" ? { kind: "gif", dataUrl: out.dataUrl, previewUrl: out.dataUrl, name: f.name } : { kind: "image", dataUrl: out.dataUrl, previewUrl: out.dataUrl, name: f.name, w: out.w, h: out.h });
+        refreshAtt();
+      });
+    });
+    function openAttachMenu(anchor) {
+      clear(popHost);
+      popHost.appendChild(el("div", { class: "pop" }, [el("div", { class: "attach-menu" }, [
+        el("button", { html: I.photo + "<span>Photo</span>", onclick: function () { clear(popHost); fileInput.click(); } }),
+        el("button", { html: I.gif + "<span>GIF</span>", onclick: openGif }),
+        el("button", { html: I.link + "<span>Video link</span>", onclick: openVideo }),
+        el("button", { html: I.chart + "<span>Chart</span>", onclick: openChart })
+      ])]));
+    }
+    function openGif() {
+      clear(popHost);
+      var pop = el("div", { class: "pop" });
+      var search = el("input", { class: "input", placeholder: GIPHY_KEY ? "Search GIFs.." : "Paste a GIF link (https://..)" });
+      pop.appendChild(search);
+      if (GIPHY_KEY) {
+        var grid = el("div", { class: "gif-grid" }); pop.appendChild(grid);
+        var t; search.addEventListener("input", function () { clearTimeout(t); t = setTimeout(function () { giphy(search.value, grid, addGif); }, 300); });
+        giphy("", grid, addGif);
+      } else {
+        pop.appendChild(el("div", { class: "pop-row" }, [el("button", { class: "btn-ghost", text: "Add", onclick: function () { var u = search.value.trim(); if (/^https?:\/\//i.test(u)) addGif(u); } })]));
+        pop.appendChild(el("div", { class: "pop-hint", text: "Add a Giphy API key in the code to enable GIF search." }));
+      }
+      popHost.appendChild(pop);
+    }
+    function addGif(url) { attachments.push({ kind: "gif", url: url }); refreshAtt(); clear(popHost); }
+    function openVideo() {
+      clear(popHost);
+      var inp = el("input", { class: "input", placeholder: "Paste a YouTube, Vimeo or X link" });
+      popHost.appendChild(el("div", { class: "pop" }, [inp, el("div", { class: "pop-row" }, [
+        el("button", { class: "btn-ghost", text: "Add video", onclick: function () { var u = inp.value.trim(); if (/^https?:\/\//i.test(u)) { attachments.push({ kind: "video", url: u }); refreshAtt(); clear(popHost); } } })
+      ])]));
+    }
+    function openChart() {
+      clear(popHost);
+      var inp = el("input", { class: "input", placeholder: "Symbol, e.g. AAPL, BTCUSD, NASDAQ:NVDA" });
+      popHost.appendChild(el("div", { class: "pop" }, [inp, el("div", { class: "pop-row" }, [
+        el("button", { class: "btn-ghost", text: "Add chart", onclick: function () { var s = inp.value.trim().toUpperCase(); if (s) { attachments.push({ kind: "chart", symbol: s }); refreshAtt(); clear(popHost); } } })
+      ]), el("div", { class: "pop-hint", text: "Adds a live mini chart from TradingView." })]));
+      inp.focus();
+    }
+
+    /* bottom bar */
+    var send = el("button", { class: "send", html: I.send, title: "Send" });
+    function updateSend() { var has = ta.value.trim() || attachments.length; send.classList.toggle("on", !!has); }
+    send.addEventListener("click", doSend);
+    function doSend() {
+      var text = ta.value.trim(); if (!text && !attachments.length) return;
+      send.classList.remove("on");
+      uploadAttachments(attachments).then(function (media) {
+        return call(threadPostId ? "createReply" : "createPost", threadPostId ? { postId: threadPostId, text: text, media: media } : { text: text, media: media });
+      }).then(function (created) {
+        ta.value = ""; grow(); attachments = []; refreshAtt(); clear(popHost);
+        if (threadPostId) { openThread.replies = openThread.replies || []; openThread.replies.push(created); var pp = findPost(threadPostId); if (pp) { pp.replyCount = (pp.replyCount || 0) + 1; pp.lastReplyDate = created.createdDate; } renderThread(true); }
+        else { posts.push(created); renderFeed(true); }
+      }).catch(function (err) { updateSend(); toast((err && err.message) || "Could not send."); });
+    }
+
+    var bar = el("div", { class: "cbar" }, [
+      el("button", { class: "cbtn", title: "Attach", html: I.plus, onclick: function (e) { openAttachMenu(e.currentTarget); } }),
+      el("button", { class: "cbtn", title: "Emoji", html: I.smile, onclick: function (e) { e.stopPropagation(); openPicker(e.currentTarget, function (emoji) { insertAtCursor(ta, emoji); grow(); }); } }),
+      el("button", { class: "cbtn", title: "Mention", text: "@", onclick: function () { insertAtCursor(ta, "@"); ta.focus(); grow(); } }),
+      send
+    ]);
+
+    box.appendChild(fmt);
+    box.appendChild(ta);
+    box.appendChild(fileInput);
+    box.appendChild(attBox);
+    box.appendChild(popHost);
+    box.appendChild(bar);
+    $comp.appendChild(box);
+    $comp.appendChild(ac);
+    $comp.appendChild(el("div", { class: "composer-note", text: "Community discussion, not financial advice." }));
+  }
+
+  /* ---------------- media ---------------- */
+  function buildMedia(media) {
+    var box = el("div", { class: "media" });
+    media.forEach(function (m) {
+      if (m.type === "image") { var img = el("img", { class: "photo", src: m.url, alt: "", loading: "lazy" }); img.addEventListener("click", function () { lightbox(m.url); }); box.appendChild(img); }
+      else if (m.type === "gif") box.appendChild(el("img", { class: "gif", src: m.url, alt: "GIF", loading: "lazy" }));
+      else if (m.type === "video") box.appendChild(buildVideo(m.url));
+      else if (m.type === "chart") box.appendChild(buildChart(m.symbol));
+    });
+    return box;
+  }
+  function buildVideo(url) {
+    var emb = videoEmbed(url);
+    if (emb) { var w = el("div", { class: "embed" }); w.appendChild(el("iframe", { src: emb, allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture", allowfullscreen: "" })); return w; }
+    var host = ""; try { host = new URL(url).hostname.replace(/^www\./, ""); } catch (e) {}
+    return el("a", { class: "linkcard", href: url, target: "_blank", rel: "noopener" }, [icon(I.link), el("div", {}, [el("div", { text: "Watch video" }), el("div", { class: "lc-host", text: host || url })])]);
+  }
+  function videoEmbed(url) {
+    var yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([\w-]{6,})/);
+    if (yt) return "https://www.youtube.com/embed/" + yt[1];
+    var vm = url.match(/vimeo\.com\/(?:video\/)?(\d+)/); if (vm) return "https://player.vimeo.com/video/" + vm[1];
+    return null;
+  }
+  function buildChart(symbol) {
+    var wrap = el("div", { class: "tvchart" });
+    var holder = el("div", { class: "tradingview-widget-container" });
+    holder.appendChild(el("div", { class: "tradingview-widget-container__widget" }));
+    var s = document.createElement("script");
+    s.type = "text/javascript"; s.async = true;
+    s.src = "https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";
+    s.text = JSON.stringify({ symbol: symbol, width: "100%", height: 200, locale: "en", dateRange: "3M", colorTheme: "light", isTransparent: true, autosize: false });
+    holder.appendChild(s);
+    wrap.appendChild(holder);
+    wrap.appendChild(el("a", { class: "tv-cap", href: "https://www.tradingview.com/symbols/" + encodeURIComponent(symbol) + "/", target: "_blank", rel: "noopener", text: "$" + symbol + " · open on TradingView ↗" }));
+    return wrap;
+  }
+
+  /* ---------------- uploads ---------------- */
+  function uploadAttachments(att) {
+    return Promise.all(att.map(function (a) {
+      if (a.kind === "video") return Promise.resolve({ type: "video", url: a.url });
+      if (a.kind === "chart") return Promise.resolve({ type: "chart", symbol: a.symbol });
+      if (a.kind === "gif" && a.url) return Promise.resolve({ type: "gif", url: a.url });
+      return call("uploadMedia", { dataUrl: a.dataUrl, name: a.name, kind: a.kind }).then(function (res) { return { type: a.kind, url: res.url, w: a.w, h: a.h }; });
+    }));
+  }
+  function readImage(file, cb) {
+    var r = new FileReader();
+    r.onload = function () {
+      if (file.type === "image/gif") return cb({ dataUrl: r.result });
+      var img = new Image();
+      img.onload = function () { var s = Math.min(1, MAX_IMAGE_PX / Math.max(img.width, img.height)); var cw = Math.round(img.width * s), ch = Math.round(img.height * s); var c = document.createElement("canvas"); c.width = cw; c.height = ch; c.getContext("2d").drawImage(img, 0, 0, cw, ch); cb({ dataUrl: c.toDataURL("image/jpeg", 0.85), w: cw, h: ch }); };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  }
+  function giphy(q, grid, pick) {
+    clear(grid).appendChild(el("div", { class: "pop-hint", text: "Loading.." }));
+    fetch("https://api.giphy.com/v1/gifs/" + (q ? "search?q=" + encodeURIComponent(q) + "&" : "trending?") + "api_key=" + GIPHY_KEY + "&limit=18&rating=pg-13")
+      .then(function (r) { return r.json(); }).then(function (j) { clear(grid); (j.data || []).forEach(function (g) { grid.appendChild(el("img", { src: g.images.fixed_height_small.url, loading: "lazy", onclick: function () { pick(g.images.downsized_medium.url); } })); }); })
+      .catch(function () { clear(grid).appendChild(el("div", { class: "pop-hint", text: "GIF search unavailable." })); });
+  }
+
+  function loadAlgos() {
+    // Pull the active algo names from the results sheet header row (same source/proxy the /algos catalog uses).
+    // Active = header carries a timeframe token (/[MH]\d+/) and is not a retired "old " column. Falls back to the canonical list.
+    var u = ALGO_SHEET.proxy + encodeURIComponent("https://docs.google.com/spreadsheets/d/" + ALGO_SHEET.id + "/gviz/tq?tqx=out:csv&gid=" + ALGO_SHEET.gid + "&range=A1:CB1");
+    fetch(u).then(function (r) { return r.text(); }).then(function (csv) {
+      var cells = parseCsvRow((csv.split(/\r?\n/)[0]) || "");
+      var names = cells.map(function (s) { return (s || "").trim(); }).filter(function (s) { return s && /[MH]\d+/.test(s) && !/^old /i.test(s); });
+      ALGOS = names.length ? uniq(names) : DEMO_ALGOS.slice(); _algoRe = null; rerender();
+    }).catch(function () { ALGOS = DEMO_ALGOS.slice(); _algoRe = null; rerender(); });
+  }
+  function parseCsvRow(line) {
+    var out = [], cur = "", q = false;
+    for (var i = 0; i < line.length; i++) { var c = line[i];
+      if (q) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else { if (c === '"') q = true; else if (c === ",") { out.push(cur); cur = ""; } else cur += c; } }
+    out.push(cur); return out;
+  }
+  function uniq(a) { var seen = {}, r = []; a.forEach(function (x) { if (!seen[x]) { seen[x] = 1; r.push(x); } }); return r; }
+
+  /* ---------------- moderation ---------------- */
+  function doDelete(item, inThread) {
+    var isReply = inThread && openThread && item._id !== openThread.post._id;
+    call(isReply ? "deleteReply" : "deletePost", { id: item._id }).then(function () {
+      if (isReply) { openThread.replies = openThread.replies.filter(function (r) { return r._id !== item._id; }); var pp = findPost(openThread.post._id); if (pp && pp.replyCount) pp.replyCount--; renderThread(); }
+      else if (inThread) { openThread = null; posts = posts.filter(function (p) { return p._id !== item._id; }); renderChan(false); renderFeed(); }
+      else { posts = posts.filter(function (p) { return p._id !== item._id; }); renderFeed(); }
+    }).catch(function () { toast("Could not delete."); });
+  }
+  function doPin(p) { call("pinPost", { id: p._id, pinned: !p.pinned }).then(function () { loadFeed(false); }).catch(function () { toast("Could not update."); }); }
+
+  /* ---------------- gates ---------------- */
+  function renderGate(kind) {
+    clear($scroll); clear($comp);
+    var g = el("div", { class: "gate" });
+    g.appendChild(el("div", { class: "lock", html: I.lock }));
+    if (kind === "loggedOut") {
+      g.appendChild(el("h2", { text: "Join the ProRealAlgos community" }));
+      g.appendChild(el("p", { text: "Log in with your ProRealAlgos account to read and post in the community." }));
+      g.appendChild(el("button", { class: "btn-primary", text: "Log in", onclick: function () { call("requestLogin", {}); } }));
+    } else {
+      g.appendChild(el("h2", { text: "Members only" }));
+      g.appendChild(el("p", { text: "The community is open to ProRealAlgos members. Get access to join the discussion." }));
+      g.appendChild(el("button", { class: "btn-primary", text: "See membership", onclick: function () { call("requestUpgrade", {}); } }));
+    }
+    $scroll.appendChild(g);
+  }
+
+  /* ---------------- emoji picker ---------------- */
+  function openPicker(anchor, onPick) {
+    closePicker();
+    var pop = el("div", { class: "picker" });
+    EMOJIS.forEach(function (e) { pop.appendChild(el("button", { class: "emo", text: e, onclick: function (ev) { ev.stopPropagation(); onPick(e); closePicker(); } })); });
+    document.body.appendChild(pop); _picker = pop;
+    var r = anchor.getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + "px";
+    var top = r.bottom + 6;
+    if (top + pop.offsetHeight + 10 > window.innerHeight) top = Math.max(8, r.top - pop.offsetHeight - 6);
+    pop.style.top = top + "px";
+    setTimeout(function () { document.addEventListener("click", closePicker); }, 0);
+  }
+  function closePicker() { if (_picker) { _picker.remove(); _picker = null; document.removeEventListener("click", closePicker); } }
+
+  /* ---------------- markdown (safe) ---------------- */
+  function escapeHtml(s) { return String(s).replace(/[&<>]/g, function (c) { return c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;"; }); }
+  function escAttr(u) { return String(u).replace(/"/g, "%22").replace(/</g, "%3C").replace(/>/g, "%3E"); }
+  function renderMarkdown(container, raw) {
+    var text = String(raw || ""), blocks = [], inlines = [], links = [];
+    text = text.replace(/```([\s\S]*?)```/g, function (m, c) { blocks.push(c.replace(/^\n/, "").replace(/\n$/, "")); return " B" + (blocks.length - 1) + " "; });
+    text = text.replace(/`([^`\n]+)`/g, function (m, c) { inlines.push(c); return " I" + (inlines.length - 1) + " "; });
+    text = text.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, function (m, t, u) { links.push({ t: t, u: u }); return " L" + (links.length - 1) + " "; });
+    text = escapeHtml(text);
+    text = text.replace(/(^|[\s(])(https?:\/\/[^\s<]+[^\s<.,)])/g, function (m, pre, u) { return pre + '<a href="' + escAttr(u) + '" target="_blank" rel="noopener">' + u + "</a>"; });
+    text = text.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>").replace(/~~([^~\n]+)~~/g, "<del>$1</del>")
+               .replace(/(^|[^\w*])\*([^*\n]+)\*(?!\w)/g, "$1<em>$2</em>").replace(/(^|[^\w_])_([^_\n]+)_(?!\w)/g, "$1<em>$2</em>");
+    text = text.replace(/(^|[^A-Za-z0-9_$\/])\$([A-Z]{1,6}(?:\.[A-Z]{1,4})?)\b/g, function (m, pre, sym) { return pre + '<a class="cashtag" href="https://www.tradingview.com/symbols/' + sym + '/" target="_blank" rel="noopener">$' + sym + "</a>"; });
+    var areg = algoRegex(); if (areg) text = text.replace(areg, function (m, pre, name) { return pre + '<span class="algotag">' + algoFlagHtml(name) + name + "</span>"; });
+    var lines = text.split("\n"), html = "", i = 0;
+    while (i < lines.length) {
+      var ln = lines[i];
+      if (/^&gt;\s?/.test(ln)) { var q = []; while (i < lines.length && /^&gt;\s?/.test(lines[i])) { q.push(lines[i].replace(/^&gt;\s?/, "")); i++; } html += "<blockquote>" + q.join("<br>") + "</blockquote>"; continue; }
+      if (/^\s*[-*]\s+/.test(ln)) { var u = []; while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { u.push("<li>" + lines[i].replace(/^\s*[-*]\s+/, "") + "</li>"); i++; } html += "<ul>" + u.join("") + "</ul>"; continue; }
+      if (/^\s*\d+\.\s+/.test(ln)) { var o = []; while (i < lines.length && /^\s*\d+\.\s+/.test(lines[i])) { o.push("<li>" + lines[i].replace(/^\s*\d+\.\s+/, "") + "</li>"); i++; } html += "<ol>" + o.join("") + "</ol>"; continue; }
+      html += ln + (i < lines.length - 1 ? "<br>" : ""); i++;
+    }
+    html = html.replace(/ B(\d+) /g, function (m, n) { return "<pre><code>" + escapeHtml(blocks[+n]) + "</code></pre>"; });
+    html = html.replace(/ I(\d+) /g, function (m, n) { return "<code>" + escapeHtml(inlines[+n]) + "</code>"; });
+    html = html.replace(/ L(\d+) /g, function (m, n) { var l = links[+n]; return '<a href="' + escAttr(l.u) + '" target="_blank" rel="noopener">' + escapeHtml(l.t) + "</a>"; });
+    container.innerHTML = html;
+    return container;
+  }
+
+  /* ---------------- misc helpers ---------------- */
+  function avatarEl(person, small) {
+    var cls = "av" + (small ? " sm" : ""), photo = person && (person.photo || person.authorPhoto), name = (person && (person.name || person.authorName)) || "?";
+    if (photo) return el("img", { class: cls, src: photo, alt: "" });
+    var d = el("div", { class: cls, text: initials(name) }); d.style.background = colorFor(name); return d;
+  }
+  function initials(n) { var p = n.trim().split(/\s+/); return ((p[0] || "?")[0] + (p[1] ? p[1][0] : "")).toUpperCase(); }
+  function colorFor(n) { var pal = ["#0E0E10", "#EC3B3D", "#3DC574", "#6B6B72", "#3A6EA5", "#9B59B6", "#E08A00"]; var h = 0; for (var i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) >>> 0; return pal[h % pal.length]; }
+  function icon(svg) { var s = el("span"); s.innerHTML = svg; s.style.cssText = "display:inline-flex;width:16px;height:16px"; if (s.firstChild) { s.firstChild.style.width = "16px"; s.firstChild.style.height = "16px"; } return s; }
+  // market flag derived from the algo name (matches the /algos catalog mapping)
+  function algoSvg(name) {
+    var n = (name || "").toUpperCase(), s;
+    if (n.indexOf("DAX") >= 0) s = '<rect width="21" height="5" y="0" fill="#111"/><rect width="21" height="5" y="5" fill="#DD0000"/><rect width="21" height="5" y="10" fill="#FFCE00"/>';
+    else if (n.indexOf("JPY") >= 0) s = '<rect width="21" height="15" fill="#fff"/><circle cx="10.5" cy="7.5" r="4.4" fill="#BC002D"/>';
+    else if (n.indexOf("GOLD") >= 0) s = '<rect width="21" height="15" fill="#fff"/><circle cx="10.5" cy="7.5" r="5" fill="#E6B400"/><circle cx="10.5" cy="7.5" r="5" fill="none" stroke="#C99700" stroke-width="0.6"/>';
+    else s = '<rect width="21" height="15" fill="#fff"/><rect width="21" height="2.1" y="0" fill="#B22234"/><rect width="21" height="2.1" y="4.3" fill="#B22234"/><rect width="21" height="2.1" y="8.6" fill="#B22234"/><rect width="21" height="2.1" y="12.9" fill="#B22234"/><rect width="9.5" height="8.6" fill="#3C3B6E"/>';
+    return '<svg viewBox="0 0 21 15" aria-hidden="true">' + s + '</svg>';
+  }
+  function algoFlagHtml(name) { return '<span class="algo-flag">' + algoSvg(name) + '</span>'; }
+  function flagEl(name) { var s = el("span", { class: "algo-flag" }); s.innerHTML = algoSvg(name); return s; }
+  function canModerate(item) { return me && (me.admin || (item.authorId && item.authorId === me.id)); }
+  function findPost(id) { for (var i = 0; i < posts.length; i++) if (posts[i]._id === id) return posts[i]; return null; }
+  function rxSig(it) { return (it.reactions || []).map(function (r) { return r.emoji + r.count + (r.me ? "1" : "0"); }).join(","); }
+  function feedSig() { return posts.map(function (p) { return p._id + ":" + (p.replyCount || 0) + ":" + (p.lastReplyDate || "") + ":" + rxSig(p); }).join("|"); }
+  function threadSig() { var t = openThread; if (!t) return ""; return rxSig(t.post) + "#" + ((t.replies || []).map(function (r) { return r._id + ":" + rxSig(r); }).join("|")); }
+  function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function algoRegex() {
+    if (!_algoRe && ALGOS.length) {
+      var names = ALGOS.slice().sort(function (a, b) { return b.length - a.length; }).map(escapeRegex);
+      _algoRe = new RegExp("(^|[^\\w])(" + names.join("|") + ")(?![\\w])", "gi");
+    }
+    return _algoRe;
+  }
+  function insertAtCursor(ta, str) { var s = ta.selectionStart, e = ta.selectionEnd, v = ta.value; ta.value = v.slice(0, s) + str + v.slice(e); ta.selectionStart = ta.selectionEnd = s + str.length; ta.focus(); }
+
+  function sameDay(a, b) { var x = new Date(a), y = new Date(b); return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate(); }
+  function dayLabel(d) {
+    var dt = new Date(d), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+    if (sameDay(dt, now)) return "Today";
+    if (sameDay(dt, y)) return "Yesterday";
+    var day = dt.getDate(), suf = (day % 10 === 1 && day !== 11) ? "st" : (day % 10 === 2 && day !== 12) ? "nd" : (day % 10 === 3 && day !== 13) ? "rd" : "th";
+    return dt.toLocaleDateString(undefined, { weekday: "long", month: "long" }) + " " + day + suf;
+  }
+  function clockTime(d) { return new Date(d).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
+  function timeAgo(d) { var s = Math.round((Date.now() - new Date(d).getTime()) / 1000); if (s < 60) return "just now"; if (s < 3600) return Math.floor(s / 60) + "m ago"; if (s < 86400) return Math.floor(s / 3600) + "h ago"; return Math.floor(s / 86400) + "d ago"; }
+
+  function isNearBottom() { return $scroll.scrollHeight - $scroll.scrollTop - $scroll.clientHeight < 80; }
+  function restoreScroll(bottom, prevTop) { if (bottom) $scroll.scrollTop = $scroll.scrollHeight; else $scroll.scrollTop = prevTop; }
+
+  function lightbox(url) { var lb = el("div", { class: "lightbox" }, [el("img", { src: url })]); lb.addEventListener("click", function () { document.body.removeChild(lb); }); document.body.appendChild(lb); }
+  var toastT; function toast(msg) { var t = document.getElementById("__toast") || (function () { var n = el("div", { id: "__toast" }); n.style.cssText = "position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#0E0E10;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;z-index:500;opacity:0;transition:opacity 160ms;"; document.body.appendChild(n); return n; })(); t.textContent = msg; t.style.opacity = "1"; clearTimeout(toastT); toastT = setTimeout(function () { t.style.opacity = "0"; }, 2600); }
+
+  /* ---------------- polling ---------------- */
+  var pollT;
+  function startPolling() {
+    clearInterval(pollT);
+    pollT = setInterval(function () {
+      if (document.hidden) return;
+      if (openThread) { if (openThread.post && openThread.replies != null) call("loadThread", { postId: openThread.post._id }).then(function (res) { if (!openThread) return; openThread.replies = (res && res.replies) || []; if (threadSig() !== lastThreadSig) renderThread(false); }).catch(function () {}); }
+      else loadFeed(false);
+    }, POLL_MS);
+  }
+
+  /* ---------------- DEMO backend ---------------- */
+  var DEMO_ME = { id: "u_carl", name: "Carl Eriksson", photo: null, loggedIn: true, approved: true, admin: true };
+  var dPosts, dReplies, dSeq = 100;
+  function seedDemo() {
+    var now = Date.now(), H = 3600e3, D = 86400e3;
+    dPosts = [
+      { _id: "p1", authorId: "u_carl", authorName: "Carl Eriksson", createdDate: new Date(now - D - 4 * H), pinned: true, text: "Welcome to the ProRealAlgos community 👋\n\nThis is the one place to talk strategies, share equity curves, and ask questions. Be helpful, keep it civil.", media: [], reactions: [{ emoji: "👍", count: 9, me: false }, { emoji: "🎉", count: 4, me: true }], replyCount: 2, lastReplyDate: new Date(now - D - 2 * H), repliers: [{ name: "Mia Lindgren" }, { name: "Tom R." }] },
+      { _id: "p2", authorId: "u_carl", authorName: "Carl Eriksson", createdDate: new Date(now - D - 3.9 * H), text: "Drop a screenshot of your setup and what you trade. **Markdown works** too: _italics_, `inline code`, and lists.", media: [], reactions: [{ emoji: "🙌", count: 3, me: false }], replyCount: 0 },
+      { _id: "p3", authorId: "u_mia", authorName: "Mia Lindgren", createdDate: new Date(now - 5 * H), text: "Backtested Prime DAX M15 on $DAX this week. Clean results 📈 Anyone running it live?", media: [{ type: "image", url: demoChart() }], reactions: [{ emoji: "🔥", count: 5, me: false }, { emoji: "📈", count: 2, me: false }], replyCount: 1, lastReplyDate: new Date(now - 4 * H), repliers: [{ name: "Carl Eriksson" }] },
+      { _id: "p4", authorId: "u_tom", authorName: "Tom R.", createdDate: new Date(now - 2 * H), text: "Great walkthrough on position sizing here:", media: [{ type: "video", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }], reactions: [], replyCount: 0 },
+      { _id: "p5", authorId: "u_tom", authorName: "Tom R.", createdDate: new Date(now - 2 * H + 90000), text: "Second half is the gold.", media: [], reactions: [{ emoji: "👀", count: 2, me: false }], replyCount: 0 },
+      { _id: "p6", authorId: "u_mia", authorName: "Mia Lindgren", createdDate: new Date(now - 30 * 60000), text: "$NVDA looking strong into earnings. Watching $BTCUSD too.", media: [{ type: "chart", symbol: "NVDA" }], reactions: [{ emoji: "🚀", count: 3, me: false }], replyCount: 0 }
+    ];
+    dReplies = {
+      p1: [{ _id: "r1", authorId: "u_mia", authorName: "Mia Lindgren", createdDate: new Date(now - D - 3 * H), text: "Excited to be here!", media: [], reactions: [{ emoji: "❤️", count: 2, me: false }] },
+           { _id: "r2", authorId: "u_tom", authorName: "Tom R.", createdDate: new Date(now - D - 2 * H), text: "Finally a spot to compare notes.", media: [], reactions: [] }],
+      p3: [{ _id: "r3", authorId: "u_carl", authorName: "Carl Eriksson", createdDate: new Date(now - 4 * H), text: "Running it live since Monday, holding up well. Watch the spread at the open.", media: [], reactions: [{ emoji: "🙏", count: 1, me: false }] }]
+    };
+  }
+  function dclone(o) { return JSON.parse(JSON.stringify(o)); }
+  function dReact(id, emoji, on) {
+    var arr = null, i, k, j;
+    for (i = 0; i < dPosts.length; i++) if (dPosts[i]._id === id) arr = dPosts[i].reactions || (dPosts[i].reactions = []);
+    if (!arr) for (k in dReplies) for (j = 0; j < dReplies[k].length; j++) if (dReplies[k][j]._id === id) arr = dReplies[k][j].reactions || (dReplies[k][j].reactions = []);
+    if (!arr) return;
+    var r = null; for (i = 0; i < arr.length; i++) if (arr[i].emoji === emoji) r = arr[i];
+    if (on) { if (r) { if (!r.me) { r.count++; r.me = true; } } else arr.push({ emoji: emoji, count: 1, me: true }); }
+    else if (r) { r.count--; r.me = false; if (r.count <= 0) arr.splice(arr.indexOf(r), 1); }
+  }
+  function demo(type, payload) {
+    if (!dPosts) seedDemo();
+    return new Promise(function (resolve) {
+      setTimeout(function () {
+        if (type === "loadFeed") resolve({ posts: dclone(dPosts), memberCount: 128 });
+        else if (type === "loadThread") resolve({ replies: dclone(dReplies[payload.postId] || []) });
+        else if (type === "createPost") { var np = { _id: "p" + (++dSeq), authorId: me.id, authorName: me.name, createdDate: new Date(), text: payload.text, media: payload.media || [], reactions: [], replyCount: 0, pinned: false }; dPosts.push(np); dReplies[np._id] = []; resolve(dclone(np)); }
+        else if (type === "createReply") { var nr = { _id: "r" + (++dSeq), authorId: me.id, authorName: me.name, createdDate: new Date(), text: payload.text, media: payload.media || [], reactions: [] }; (dReplies[payload.postId] = dReplies[payload.postId] || []).push(nr); resolve(dclone(nr)); }
+        else if (type === "uploadMedia") resolve({ url: payload.dataUrl });
+        else if (type === "react") { dReact(payload.id, payload.emoji, payload.on); resolve({}); }
+        else if (type === "deletePost") { dPosts = dPosts.filter(function (p) { return p._id !== payload.id; }); resolve({}); }
+        else if (type === "deleteReply") { for (var k in dReplies) dReplies[k] = dReplies[k].filter(function (r) { return r._id !== payload.id; }); resolve({}); }
+        else if (type === "pinPost") { dPosts.forEach(function (p) { if (p._id === payload.id) p.pinned = payload.pinned; }); resolve({}); }
+        else resolve({});
+      }, 120);
+    });
+  }
+  function demoChart() {
+    var pts = "0,150 40,140 80,148 120,120 160,128 200,96 240,104 280,72 320,60 360,30 400,38";
+    return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="180" viewBox="0 0 400 180"><rect width="400" height="180" fill="#F6F6F7"/><polyline points="' + pts + '" fill="none" stroke="#3DC574" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/><line x1="0" y1="150" x2="400" y2="150" stroke="#E8E8EA" stroke-width="1"/></svg>');
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>
