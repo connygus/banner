@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Member Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pra-bg:    #FFFFFF;
+    --pra-ink:   #0E0E10;
+    --pra-red:   #EC3B3D;
+    --pra-green: #3DC574;
+    --pra-muted: #6B6B72;
+    --pra-line:  #E8E8EA;
+    --pra-soft:  #F6F6F7;
+    --pra-font-sans: 'Onest', system-ui, -apple-system, sans-serif;
+    --pra-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--pra-font-sans);
+    color: var(--pra-ink);
+    background: transparent;            /* white-canvas: let the Wix section show through */
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Full-height menu so the bottom group can dock to the bottom. min-height
+     (not height) lets it grow + scroll if it ever exceeds the iframe. */
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 12px;
+    min-height: 100vh;
+    max-width: 360px;                   /* wide enough that the course names stay on one line */
+  }
+
+  /* mono eyebrow section labels */
+  .sb-label {
+    font-family: var(--pra-font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--pra-muted);
+    padding: 14px 12px 4px;     /* the top padding is the gap between categories */
+  }
+  .sb-label.bottom { margin-top: auto; }   /* push this group (Account & Help) to the bottom */
+
+  .item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 5px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--pra-ink);
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease;
+    outline: none;
+  }
+  .item:hover { background: var(--pra-soft); }
+  .item:focus-visible { box-shadow: 0 0 0 2px rgba(14, 14, 16, 0.10); }
+
+  /* CURRENT PAGE: calm soft fill + a precise red accent (no heavy black pill) */
+  .item.active { background: var(--pra-soft); }
+  .item.active .label { font-weight: 600; }
+  .item.active .ico { color: var(--pra-red); }
+  .item.active::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 3px; height: 14px;
+    border-radius: 0 3px 3px 0;
+    background: var(--pra-red);
+  }
+
+  .item .ico {
+    width: 18px; height: 18px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pra-muted);
+    transition: color 0.15s ease;
+  }
+  .item:hover .ico { color: var(--pra-ink); }
+  .item .ico svg { width: 17px; height: 17px; display: block; }
+
+  .item .label { line-height: 1.25; }
+
+  .item .meta {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* quiet mono count pills; green is the one pop of colour (a positive return) */
+  .badge {
+    font-family: var(--pra-font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--pra-soft);
+    color: var(--pra-muted);
+    white-space: nowrap;
+    transition: background 0.15s ease;
+  }
+  .badge.green { background: rgba(61, 197, 116, 0.12); color: var(--pra-green); }
+  .item:hover .badge, .item.active .badge { background: #FFFFFF; }                 /* lift off the fill */
+  .item:hover .badge.green, .item.active .badge.green { background: rgba(61, 197, 116, 0.16); }
+
+  /* affordances reveal on hover -> calm resting state */
+  .aff {
+    width: 14px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--pra-muted);
+    opacity: 1;                 /* visible by default (touch + safe fallback) */
+    transition: opacity 0.15s ease, transform 0.15s ease, color 0.15s ease;
+  }
+  .aff svg { width: 13px; height: 13px; display: block; }
+  .aff.chev { font-family: var(--pra-font-mono); font-size: 14px; }
+  .item:hover .aff { color: var(--pra-ink); }
+
+  /* Hover-capable devices: keep the resting row calm, reveal the glyph on hover. */
+  @media (hover: hover) {
+    .aff { opacity: 0; transform: translateX(-3px); }
+    .item:hover .aff, .item.active .aff { opacity: 1; transform: none; }
+  }
+
+  /* Touch devices: roomier tap targets. */
+  @media (hover: none) {
+    .item { padding: 11px 14px; font-size: 15px; }
+  }
+
+  /* Genuinely small screens: let the menu fill the width. */
+  @media (max-width: 510px) {
+    .menu { max-width: none; }
+  }
+</style>
+</head>
+<body>
+
+<!--
+  HOW TO EDIT
+  • Page links  : <a ... target="_parent"> opens in the parent Wix page. href = full https URL.
+  • Product links: <a ... target="_parent" download> downloads the .zip (parent context dodges the
+                   iframe-sandbox download block; zips download without navigating the page).
+  • Current page highlight: add ?active=<data-key> to the iframe URL (e.g. ?active=community).
+                            Defaults to Dashboard. Keys match each page item's data-key.
+  • Two badges are live from the results sheet (Historic results %, Algo library count).
+  • The menu is min-height:100vh and the Account & Help group is bottom-aligned, so give the
+    Wix iframe element a tall/full height and keep it >= ~340px wide.
+-->
+
+<nav class="menu" role="navigation" aria-label="Member area">
+
+  <!-- Primary: Dashboard first, Community elevated (it's the central hub) -->
+
+  <a class="item active" href="https://www.prorealalgos.com/dashboard" target="_parent" data-key="dashboard">
+    <span class="ico"><!-- Dashboard: 2x2 grid -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1.8" y="1.8" width="5.2" height="5.2" rx="1.2"/><rect x="9" y="1.8" width="5.2" height="5.2" rx="1.2"/>
+        <rect x="1.8" y="9" width="5.2" height="5.2" rx="1.2"/><rect x="9" y="9" width="5.2" height="5.2" rx="1.2"/>
+      </svg>
+    </span>
+    <span class="label">Dashboard</span>
+    <span class="meta"><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+  <a class="item" href="https://www.prorealalgos.com/community" target="_parent" data-key="community">
+    <span class="ico"><!-- Community: people -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="6" cy="6.2" r="2.3"/><path d="M1.9 13c.5-2.2 2.1-3.4 4.1-3.4s3.6 1.2 4.1 3.4"/><path d="M10.4 4.3c1.2.1 2.1 1.1 2.1 2.3 0 1-.6 1.8-1.5 2.1"/><path d="M11.2 9.7c1.6.3 2.7 1.5 3 3.3"/>
+      </svg>
+    </span>
+    <span class="label">Community</span>
+    <span class="meta"><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+  <div class="sb-label">Results</div>
+
+  <a class="item" href="https://www.prorealalgos.com/historicresults" target="_parent" data-key="historicresults">
+    <span class="ico"><!-- Historic results: up-trend line -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1.6 11.4 L5.6 7 L8.6 9.6 L14 3.6"/><path d="M10.4 3.6 H14 V7.2"/>
+      </svg>
+    </span>
+    <span class="label">Historic results</span>
+    <span class="meta"><span class="badge green" id="badge-gain">+1,507%</span><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+  <a class="item" href="https://www.prorealalgos.com/tradereceipts" target="_parent" data-key="tradereceipts">
+    <span class="ico"><!-- Trade receipts: receipt -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3.5 2.3 H12.5 V12.7 l-1.5 1 -1.5-1 -1.5 1 -1.5-1 -1.5 1 -1.5-1 Z"/>
+        <line x1="5.7" y1="5.3" x2="10.3" y2="5.3"/><line x1="5.7" y1="7.6" x2="10.3" y2="7.6"/>
+      </svg>
+    </span>
+    <span class="label">Trade receipts</span>
+    <span class="meta"><span class="badge">10k+</span><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+  <div class="sb-label">Library</div>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/Algos.zip" target="_parent" download>
+    <span class="ico"><!-- Algo library: layered stack -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 1.8 L14.2 4.9 L8 8 L1.8 4.9 Z"/><path d="M1.8 8 L8 11.1 L14.2 8"/><path d="M1.8 11.1 L8 14.2 L14.2 11.1"/>
+      </svg>
+    </span>
+    <span class="label">Algo library</span>
+    <span class="meta">
+      <span class="badge" id="badge-algos">21</span>
+      <span class="aff"><!-- download -->
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg>
+      </span>
+    </span>
+  </a>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/Indicators.zip" target="_parent" download>
+    <span class="ico"><!-- Indicator library: bars -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="13" x2="3" y2="9"/><line x1="6.3" y1="13" x2="6.3" y2="5.5"/><line x1="9.6" y1="13" x2="9.6" y2="7.5"/><line x1="12.9" y1="13" x2="12.9" y2="3.5"/>
+      </svg>
+    </span>
+    <span class="label">Indicator library</span>
+    <span class="meta">
+      <span class="badge">12</span>
+      <span class="aff"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg></span>
+    </span>
+  </a>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/Core%20Strategies%20and%20Code%20Snipppets%20(Full%20resources).zip" target="_parent" download>
+    <span class="ico"><!-- Code snippets: </> -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5.5 4.5 L2 8 L5.5 11.5"/><path d="M10.5 4.5 L14 8 L10.5 11.5"/><line x1="9" y1="3.6" x2="7" y2="12.4"/>
+      </svg>
+    </span>
+    <span class="label">Code snippets</span>
+    <span class="meta">
+      <span class="badge">100+</span>
+      <span class="aff"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg></span>
+    </span>
+  </a>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/Core%20Strategies%20and%20Code%20Snipppets%20(Full%20resources).zip" target="_parent" download>
+    <span class="ico"><!-- Core Codes: terminal -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1.8"/><path d="M4.6 6.4 L6.6 8.2 L4.6 10"/><line x1="8.2" y1="10.2" x2="11.2" y2="10.2"/>
+      </svg>
+    </span>
+    <span class="label">Core Codes</span>
+    <span class="meta">
+      <span class="badge">10</span>
+      <span class="aff"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg></span>
+    </span>
+  </a>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/Trading%20Edges%20(Full%20resources).zip" target="_parent" download>
+    <span class="ico"><!-- Trading edges: target -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="6.2"/><circle cx="8" cy="8" r="3.3"/><circle cx="8" cy="8" r="0.7" fill="currentColor" stroke="none"/>
+      </svg>
+    </span>
+    <span class="label">Trading edges</span>
+    <span class="meta">
+      <span class="badge">10+</span>
+      <span class="aff"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg></span>
+    </span>
+  </a>
+
+  <div class="sb-label">Courses</div>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/Algo%20Development%20Course%20(Full%20resources).zip" target="_parent" download>
+    <span class="ico"><!-- Algo Development Course: graduation cap -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 2.8 L15 6 L8 9.2 L1 6 Z"/><path d="M4 7.5 V10.6 C4 11.7 5.8 12.6 8 12.6 C10.2 12.6 12 11.7 12 10.6 V7.5"/><line x1="15" y1="6" x2="15" y2="9"/>
+      </svg>
+    </span>
+    <span class="label">Algo Development Course</span>
+    <span class="meta">
+      <span class="badge">1</span>
+      <span class="aff"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg></span>
+    </span>
+  </a>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/High%20Probability%20Trading%20Course%20(Full%20resources).zip" target="_parent" download>
+    <span class="ico"><!-- High Probability Trading Course: open book -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 4.3 C6.6 3.3 4.6 3.1 2.7 3.5 C2.3 3.55 2 3.8 2 4.1 V11.6 C2 12 2.3 12.2 2.7 12.1 C4.6 11.8 6.6 12 8 13"/>
+        <path d="M8 4.3 C9.4 3.3 11.4 3.1 13.3 3.5 C13.7 3.55 14 3.8 14 4.1 V11.6 C14 12 13.7 12.2 13.3 12.1 C11.4 11.8 9.4 12 8 13"/>
+      </svg>
+    </span>
+    <span class="label">High Probability Trading Course</span>
+    <span class="meta">
+      <span class="badge">1</span>
+      <span class="aff"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg></span>
+    </span>
+  </a>
+
+  <a class="item" href="https://prorealalgos.azurewebsites.net/PPA%20Day%20Trading%20System%20(Full%20resources).zip" target="_parent" download>
+    <span class="ico"><!-- PPA Day Trading System: bolt -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8.6 1.6 L3.4 9 H7.4 L6.9 14.4 L12.6 6.6 H8.4 Z"/>
+      </svg>
+    </span>
+    <span class="label">PPA&reg; Day Trading System</span>
+    <span class="meta">
+      <span class="badge">1</span>
+      <span class="aff"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5 V10"/><path d="M4.8 7 L8 10.2 L11.2 7"/><path d="M3 13 H13"/></svg></span>
+    </span>
+  </a>
+
+  <!-- Account & Help: My account + My profile moved here, merged with Help, docked to the bottom -->
+  <div class="sb-label bottom">Account &amp; Help</div>
+
+  <a class="item" href="https://www.prorealalgos.com/members-area/my/my-account" target="_parent" data-key="my-account">
+    <span class="ico"><!-- My account: person in a circle -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="6.4"/><circle cx="8" cy="6.5" r="2"/><path d="M4.2 12.8c.7-1.7 2.1-2.6 3.8-2.6s3.1.9 3.8 2.6"/>
+      </svg>
+    </span>
+    <span class="label">My account</span>
+    <span class="meta"><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+  <a class="item" href="https://www.prorealalgos.com/members-area/my/profile" target="_parent" data-key="profile">
+    <span class="ico"><!-- My profile: ID card -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1.6" y="3.4" width="12.8" height="9.2" rx="1.8"/><circle cx="5.3" cy="7.3" r="1.5"/><path d="M3.1 11c.2-1.2 1.1-1.9 2.2-1.9s2 .7 2.2 1.9"/><line x1="9.4" y1="6.7" x2="12.3" y2="6.7"/><line x1="9.4" y1="9.3" x2="11.8" y2="9.3"/>
+      </svg>
+    </span>
+    <span class="label">My profile</span>
+    <span class="meta"><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+  <a class="item" href="https://www.prorealalgos.com/step-by-step" target="_parent" data-key="step-by-step">
+    <span class="ico"><!-- Step-by-step guides: checklist -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M2.2 4.3l1 1 1.8-2.1"/><path d="M2.2 8.2l1 1 1.8-2.1"/><path d="M2.2 12.1l1 1 1.8-2.1"/>
+        <line x1="7.6" y1="4" x2="13.6" y2="4"/><line x1="7.6" y1="8" x2="13.6" y2="8"/><line x1="7.6" y1="12" x2="13.6" y2="12"/>
+      </svg>
+    </span>
+    <span class="label">Step-by-step guides</span>
+    <span class="meta"><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+  <a class="item" href="https://www.prorealalgos.com/supportandfaq" target="_parent" data-key="supportandfaq">
+    <span class="ico"><!-- Support & FAQ: question mark in a circle -->
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="8" cy="8" r="6.4"/><path d="M6.1 6.2c0-1.1.9-1.9 1.9-1.9s1.9.7 1.9 1.8c0 1.3-1.5 1.6-1.9 2.6"/><circle cx="8" cy="11.4" r="0.65" fill="currentColor" stroke="none"/>
+      </svg>
+    </span>
+    <span class="label">Support &amp; FAQ</span>
+    <span class="meta"><span class="aff chev">&rsaquo;</span></span>
+  </a>
+
+</nav>
+
+<script>
+  // Current-page highlight: set ?active=<data-key> on the iframe URL (one per page).
+  // No param -> Dashboard stays highlighted (the default in the markup).
+  (function () {
+    var key = new URLSearchParams(location.search).get('active');
+    if (!key) return;
+    [].forEach.call(document.querySelectorAll('.item[data-key]'), function (i) {
+      i.classList.toggle('active', i.getAttribute('data-key') === key);
+    });
+  })();
+</script>
+
+<!-- Live numbers from the results Google Sheet (same source as the hero):
+     • Historic results badge  = total gain %  (max period, equity series col A:B)
+     • Algo library badge      = active algo count (header row col K+, active = has a
+       timeframe token and not prefixed "old"). Hardcoded values are fallbacks. -->
+<script>
+  (function () {
+    var SHEET_ID   = '1-9po_2wY6g9tFVkgYxeoA4RZFoQRQiRz37s1za__PiY';
+    var SHEET_GID  = '1444969085';
+    var PROXY      = 'https://square-king-56c8.yellow-bonus-7895.workers.dev/?url=';
+    var TIMEOUT_MS = 12000;
+    var SEED       = 5000;   // starting capital, May 2019
+
+    function parseCsvRows(text) {
+      var rows = [], row = [], cell = '', inQ = false, i = 0;
+      while (i < text.length) {
+        var c = text[i];
+        if (inQ) {
+          if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i += 2; } else { inQ = false; i++; } }
+          else { cell += c; i++; }
+        } else {
+          if (c === '"') { inQ = true; i++; }
+          else if (c === ',') { row.push(cell); cell = ''; i++; }
+          else if (c === '\n' || c === '\r') {
+            row.push(cell); rows.push(row); row = []; cell = '';
+            if (c === '\r' && text[i + 1] === '\n') i += 2; else i++;
+          } else { cell += c; i++; }
+        }
+      }
+      if (cell || row.length) { row.push(cell); rows.push(row); }
+      return rows;
+    }
+
+    var MONTH_MAP = {
+      jan:0, january:0, feb:1, february:1, mar:2, march:2, apr:3, april:3, may:4,
+      jun:5, june:5, jul:6, july:6, aug:7, august:7, sep:8, sept:8, september:8,
+      oct:9, october:9, okt:9, nov:10, november:10, dec:11, december:11
+    };
+
+    function fetchWithTimeout(url, ms) {
+      return new Promise(function (resolve, reject) {
+        var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        var timer = setTimeout(function () { if (ctrl) ctrl.abort(); reject(new Error('timeout')); }, ms);
+        fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function (res) { clearTimeout(timer); resolve(res); },
+          function (err) { clearTimeout(timer); reject(err); });
+      });
+    }
+    function getCsv(range) {
+      var sheetUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+                     '/gviz/tq?tqx=out:csv&gid=' + SHEET_GID + '&range=' + range;
+      return fetchWithTimeout(PROXY + encodeURIComponent(sheetUrl), TIMEOUT_MS)
+        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.text(); });
+    }
+
+    // ── Total gain % (max period) ──
+    function computeGain(csvText) {
+      var rows = parseCsvRows(csvText), caps = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        if (r.length < 2) continue;
+        var a = (r[0] || '').trim().toLowerCase().replace(/[^a-z].*$/, '');
+        var b = (r[1] || '').trim();
+        if (b.indexOf('€') === -1) continue;            // must contain €
+        if (MONTH_MAP[a] == null) continue;
+        var num = parseFloat(b.replace(/[€\s,]/g, ''));
+        if (!isFinite(num)) continue;
+        caps.push(num + SEED);
+      }
+      if (caps.length < 2 || !caps[0]) return null;
+      return (caps[caps.length - 1] / caps[0] - 1) * 100;
+    }
+    function formatGain(pct) {
+      var sign = pct >= 0 ? '+' : '−';
+      var abs = Math.abs(pct);
+      var num = abs >= 1000 ? Math.round(abs).toLocaleString('en-US') : abs.toFixed(1);
+      return sign + num + '%';
+    }
+
+    // ── Active algo count ──
+    function countActiveAlgos(csvText) {
+      var rows = parseCsvRows(csvText);
+      var cells = (rows[0] || []);
+      // a few gviz responses prepend a header line; fold all rows in just in case
+      for (var r = 1; r < rows.length; r++) cells = cells.concat(rows[r]);
+      var n = 0;
+      for (var i = 0; i < cells.length; i++) {
+        var c = (cells[i] || '').trim();
+        if (/[MH]\d+/.test(c) && !/^old\s/i.test(c)) n++;
+      }
+      return n;
+    }
+
+    getCsv('A:B').then(function (text) {
+      var pct = computeGain(text);
+      var el = document.getElementById('badge-gain');
+      if (el && pct != null) el.textContent = formatGain(pct);
+    }).catch(function () { /* keep fallback */ });
+
+    getCsv('K1:DZ1').then(function (text) {
+      var n = countActiveAlgos(text);
+      var el = document.getElementById('badge-algos');
+      if (el && n > 0) el.textContent = String(n);
+    }).catch(function () { /* keep fallback */ });
+  })();
+</script>
+
+</body>
+</html>
