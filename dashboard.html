@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProRealAlgos — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --bg-soft: #F7F7F8; --bg-muted: #F1F1F3;
+    --ink: #0E0E10; --ink-soft: #1F1F22; --ink-muted: #6B6B72; --ink-dim: #9B9BA0;
+    --red: #EC3B3D; --red-soft: #FDECEC; --red-border: #F9D3D4;
+    --green: #3DC574; --green-soft: #E6F7EE; --green-border: #C7EBD6;
+    --amber: #E8B842; --hairline: #EAEAEC; --hairline-strong: #D8D8DB;
+    --button: #121215; --button-hover: #26262B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Onest', -apple-system, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; letter-spacing: -0.005em; font-size: 15px; background: var(--bg-soft); overflow-x: hidden; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .accent { color: var(--red); }
+
+  /* ===== dashboard shell: full viewport width ===== */
+  .dash {
+    width: 100vw;
+    margin-left: 0;
+    min-height: 100vh;
+    background: #FFFFFF;
+    padding: 18px 22px 26px;
+  }
+
+  /* ===== pulse / live ===== */
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); position: relative; display: inline-block; flex-shrink: 0; }
+  .pulse-dot::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: var(--red); opacity: 0.4; animation: pulseRing 1.8s ease-in-out infinite; }
+  @keyframes pulseRing { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(2); opacity: 0; } }
+  .live-mini { display: inline-flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--green); letter-spacing: 0.12em; font-weight: 700; }
+  .live-mini.red { color: var(--red); }
+  .live-mini::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blinkDot 1.4s ease-in-out infinite; }
+  .live-mini.red::before { background: var(--red); }
+  @keyframes blinkDot { 50% { opacity: 0.2; } }
+
+  /* ===== top bar ===== */
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+  .topbar h1 { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+  .topbar .tb-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-muted); font-weight: 600; margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+  .topbar .tb-eyebrow .pulse-dot { width: 6px; height: 6px; }
+  .topbar .clock { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--ink-soft); letter-spacing: 0.04em; }
+  .topbar .clock .blink { animation: clockBlink 1s step-end infinite; } @keyframes clockBlink { 50% { opacity: 0; } }
+
+  /* ===== panel ===== */
+  .panel { background: var(--bg-soft); border: 1px solid var(--hairline); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; position: relative; min-height: 0; }
+  .panel-hdr { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 16px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
+  .panel-hdr-l { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .panel-title { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+  .panel-sub { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--ink-muted); letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .panel-body { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+  .panel-body.scroll { overflow: auto; }
+  .panel-body iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+  /* ===== layout sections ===== */
+  .sec { margin-bottom: 14px; }
+  .sec1 { display: grid; grid-template-columns: 2fr 1.7fr 1.3fr; gap: 14px; height: 360px; }
+  .col-stack { display: grid; grid-template-rows: 156px 1fr; gap: 14px; min-height: 0; }
+  .sec2 { height: 336px; }
+  .sec3 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; height: 380px; }
+  .sec4 { height: 660px; }
+
+  /* ===== map (inline, from teaser) ===== */
+  .map-body { background: transparent; display: flex; align-items: center; justify-content: center; padding: 0; }
+  .map-body svg { width: 100%; height: 100%; display: block; }
+  .map-foot { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--hairline); background: var(--bg-soft); flex-shrink: 0; }
+  .map-foot .cell { padding: 7px 12px; border-right: 1px solid var(--hairline); }
+  .map-foot .cell:last-child { border-right: none; }
+  .map-foot .k { font-family: 'JetBrains Mono', monospace; font-size: 8.5px; color: var(--ink-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .map-foot .mkt-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+  .map-foot .mtime { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 700; color: var(--ink-soft); letter-spacing: 0.01em; }
+  .map-foot .mv { display: flex; align-items: center; gap: 6px; }
+  .map-foot .mdot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .map-foot .mdot.open { background: var(--green); box-shadow: 0 0 0 2px rgba(61,197,116,0.22); }
+  .map-foot .mdot.soon { background: var(--amber); box-shadow: 0 0 0 2px rgba(232,184,66,0.20); }
+  .map-foot .mdot.closed { background: var(--red); box-shadow: 0 0 0 2px rgba(236,59,61,0.16); }
+  .map-foot .mstat { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+  .map-foot .mstat.open { color: var(--green); } .map-foot .mstat.soon { color: var(--amber); } .map-foot .mstat.closed { color: var(--ink-dim); }
+
+  /* ===== tabs (recent closes) ===== */
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tab { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 5px 9px; border-radius: 100px; border: 1px solid var(--hairline); background: var(--bg); color: var(--ink-muted); cursor: pointer; white-space: nowrap; }
+  .tab:hover { background: var(--bg-soft); color: var(--ink); }
+  .tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .custom-row { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--hairline); background: var(--bg-soft); }
+  .custom-row input { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 5px 8px; border: 1px solid var(--hairline); border-radius: 8px; color: var(--ink); }
+  .custom-row button { font-family: 'Onest', sans-serif; font-size: 11px; font-weight: 600; padding: 6px 13px; border-radius: 100px; border: none; background: var(--ink); color: #fff; cursor: pointer; }
+  .custom-row[hidden] { display: none; }
+
+  @media (max-width: 1280px) {
+    .sec1 { grid-template-columns: 1fr 1fr; height: auto; }
+    .sec1 .col-stack { grid-row: 2; grid-column: 1 / -1; grid-template-rows: 156px 240px; }
+    .sec1 .panel { min-height: 300px; }
+    .sec3 { grid-template-columns: 1fr; height: auto; }
+    .sec3 .panel { height: 360px; }
+  }
+  @media (max-width: 900px) {
+    .sec1 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="dash">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div>
+      <div class="tb-eyebrow"><span class="pulse-dot"></span> Live · Real money</div>
+      <h1>Portfolio overview</h1>
+    </div>
+    <div class="clock" id="topClock">--:--:--</div>
+  </div>
+
+  <!-- SECTION 1: P&L · map · (live portfolio + live activity) -->
+  <div class="sec sec1">
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-hdr-l"><span class="panel-title">Portfolio P&amp;L</span></div>
+        <div class="tabs" id="pnlTabs">
+          <button class="tab" data-period="7d">7D</button>
+          <button class="tab active" data-period="30d">30D</button>
+          <button class="tab" data-period="360d">360D</button>
+          <button class="tab" data-period="max">Max</button>
+        </div>
+      </div>
+      <div class="panel-body"><iframe id="pnlFrame" src="https://prorealalgos.azurewebsites.net/Pnl30?period=30d" title="Portfolio P&L" loading="lazy" scrolling="no"></iframe></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-hdr-l"><span class="panel-title">Global network</span></div></div>
+      <div class="panel-body map-body">
+        <svg viewBox="0 0 900 430" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="mapDots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="6" cy="6" r="1.4" fill="#D8D8DB"/></pattern>
+            <radialGradient id="dayGlowGrad" gradientUnits="userSpaceOnUse" cx="450" cy="150" r="340"><stop offset="0%" stop-color="#FFB020" stop-opacity="0.16"/><stop offset="100%" stop-color="#FFB020" stop-opacity="0"/></radialGradient>
+            <filter id="termBlur" x="-5%" y="-5%" width="110%" height="110%"><feGaussianBlur stdDeviation="6"/></filter>
+            <clipPath id="continents">
+              <path d="M75,70 Q55,110 65,160 L85,205 Q125,235 175,238 L230,235 Q255,215 262,170 L266,130 Q258,90 235,78 L195,68 Q140,62 110,68 Z"/>
+              <path d="M185,235 L225,260 L215,275 L195,270 Z"/>
+              <path d="M235,240 Q215,270 225,305 L240,350 Q265,378 282,374 L310,342 Q325,292 310,255 L285,230 Q258,222 240,228 Z"/>
+              <path d="M385,90 Q380,122 400,132 L450,142 Q487,142 502,118 L498,92 Q468,82 432,84 Z"/>
+              <path d="M410,70 Q400,85 415,92 L435,92 Q442,78 432,70 Z"/>
+              <path d="M440,60 Q440,85 460,92 L478,85 Q478,68 465,60 Z"/>
+              <path d="M455,155 Q435,200 440,275 L460,340 Q488,362 515,342 L542,300 Q556,250 545,205 L520,168 Q485,148 465,152 Z"/>
+              <path d="M530,160 Q525,195 550,200 L580,195 Q588,172 575,158 Z"/>
+              <path d="M500,95 Q510,85 545,85 L820,95 Q838,130 822,180 L762,232 Q680,242 625,237 L545,225 Q505,200 498,160 Z"/>
+              <path d="M608,195 Q595,220 620,240 L650,242 Q660,220 648,200 Z"/>
+              <path d="M695,235 Q705,262 738,262 L762,250 Q765,235 745,228 Z"/>
+              <path d="M710,260 L740,268 L760,262 L765,270 L740,275 L710,270 Z"/>
+              <path d="M790,125 Q785,145 800,155 L812,150 Q815,130 800,120 Z"/>
+              <path d="M712,310 Q700,335 735,348 L790,348 Q825,332 818,310 L798,298 Q752,293 722,305 Z"/>
+              <path d="M830,340 Q828,355 842,358 L850,352 Q850,342 840,338 Z"/>
+            </clipPath>
+          </defs>
+          <g clip-path="url(#continents)"><rect x="0" y="0" width="900" height="430" fill="url(#mapDots)"/></g>
+          <g fill="none" stroke="#EAEAEC" stroke-width="1" opacity="0.5">
+            <path d="M75,70 Q55,110 65,160 L85,205 Q125,235 175,238 L230,235 Q255,215 262,170 L266,130 Q258,90 235,78 L195,68 Q140,62 110,68 Z"/>
+            <path d="M235,240 Q215,270 225,305 L240,350 Q265,378 282,374 L310,342 Q325,292 310,255 L285,230 Q258,222 240,228 Z"/>
+            <path d="M385,90 Q380,122 400,132 L450,142 Q487,142 502,118 L498,92 Q468,82 432,84 Z"/>
+            <path d="M455,155 Q435,200 440,275 L460,340 Q488,362 515,342 L542,300 Q556,250 545,205 L520,168 Q485,148 465,152 Z"/>
+            <path d="M500,95 Q510,85 545,85 L820,95 Q838,130 822,180 L762,232 Q680,242 625,237 L545,225 Q505,200 498,160 Z"/>
+            <path d="M712,310 Q700,335 735,348 L790,348 Q825,332 818,310 L798,298 Q752,293 722,305 Z"/>
+          </g>
+          <rect id="dayGlowRect" x="0" y="0" width="900" height="430" fill="url(#dayGlowGrad)"/>
+          <path id="nightPath" fill="#14142A" fill-opacity="0.42" filter="url(#termBlur)"></path>
+          <g>
+            <g class="hub" transform="translate(415,100)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+            <g class="hub" transform="translate(205,132)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="0.3s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="0.3s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+            <g class="hub" transform="translate(795,145)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="0.6s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="0.6s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+            <g class="hub" transform="translate(793,328)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="0.9s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="0.9s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+            <g class="hub" transform="translate(278,298)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="1.2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+            <g class="hub" transform="translate(723,248)"><circle r="10" fill="#EC3B3D" opacity="0.35"><animate attributeName="r" values="4;16" dur="2.4s" begin="1.5s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.5;0" dur="2.4s" begin="1.5s" repeatCount="indefinite"/></circle><circle r="4" fill="#EC3B3D"/></g>
+          </g>
+          <g id="steadyDots" fill="#EC3B3D">
+            <circle cx="190" cy="118" r="3"/><circle cx="175" cy="142" r="3"/><circle cx="118" cy="155" r="3"/><circle cx="210" cy="175" r="3"/><circle cx="225" cy="225" r="2.5"/><circle cx="273" cy="335" r="3"/>
+            <circle cx="425" cy="118" r="3"/><circle cx="450" cy="108" r="3"/><circle cx="432" cy="108" r="3"/><circle cx="405" cy="130" r="3"/><circle cx="445" cy="128" r="3"/><circle cx="475" cy="112" r="3"/>
+            <circle cx="775" cy="138" r="3"/><circle cx="750" cy="182" r="3"/><circle cx="625" cy="210" r="3"/><circle cx="705" cy="225" r="3"/><circle cx="495" cy="335" r="3"/><circle cx="530" cy="265" r="3"/>
+            <circle cx="470" cy="225" r="3"/><circle cx="770" cy="342" r="3"/><circle cx="485" cy="115" r="2.5"/><circle cx="445" cy="90" r="2.5"/><circle cx="560" cy="188" r="3"/><circle cx="465" cy="85" r="2.5"/>
+          </g>
+        </svg>
+      </div>
+      <div class="map-foot">
+        <div class="cell mkt" id="mkt-syd"><div class="mkt-top"><span class="k">Sydney</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+        <div class="cell mkt" id="mkt-tky"><div class="mkt-top"><span class="k">Tokyo</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+        <div class="cell mkt" id="mkt-ldn"><div class="mkt-top"><span class="k">London</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+        <div class="cell mkt" id="mkt-ny"><div class="mkt-top"><span class="k">New York</span><span class="mtime">--:--</span></div><div class="mv"><span class="mdot closed"></span><span class="mstat closed">—</span></div></div>
+      </div>
+    </div>
+
+    <div class="col-stack">
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-hdr-l"><span class="panel-title">Live portfolio</span></div><span class="live-mini red">LIVE</span></div>
+        <div class="panel-body"><iframe src="https://prorealalgos.azurewebsites.net/LiveStats" title="Live portfolio" loading="lazy" scrolling="no"></iframe></div>
+      </div>
+      <div class="panel">
+        <div class="panel-hdr"><div class="panel-hdr-l"><span class="panel-title">Live activity</span></div><span class="live-mini">UPDATING</span></div>
+        <div class="panel-body"><iframe src="https://prorealalgos.azurewebsites.net/LiveActivity?count=12" title="Live activity" loading="lazy" scrolling="no"></iframe></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: open trades gantt (full width) -->
+  <div class="sec sec2">
+    <div class="panel" style="height:100%;">
+      <div class="panel-hdr"><div class="panel-hdr-l"><span class="panel-title">Open trades</span><span class="panel-sub">Live monitor</span></div><span class="live-mini red">STREAMING</span></div>
+      <div class="panel-body scroll"><iframe src="https://prorealalgos.azurewebsites.net/OpenTradesGantt" title="Open trades" loading="lazy"></iframe></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: recent closes (tabbed) · trade receipts -->
+  <div class="sec sec3">
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-hdr-l"><span class="panel-title">Recent closes</span></div>
+        <div class="tabs" id="closesTabs">
+          <button class="tab active" data-period="this-week">This week</button>
+          <button class="tab" data-period="last-week">Last week</button>
+          <button class="tab" data-period="this-month">This month</button>
+          <button class="tab" data-period="last-month">Last month</button>
+        </div>
+      </div>
+      <div class="panel-body"><iframe id="closesFrame" src="https://prorealalgos.azurewebsites.net/ClosedTrades?period=this-week" title="Recent closes" loading="lazy" scrolling="no"></iframe></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hdr"><div class="panel-hdr-l"><span class="panel-title">Trade receipts</span><span class="panel-sub">Anchored · GitHub</span></div></div>
+      <div class="panel-body"><iframe src="https://prorealalgos.azurewebsites.net/TradeReceipts" title="Trade receipts" loading="lazy" scrolling="no"></iframe></div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: algo results grid (full width) -->
+  <div class="sec sec4">
+    <div class="panel" style="height:100%;">
+      <div class="panel-hdr">
+        <div class="panel-hdr-l"><span class="panel-title">Algo results</span><span class="panel-sub">all time</span></div>
+      </div>
+      <div class="panel-body scroll"><iframe id="algoFrame" src="https://prorealalgos.azurewebsites.net/AlgoResults?period=max" title="Algo results" loading="lazy"></iframe></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  /* top bar clock (visitor local time) */
+  (function () {
+    function pad(n){ return n<10?'0'+n:''+n; }
+    function tick(){ var el=document.getElementById('topClock'); if(!el) return; var d=new Date();
+      var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], mons=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      el.innerHTML = days[d.getDay()]+' '+mons[d.getMonth()]+' '+d.getDate()+' · '+pad(d.getHours())+'<span class="blink">:</span>'+pad(d.getMinutes())+'<span class="blink">:</span>'+pad(d.getSeconds()); }
+    tick(); setInterval(tick, 1000);
+  })();
+
+  /* period tabs (recent closes, portfolio P&L, algo results) -> swap each iframe's ?period */
+  (function () {
+    function bindTabs(tabsId, frameId, customId, base, fromId, toId, applyId) {
+      var tabs = document.getElementById(tabsId), frame = document.getElementById(frameId), custom = document.getElementById(customId);
+      if (!tabs || !frame) return;
+      tabs.addEventListener('click', function (e) {
+        var b = e.target.closest('.tab'); if (!b) return;
+        tabs.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+        b.classList.add('active');
+        var period = b.getAttribute('data-period');
+        if (period === 'custom') { if (custom) custom.hidden = false; return; }
+        if (custom) custom.hidden = true;
+        frame.src = base + '?period=' + period;
+      });
+      var apply = document.getElementById(applyId);
+      if (apply) apply.addEventListener('click', function () {
+        var f = document.getElementById(fromId).value, t = document.getElementById(toId).value;
+        if (!f || !t) return;
+        frame.src = base + '?period=custom&from=' + f + '&to=' + t;
+      });
+    }
+    var A = 'https://prorealalgos.azurewebsites.net/';
+    bindTabs('closesTabs', 'closesFrame', 'customRow', A + 'ClosedTrades', 'cFrom', 'cTo', 'cApply');
+    bindTabs('pnlTabs', 'pnlFrame', 'pnlCustom', A + 'Pnl30', 'pnlFrom', 'pnlTo', 'pnlApply');
+  })();
+
+  /* global network map: day/night terminator + live market sessions */
+  (function () {
+    var now = new Date();
+    var utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
+    var lonSun = 15 * (12 - utcH);
+    while (lonSun > 180) lonSun -= 360; while (lonSun < -180) lonSun += 360;
+
+    var d2r = Math.PI / 180;
+    var startY = new Date(now.getFullYear(), 0, 0);
+    var doy = Math.floor((now - startY) / 86400000);
+    var decl = -23.44 * Math.cos((2 * Math.PI / 365) * (doy + 10));
+    var sinD = Math.sin(decl * d2r), cosD = Math.cos(decl * d2r), tanD = Math.tan(decl * d2r);
+
+    function lonAt(x) { return (x - 415) * 0.368; }
+    function xAtLon(lon) { return 415 + lon / 0.368; }
+    function latAt(y) { return 51.5 - (y - 100) * 0.3788; }
+    function yAtLat(lat) { return 100 + (51.5 - lat) / 0.3788; }
+    function altSin(lat, lon) { return Math.sin(lat * d2r) * sinD + Math.cos(lat * d2r) * cosD * Math.cos((lon - lonSun) * d2r); }
+    function termLat(lon) { var v = Math.atan(-Math.cos((lon - lonSun) * d2r) / tanD) / d2r; return isFinite(v) ? v : 0; }
+    function dotColor(x, y) { var alt = Math.asin(Math.max(-1, Math.min(1, altSin(latAt(y), lonAt(x))))) / d2r; if (alt > 7) return '#3DC574'; if (alt < -7) return '#EC3B3D'; return '#E8B842'; }
+
+    document.querySelectorAll('.hub').forEach(function (g) {
+      var m = /translate\(\s*([\d.]+)[ ,]+([\d.]+)/.exec(g.getAttribute('transform') || ''); if (!m) return;
+      var c = dotColor(parseFloat(m[1]), parseFloat(m[2]));
+      g.querySelectorAll('circle').forEach(function (ci) { ci.setAttribute('fill', c); });
+    });
+    var steady = document.getElementById('steadyDots');
+    if (steady) { steady.removeAttribute('fill'); steady.querySelectorAll('circle').forEach(function (ci) { ci.setAttribute('fill', dotColor(parseFloat(ci.getAttribute('cx')), parseFloat(ci.getAttribute('cy')))); }); }
+
+    var W = 900, H = 430, nightSouth = decl >= 0, edge = [];
+    for (var x = 0; x <= W; x += 10) { var yt = yAtLat(termLat(lonAt(x))); if (yt < 0) yt = 0; if (yt > H) yt = H; edge.push(x.toFixed(0) + ',' + yt.toFixed(1)); }
+    var np = document.getElementById('nightPath');
+    if (np) { var baseY = nightSouth ? H : 0; np.setAttribute('d', 'M0,' + baseY + ' L' + edge.join(' L') + ' L' + W + ',' + baseY + ' Z'); }
+    var glow = document.getElementById('dayGlowGrad');
+    if (glow) { glow.setAttribute('cx', Math.max(0, Math.min(W, xAtLon(lonSun))).toFixed(0)); glow.setAttribute('cy', Math.max(0, Math.min(H, yAtLat(decl))).toFixed(0)); }
+
+    var cities = { syd: { tz: 'Australia/Sydney', o: 10, c: 16 }, tky: { tz: 'Asia/Tokyo', o: 9, c: 15 }, ldn: { tz: 'Europe/London', o: 8, c: 16 }, ny: { tz: 'America/New_York', o: 9, c: 16 } };
+    function cityParts(tz) { var p = {}; new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23', weekday: 'short', hour: '2-digit', minute: '2-digit' }).formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; }); return p; }
+    function tickSessions() {
+      Object.keys(cities).forEach(function (k) {
+        var cell = document.getElementById('mkt-' + k); if (!cell) return;
+        var cfg = cities[k], p = cityParts(cfg.tz);
+        var mins = parseInt(p.hour, 10) * 60 + parseInt(p.minute, 10);
+        var openMin = cfg.o * 60, closeMin = cfg.c * 60;
+        var weekend = (p.weekday === 'Sat' || p.weekday === 'Sun');
+        var state;
+        if (!weekend && mins >= openMin && mins < closeMin) state = 'open';
+        else if (!weekend && mins >= openMin - 60 && mins < openMin) state = 'soon';
+        else state = 'closed';
+        var label = state === 'open' ? 'OPEN' : (state === 'soon' ? 'SOON' : 'CLOSED');
+        var stat = cell.querySelector('.mstat'), dot = cell.querySelector('.mdot'), tm = cell.querySelector('.mtime');
+        if (stat) { stat.textContent = label; stat.className = 'mstat ' + state; }
+        if (dot) { dot.className = 'mdot ' + state; }
+        if (tm) { tm.textContent = p.hour + ':' + p.minute; }
+      });
+    }
+    tickSessions(); setInterval(tickSessions, 1000);
+  })();
+</script>
+</body>
+</html>
