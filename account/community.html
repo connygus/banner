@@ -283,7 +283,7 @@
   /* ---------------- state ---------------- */
   var me = null, posts = [], openThread = null, isDemo = false, _picker = null;
   var firstFeedLoad = true, lastFeedSig = null, lastThreadSig = null;
-  var BUILD = "jun9c";
+  var BUILD = "jun9d";
   var DEBUG = /[?&]debug=1/.test(location.search || "");
   var _dbgEl = null, _dbg = {};
   function dbg(k, v) {
@@ -328,7 +328,7 @@
     (function attempt() {
       dbg("whoami", "pending#" + (tries + 1));
       postMsg("whoami", {}, 1500).then(function (m) {
-        me = m; dbg("whoami", "OK"); dbg("user", (m && m.name) || "?"); dbg("approved", m && m.approved); afterAuth();
+        me = m; dbg("whoami", "OK"); dbg("user", (m && m.name) || "?"); dbg("email", (m && m.email) || "(none)"); dbg("admin", m && m.admin); dbg("approved", m && m.approved); afterAuth();
       }).catch(function (e) {
         if (++tries < 8) { dbg("whoami", "retry " + tries + " (" + ((e && e.message) || "timeout") + ")"); renderConnecting(); setTimeout(attempt, 1300); }
         else { dbg("whoami", "FAILED — no reply from Velo"); renderConnectError(); }
