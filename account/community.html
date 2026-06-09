@@ -298,9 +298,19 @@
   /* ---------------- boot ---------------- */
   function boot() {
     renderChan(false);
-    $scroll.appendChild(el("div", { class: "loading", text: "Loading " + CHANNEL + ".." }));
-    postMsg("whoami", {}, 1200).then(function (m) { me = m; afterAuth(); })
-      .catch(function () { isDemo = true; me = DEMO_ME; afterAuth(); });
+    clear($scroll).appendChild(el("div", { class: "loading", text: "Loading " + CHANNEL + ".." }));
+    var qs = location.search || "";
+    // Demo (mock user + posts) ONLY when opened standalone, e.g. GitHub Pages / this preview.
+    // When embedded in Wix (inside an iframe) we connect to the real Velo login instead.
+    if (/[?&]demo=1/.test(qs) || (window.parent === window && !/[?&]live=1/.test(qs))) {
+      isDemo = true; me = DEMO_ME; afterAuth(); return;
+    }
+    // Embedded: ask Velo who's logged in; retry to ride out page-load ordering.
+    var tries = 0;
+    (function attempt() {
+      postMsg("whoami", {}, 1500).then(function (m) { me = m; afterAuth(); })
+        .catch(function () { if (++tries < 8) { renderConnecting(); setTimeout(attempt, 1300); } else renderConnectError(); });
+    })();
   }
   function afterAuth() {
     renderChan(false);
@@ -784,6 +794,20 @@
       g.appendChild(el("button", { class: "btn-primary", text: "See membership", onclick: function () { call("requestUpgrade", {}); } }));
     }
     $scroll.appendChild(g);
+  }
+
+  function renderConnecting() {
+    clear($comp);
+    clear($scroll).appendChild(el("div", { class: "loading", text: "Connecting to the community.." }));
+  }
+  function renderConnectError() {
+    clear($comp);
+    var root = clear($scroll);
+    var g = el("div", { class: "gate" });
+    g.appendChild(el("h2", { text: "Not connected" }));
+    g.appendChild(el("p", { text: "The community can't reach the site backend yet. Admin: add the Velo backend module + page code and publish the site. Otherwise, please refresh in a moment." }));
+    g.appendChild(el("button", { class: "btn-primary", text: "Retry", onclick: function () { boot(); } }));
+    root.appendChild(g);
   }
 
   /* ---------------- emoji picker ---------------- */
