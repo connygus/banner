@@ -200,6 +200,9 @@
   .loading { text-align: center; color: var(--pra-muted); padding: 28px 0; font-size: 13px; font-family: var(--pra-font-mono); }
   .demo-banner { flex: 0 0 auto; background: #FFF7E6; color: #8A6D00; border-bottom: 1px solid #F0E2B8; font-family: var(--pra-font-mono); font-size: 11px; letter-spacing: 0.04em; text-align: center; padding: 6px 12px; }
   .build-badge { position: fixed; bottom: 6px; right: 8px; z-index: 9998; font-family: var(--pra-font-mono); font-size: 10px; color: var(--pra-muted); background: rgba(255,255,255,0.9); border: 1px solid var(--pra-line); border-radius: 6px; padding: 2px 7px; pointer-events: none; }
+  .dbgbox { margin: 16px 18px; border: 1px solid var(--pra-line); border-radius: 12px; padding: 12px; background: var(--pra-soft); }
+  .dbgbox-h { font-family: var(--pra-font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--pra-muted); margin-bottom: 8px; }
+  .dbgbox-t { width: 100%; box-sizing: border-box; font-family: var(--pra-font-mono); font-size: 12px; line-height: 1.5; border: 1px solid var(--pra-line); border-radius: 8px; padding: 8px; background: #fff; color: var(--pra-ink); resize: vertical; }
 
   .lightbox { position: fixed; inset: 0; background: rgba(14,14,16,0.86); display: flex; align-items: center; justify-content: center; z-index: 400; padding: 24px; cursor: zoom-out; }
   .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
@@ -283,7 +286,8 @@
   /* ---------------- state ---------------- */
   var me = null, posts = [], openThread = null, isDemo = false, _picker = null;
   var firstFeedLoad = true, lastFeedSig = null, lastThreadSig = null;
-  var BUILD = "jun9d";
+  var EMBEDDED = false;
+  var BUILD = "jun9e";
   var DEBUG = /[?&]debug=1/.test(location.search || "");
   var _dbgEl = null, _dbg = {};
   function dbg(k, v) {
@@ -312,6 +316,7 @@
   function boot() {
     renderChan(false);
     var embedded = (window.parent !== window);
+    EMBEDDED = embedded;
     dbg("build", BUILD); dbg("embedded", embedded);
     var bb = document.getElementById("buildBadge"); if (bb) bb.textContent = "build " + BUILD + (embedded ? " · embedded" : " · standalone");
     clear($scroll).appendChild(el("div", { class: "loading", text: "Loading " + CHANNEL + ".." }));
@@ -817,6 +822,32 @@
       g.appendChild(el("button", { class: "btn-primary", text: "See membership", onclick: function () { call("requestUpgrade", {}); } }));
     }
     $scroll.appendChild(g);
+    $scroll.appendChild(buildDebugBox());
+  }
+
+  function debugText() {
+    var m = me || {};
+    return "PRA community debug\n" +
+      "build: " + BUILD + "\n" +
+      "embedded: " + EMBEDDED + "\n" +
+      "loggedIn: " + (m.loggedIn === true) + "\n" +
+      "email: " + (m.email || "(none)") + "\n" +
+      "admin: " + (m.admin === true) + "\n" +
+      "approved: " + (m.approved === true) + "\n" +
+      "memberId: " + (m.id || "(none)") + "\n" +
+      "PaidMembers rows: " + (m.paidCount != null ? m.paidCount : "?") + "\n" +
+      "ADMIN_EMAILS: " + (((m.adminEmails || []).join(", ")) || "(none)");
+  }
+  function buildDebugBox() {
+    var wrap = el("div", { class: "dbgbox" });
+    wrap.appendChild(el("div", { class: "dbgbox-h", text: "Debug — copy this and send it" }));
+    var ta = el("textarea", { class: "dbgbox-t", rows: 10, readonly: "readonly" });
+    ta.value = debugText();
+    wrap.appendChild(ta);
+    var copyBtn = el("button", { class: "btn-ghost", text: "Copy", style: "margin-top:8px" });
+    copyBtn.addEventListener("click", function () { ta.focus(); ta.select(); try { document.execCommand("copy"); copyBtn.textContent = "Copied ✓"; } catch (e) { copyBtn.textContent = "Select the text & copy"; } });
+    wrap.appendChild(copyBtn);
+    return wrap;
   }
 
   function renderConnecting() {
