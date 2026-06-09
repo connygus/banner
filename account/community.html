@@ -287,7 +287,7 @@
   var me = null, posts = [], openThread = null, isDemo = false, _picker = null;
   var firstFeedLoad = true, lastFeedSig = null, lastThreadSig = null;
   var EMBEDDED = false;
-  var BUILD = "jun9e";
+  var BUILD = "jun9f";
   var DEBUG = /[?&]debug=1/.test(location.search || "");
   var _dbgEl = null, _dbg = {};
   function dbg(k, v) {
@@ -829,6 +829,7 @@
     var m = me || {};
     return "PRA community debug\n" +
       "build: " + BUILD + "\n" +
+      "backendBuild: " + (m.backendBuild || "(OLD — re-paste community.jsw)") + "\n" +
       "embedded: " + EMBEDDED + "\n" +
       "loggedIn: " + (m.loggedIn === true) + "\n" +
       "email: " + (m.email || "(none)") + "\n" +
