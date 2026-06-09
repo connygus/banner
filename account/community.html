@@ -198,6 +198,7 @@
   .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,14,16,0.18); }
   .empty { text-align: center; color: var(--pra-muted); padding: 30px 18px; font-size: 15px; }
   .loading { text-align: center; color: var(--pra-muted); padding: 28px 0; font-size: 13px; font-family: var(--pra-font-mono); }
+  .demo-banner { flex: 0 0 auto; background: #FFF7E6; color: #8A6D00; border-bottom: 1px solid #F0E2B8; font-family: var(--pra-font-mono); font-size: 11px; letter-spacing: 0.04em; text-align: center; padding: 6px 12px; }
 
   .lightbox { position: fixed; inset: 0; background: rgba(14,14,16,0.86); display: flex; align-items: center; justify-content: center; z-index: 400; padding: 24px; cursor: zoom-out; }
   .lightbox img { max-width: 100%; max-height: 100%; border-radius: 10px; }
@@ -217,6 +218,7 @@
 <body>
 <div class="app">
   <div class="chan" id="chan"></div>
+  <div id="demoBanner" class="demo-banner hidden">Demo preview · not connected to your Wix login</div>
   <div class="scroll" id="scroll"></div>
   <div class="composer-wrap" id="composerHost"></div>
 </div>
@@ -279,6 +281,15 @@
   /* ---------------- state ---------------- */
   var me = null, posts = [], openThread = null, isDemo = false, _picker = null;
   var firstFeedLoad = true, lastFeedSig = null, lastThreadSig = null;
+  var BUILD = "jun9";
+  var DEBUG = /[?&]debug=1/.test(location.search || "");
+  var _dbgEl = null, _dbg = {};
+  function dbg(k, v) {
+    if (!DEBUG) return;
+    _dbg[k] = String(v);
+    if (!_dbgEl) { _dbgEl = document.createElement("div"); _dbgEl.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:99999;background:#0E0E10;color:#3DC574;font:11px/1.45 ui-monospace,monospace;padding:6px 10px;white-space:pre-wrap;word-break:break-word;"; document.body.appendChild(_dbgEl); }
+    _dbgEl.textContent = "PRA " + BUILD + "   " + Object.keys(_dbg).map(function (x) { return x + "=" + _dbg[x]; }).join("   ");
+  }
 
   /* ---------------- transport (postMessage + demo fallback) ---------------- */
   var reqSeq = 0, pending = {};
@@ -298,18 +309,27 @@
   /* ---------------- boot ---------------- */
   function boot() {
     renderChan(false);
+    var embedded = (window.parent !== window);
+    dbg("build", BUILD); dbg("embedded", embedded);
     clear($scroll).appendChild(el("div", { class: "loading", text: "Loading " + CHANNEL + ".." }));
     var qs = location.search || "";
     // Demo (mock user + posts) ONLY when opened standalone, e.g. GitHub Pages / this preview.
     // When embedded in Wix (inside an iframe) we connect to the real Velo login instead.
-    if (/[?&]demo=1/.test(qs) || (window.parent === window && !/[?&]live=1/.test(qs))) {
-      isDemo = true; me = DEMO_ME; afterAuth(); return;
+    if (/[?&]demo=1/.test(qs) || (!embedded && !/[?&]live=1/.test(qs))) {
+      isDemo = true; me = DEMO_ME; dbg("mode", "DEMO");
+      var b = document.getElementById("demoBanner"); if (b) b.classList.remove("hidden");
+      afterAuth(); return;
     }
     // Embedded: ask Velo who's logged in; retry to ride out page-load ordering.
-    var tries = 0;
+    dbg("mode", "live"); var tries = 0;
     (function attempt() {
-      postMsg("whoami", {}, 1500).then(function (m) { me = m; afterAuth(); })
-        .catch(function () { if (++tries < 8) { renderConnecting(); setTimeout(attempt, 1300); } else renderConnectError(); });
+      dbg("whoami", "pending#" + (tries + 1));
+      postMsg("whoami", {}, 1500).then(function (m) {
+        me = m; dbg("whoami", "OK"); dbg("user", (m && m.name) || "?"); dbg("approved", m && m.approved); afterAuth();
+      }).catch(function (e) {
+        if (++tries < 8) { dbg("whoami", "retry " + tries + " (" + ((e && e.message) || "timeout") + ")"); renderConnecting(); setTimeout(attempt, 1300); }
+        else { dbg("whoami", "FAILED — no reply from Velo"); renderConnectError(); }
+      });
     })();
   }
   function afterAuth() {
@@ -918,7 +938,7 @@
   }
 
   /* ---------------- DEMO backend ---------------- */
-  var DEMO_ME = { id: "u_carl", name: "Carl Eriksson", photo: null, loggedIn: true, approved: true, admin: true };
+  var DEMO_ME = { id: "u_demo", name: "Demo User", photo: null, loggedIn: true, approved: true, admin: true };
   var dPosts, dReplies, dSeq = 100;
   function seedDemo() {
     var now = Date.now(), H = 3600e3, D = 86400e3;
