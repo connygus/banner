@@ -21,7 +21,7 @@
   }
 
   * { box-sizing: border-box; }
-  html, body { margin: 0; overflow-x: hidden;}
+  html, body { margin: 0; overflow-x: hidden; }
   body {
     font-family: var(--pra-font-sans);
     color: var(--pra-ink);
@@ -323,7 +323,7 @@
     </span>
   </a>
 
-  <!-- Account & Help: My account + My profile moved here, merged with Help, docked to the bottom -->
+  <!-- Account & Help: My account moved here, merged with Help, docked to the bottom -->
   <div class="sb-label bottom">Account &amp; Help</div>
 
   <a class="item" href="https://www.prorealalgos.com/members-area/my/my-account" target="_parent" data-key="my-account">
@@ -333,16 +333,6 @@
       </svg>
     </span>
     <span class="label">My account</span>
-    <span class="meta"><span class="aff chev">&rsaquo;</span></span>
-  </a>
-
-  <a class="item" href="https://www.prorealalgos.com/members-area/my/profile" target="_parent" data-key="profile">
-    <span class="ico"><!-- My profile: ID card -->
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1.6" y="3.4" width="12.8" height="9.2" rx="1.8"/><circle cx="5.3" cy="7.3" r="1.5"/><path d="M3.1 11c.2-1.2 1.1-1.9 2.2-1.9s2 .7 2.2 1.9"/><line x1="9.4" y1="6.7" x2="12.3" y2="6.7"/><line x1="9.4" y1="9.3" x2="11.8" y2="9.3"/>
-      </svg>
-    </span>
-    <span class="label">My profile</span>
     <span class="meta"><span class="aff chev">&rsaquo;</span></span>
   </a>
 
@@ -370,14 +360,49 @@
 </nav>
 
 <script>
-  // Current-page highlight: set ?active=<data-key> on the iframe URL (one per page).
-  // No param -> Dashboard stays highlighted (the default in the markup).
+  // Current-page highlight. A cross-origin iframe can't read the parent URL, so the
+  // current page is resolved from (in priority order):
+  //   1. ?active=<data-key> on the iframe URL       (works when the menu is placed per page)
+  //   2. a postMessage from the parent page / Velo   (works for ONE shared menu across pages)
+  //   3. document.referrer, if it carries the path   (best-effort, no setup)
+  // Nothing matching -> Dashboard stays highlighted (the default in the markup).
   (function () {
-    var key = new URLSearchParams(location.search).get('active');
-    if (!key) return;
-    [].forEach.call(document.querySelectorAll('.item[data-key]'), function (i) {
-      i.classList.toggle('active', i.getAttribute('data-key') === key);
+    var items = [].slice.call(document.querySelectorAll('.item[data-key]'));
+
+    function activateBy(test) {
+      var match = items.filter(test)[0];
+      if (!match) return false;                       // no match -> leave the current highlight as-is
+      items.forEach(function (i) { i.classList.toggle('active', i === match); });
+      return true;
+    }
+    function byKey(key) {
+      return key ? activateBy(function (i) { return i.getAttribute('data-key') === key; }) : false;
+    }
+    function byPath(path) {
+      if (!path) return false;
+      var clean;
+      try { clean = new URL(path, location.href).pathname; } catch (e) { clean = String(path); }
+      clean = clean.replace(/\/+$/, '') || '/';
+      return activateBy(function (i) {
+        var p;
+        try { p = new URL(i.href).pathname.replace(/\/+$/, '') || '/'; } catch (e) { return false; }
+        return p === clean;
+      });
+    }
+
+    // 1. ?active= param on the iframe URL
+    byKey(new URLSearchParams(location.search).get('active'));
+
+    // 2. live from the parent page (Velo postMessage): the reliable path for a single
+    //    shared menu element, where a static ?active= can't vary between pages.
+    window.addEventListener('message', function (e) {
+      var d = e.data || {};
+      if (d.type === 'pra-active') { if (!byKey(d.key)) byPath(d.path || d.url); }
     });
+    try { window.parent.postMessage({ type: 'pra-menu-ready' }, '*'); } catch (e) {}
+
+    // 3. referrer fallback (only helps if the parent sends a full-path referrer)
+    if (document.referrer) { try { byPath(new URL(document.referrer).pathname); } catch (e) {} }
   })();
 </script>
 
