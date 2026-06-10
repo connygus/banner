@@ -98,9 +98,9 @@
 
 <nav class="topnav" role="navigation" aria-label="Primary">
 
-  <!-- "How it works" scrolls to the how-it-works section inside the hero embed.
-       It asks the parent page (Velo) to scroll, since the iframe can't do it itself. -->
-  <a class="navlink" href="#" data-scroll="how-it-works" data-key="how-it-works">How it works</a>
+  <!-- "How it works" goes to the homepage with ?goto=how-it-works; the homepage Velo
+       scrolls to that section on load. Works the same from any page. -->
+  <a class="navlink" href="https://www.prorealalgos.com/?goto=how-it-works" target="_parent" data-key="how-it-works">How it works</a>
 
   <a class="navlink" href="https://www.prorealalgos.com/results"  target="_parent" data-key="results">Results</a>
   <a class="navlink" href="https://www.prorealalgos.com/about"    target="_parent" data-key="about">About</a>
