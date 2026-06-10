@@ -88,9 +88,8 @@
 <!--
   HOW TO EDIT
   • Each link opens in the parent Wix page via target="_parent". href = full https URL.
-  • "How it works" (data-scroll) asks the current page to scroll ({type:'pra:scrollTo'}). If the
-    page acks (it has the section) it scrolls in place; otherwise the menu sends the visitor to
-    the homepage with ?goto=<id> and that page scrolls to the section on arrival.
+  • "How it works" links to the homepage with ?goto=how-it-works; the homepage Velo scrolls
+    to that section on load. Works the same from any page.
   • Current page highlight (red underline): add ?active=<data-key> to the iframe URL
     (e.g. ?active=results), OR post {type:'pra-active', path:'/results'} from the page (Velo).
     Nothing matching -> no link underlined (correct for the home page).
@@ -100,7 +99,7 @@
 
   <!-- "How it works" goes to the homepage with ?goto=how-it-works; the homepage Velo
        scrolls to that section on load. Works the same from any page. -->
-  <a class="navlink" href="https://www.prorealalgos.com/?goto=how-it-works" target="_parent" data-key="how-it-works">How it works</a>
+  <a class="navlink" href="https://www.prorealalgos.com/?goto=how-it-works" target="_parent">How it works</a>
 
   <a class="navlink" href="https://www.prorealalgos.com/results"  target="_parent" data-key="results">Results</a>
   <a class="navlink" href="https://www.prorealalgos.com/about"    target="_parent" data-key="about">About</a>
@@ -154,39 +153,6 @@
 
     // 3. referrer fallback, only if the param didn't already resolve the page.
     if (!resolved && document.referrer) { try { byPath(new URL(document.referrer).pathname); } catch (e) {} }
-  })();
-</script>
-
-<script>
-  // Scroll links (e.g. "How it works"): the iframe can't scroll the parent page,
-  // so it asks the page (Velo), which knows where the hero embed sits and nudges
-  // to the section's reported offset. Other links navigate normally.
-  (function () {
-    var HOME = 'https://www.prorealalgos.com/';   // page that holds the how-it-works section
-    [].forEach.call(document.querySelectorAll('.navlink[data-scroll]'), function (a) {
-      a.addEventListener('click', function (e) {
-        e.preventDefault();
-        var id = a.getAttribute('data-scroll');
-        var acked = false;
-
-        // If the current page has the section, it scrolls and acks back.
-        function onAck(ev) {
-          var d = ev.data || {};
-          if (d.type === 'pra:scrolled' && d.id === id) acked = true;
-        }
-        window.addEventListener('message', onAck);
-        try { window.parent.postMessage({ type: 'pra:scrollTo', id: id }, '*'); } catch (err) {}
-
-        // No ack in time -> we're on another page: go to the homepage and let it
-        // scroll to the section on arrival (?goto=<id>).
-        window.setTimeout(function () {
-          window.removeEventListener('message', onAck);
-          if (!acked) {
-            try { window.top.location.href = HOME + '?goto=' + encodeURIComponent(id); } catch (err) {}
-          }
-        }, 250);
-      });
-    });
   })();
 </script>
 
