@@ -1357,7 +1357,7 @@
 </div>
 
 <!-- HOW IT WORKS -->
-<section class="how-it-works">
+<section class="how-it-works" id="how-it-works">
   <h2 class="hiw-title">How does it work?</h2>
   <p class="hiw-intro">Three steps to become an quant trader with fully hands-off automated execution. No discretionary input, no babysitting.</p>
 
@@ -1391,7 +1391,7 @@
 <!-- PERFORMANCE: 360-day benchmark comparison chart. Class names mirror the
      standalone "ProRealAlgos · Performance vs Benchmarks" page so its boot
      script (further below) wires up the same DOM. -->
-<section class="performance">
+<section class="performance" id="performance">
   <header class="pra-hero">
     <h2 class="pra-title">
       Outperform <span class="pra-title-italic">or don&rsquo;t</span> <span class="pra-title-green">bother</span>.
@@ -4687,6 +4687,53 @@
   renderRangePills();
   renderTogglePills();
   boot();
+})();
+</script>
+
+<!-- ============ WIX SCROLL BRIDGE ============
+     Lets a Wix menu item / Velo code scroll to a section inside this iframe.
+     Works for both embed styles:
+       • Internal-scroll iframe  -> we scrollIntoView() inside the iframe.
+       • Auto-height, parent scrolls (this site's default) -> we report each
+         section's offsetTop so Velo can scroll the parent window to
+         (iframe page-top + offset).
+     Targets are referenced by their element id: 'how-it-works', 'performance'. -->
+<script>
+(function () {
+  var SECTIONS = ['hero', 'how-it-works', 'performance'];
+
+  function offsetsPayload() {
+    var out = {};
+    SECTIONS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) out[id] = Math.round(el.getBoundingClientRect().top + window.pageYOffset);
+    });
+    return out;
+  }
+
+  function postOffsets() {
+    try {
+      window.parent.postMessage({ source: 'pra-hero', type: 'pra:offsets', offsets: offsetsPayload() }, '*');
+    } catch (e) {}
+  }
+
+  // Report on load and whenever layout can change, so the parent always has
+  // fresh numbers (fonts loading, chart rendering, resize all shift heights).
+  window.addEventListener('load', postOffsets);
+  window.addEventListener('resize', function () { clearTimeout(window.__praOffsetT); window.__praOffsetT = setTimeout(postOffsets, 150); });
+  document.addEventListener('DOMContentLoaded', postOffsets);
+  setTimeout(postOffsets, 1500); // after the 3D chart settles
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(postOffsets);
+
+  // Respond to the parent.
+  window.addEventListener('message', function (ev) {
+    var d = ev.data || {};
+    if (d.type === 'pra:getOffsets') { postOffsets(); return; }
+    if (d.type === 'pra:scrollTo' && d.id) {
+      var el = document.getElementById(d.id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); // internal-scroll case
+    }
+  });
 })();
 </script>
 
