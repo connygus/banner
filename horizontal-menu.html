@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProRealAlgos — Navigation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pra-bg:    #FFFFFF;
+    --pra-ink:   #0E0E10;
+    --pra-red:   #EC3B3D;
+    --pra-green: #3DC574;
+    --pra-muted: #6B6B72;
+    --pra-line:  #E8E8EA;
+    --pra-soft:  #F6F6F7;
+    --pra-font-sans: 'Onest', system-ui, -apple-system, sans-serif;
+    --pra-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--pra-font-sans);
+    color: var(--pra-ink);
+    background: transparent;            /* white-canvas: let the Wix header section show through */
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .topnav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;        /* left-aligned row */
+    flex-wrap: wrap;                    /* wraps to a 2nd row on very small screens */
+    gap: 2px;
+    padding: 14px 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .navlink {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    font-family: var(--pra-font-sans);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    color: var(--pra-ink);
+    text-decoration: none;
+    white-space: nowrap;
+    border-radius: 999px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  /* red underline indicator: the horizontal analogue of the sidebar's red accent.
+     Slides in on hover, stays put on the current page. */
+  .navlink::after {
+    content: "";
+    position: absolute;
+    left: 16px; right: 16px; bottom: 5px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--pra-red);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.18s ease;
+  }
+  .navlink:hover::after,
+  .navlink:focus-visible::after { transform: scaleX(1); }
+  .navlink:focus-visible { outline: none; }
+
+  .navlink.active { font-weight: 600; }
+  .navlink.active::after { transform: scaleX(1); }
+
+  @media (max-width: 510px) {
+    .topnav { padding: 10px 12px; }
+    .navlink { padding: 8px 11px; font-size: 14px; }
+    .navlink::after { left: 11px; right: 11px; bottom: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!--
+  HOW TO EDIT
+  • Each link opens in the parent Wix page via target="_parent". href = full https URL.
+  • "How it works" (data-scroll) asks the current page to scroll ({type:'pra:scrollTo'}). If the
+    page acks (it has the section) it scrolls in place; otherwise the menu sends the visitor to
+    the homepage with ?goto=<id> and that page scrolls to the section on arrival.
+  • Current page highlight (red underline): add ?active=<data-key> to the iframe URL
+    (e.g. ?active=results), OR post {type:'pra-active', path:'/results'} from the page (Velo).
+    Nothing matching -> no link underlined (correct for the home page).
+-->
+
+<nav class="topnav" role="navigation" aria-label="Primary">
+
+  <!-- "How it works" scrolls to the how-it-works section inside the hero embed.
+       It asks the parent page (Velo) to scroll, since the iframe can't do it itself. -->
+  <a class="navlink" href="#" data-scroll="how-it-works" data-key="how-it-works">How it works</a>
+
+  <a class="navlink" href="https://www.prorealalgos.com/results"  target="_parent" data-key="results">Results</a>
+  <a class="navlink" href="https://www.prorealalgos.com/about"    target="_parent" data-key="about">About</a>
+  <a class="navlink" href="https://www.prorealalgos.com/research" target="_parent" data-key="research">Research</a>
+  <a class="navlink" href="https://www.prorealalgos.com/algos"    target="_parent" data-key="algos">Algos</a>
+
+</nav>
+
+<script>
+  // Current-page highlight. A cross-origin iframe can't read the parent URL, so the
+  // current page is resolved from (in priority order):
+  //   1. ?active=<data-key> on the iframe URL       (per-page iframe placement)
+  //   2. a postMessage from the parent page / Velo   (one shared menu across pages)
+  //   3. document.referrer, if it carries the path   (best-effort, no setup)
+  // Nothing matching -> no link is underlined (correct for the home page).
+  (function () {
+    var items = [].slice.call(document.querySelectorAll('.navlink[data-key]'));
+
+    function activateBy(test) {
+      var match = items.filter(test)[0];
+      if (!match) return false;                       // no match -> leave as-is
+      items.forEach(function (i) { i.classList.toggle('active', i === match); });
+      return true;
+    }
+    function byKey(key) {
+      return key ? activateBy(function (i) { return i.getAttribute('data-key') === key; }) : false;
+    }
+    function byPath(path) {
+      if (!path) return false;
+      var clean;
+      try { clean = new URL(path, location.href).pathname; } catch (e) { clean = String(path); }
+      clean = clean.replace(/\/+$/, '') || '/';
+      return activateBy(function (i) {
+        var raw = i.getAttribute('href');
+        if (!raw || raw === '#') return false;          // ignore placeholder links (e.g. How it works)
+        var p;
+        try { p = new URL(i.href).pathname.replace(/\/+$/, '') || '/'; } catch (e) { return false; }
+        return p === clean;
+      });
+    }
+
+    // 1. ?active= param wins.
+    var resolved = byKey(new URLSearchParams(location.search).get('active'));
+
+    // 2. a live signal from the parent (Velo) can set/update it at any time.
+    window.addEventListener('message', function (e) {
+      var d = e.data || {};
+      if (d.type === 'pra-active') { if (!byKey(d.key)) byPath(d.path || d.url); }
+    });
+    try { window.parent.postMessage({ type: 'pra-menu-ready' }, '*'); } catch (e) {}
+
+    // 3. referrer fallback, only if the param didn't already resolve the page.
+    if (!resolved && document.referrer) { try { byPath(new URL(document.referrer).pathname); } catch (e) {} }
+  })();
+</script>
+
+<script>
+  // Scroll links (e.g. "How it works"): the iframe can't scroll the parent page,
+  // so it asks the page (Velo), which knows where the hero embed sits and nudges
+  // to the section's reported offset. Other links navigate normally.
+  (function () {
+    var HOME = 'https://www.prorealalgos.com/';   // page that holds the how-it-works section
+    [].forEach.call(document.querySelectorAll('.navlink[data-scroll]'), function (a) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        var id = a.getAttribute('data-scroll');
+        var acked = false;
+
+        // If the current page has the section, it scrolls and acks back.
+        function onAck(ev) {
+          var d = ev.data || {};
+          if (d.type === 'pra:scrolled' && d.id === id) acked = true;
+        }
+        window.addEventListener('message', onAck);
+        try { window.parent.postMessage({ type: 'pra:scrollTo', id: id }, '*'); } catch (err) {}
+
+        // No ack in time -> we're on another page: go to the homepage and let it
+        // scroll to the section on arrival (?goto=<id>).
+        window.setTimeout(function () {
+          window.removeEventListener('message', onAck);
+          if (!acked) {
+            try { window.top.location.href = HOME + '?goto=' + encodeURIComponent(id); } catch (err) {}
+          }
+        }, 250);
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
