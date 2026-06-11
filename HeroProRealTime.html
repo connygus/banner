@@ -4736,6 +4736,10 @@
   });
 })();
 </script>
-
+<script>
+  window.addEventListener('load', function () {
+    window.parent.postMessage('hero-ready', '*');
+  });
+</script>
 </body>
 </html>
