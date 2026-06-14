@@ -144,12 +144,14 @@
     display: inline-flex; align-items: center; gap: 8px;
     padding: 14px 24px; flex-shrink: 0;
     font-family: var(--pra-font-sans); font-size: 15px; font-weight: 600;
-    background: var(--pra-ink); color: #FFFFFF;
-    border: 0; border-radius: var(--pra-r-pill); cursor: pointer; text-decoration: none;
-    transition: transform 160ms ease, box-shadow 160ms ease;
+    background: #333333; color: #FFFFFF;
+    border: 0; border-radius: 10px; cursor: pointer; text-decoration: none;
+    transition: background 160ms ease, transform 80ms ease;
   }
-  .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,14,16,0.18); }
-  .btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pra-red); }
+  .btn:hover { background: var(--pra-red); }
+  .btn:active { transform: translateY(1px); }
+  .btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pra-red); transition: background 160ms ease; }
+  .btn:hover .dot { background: #FFFFFF; }
 
   /* ===================== RESPONSIVE ===================== */
   /* Titles stay on one line only while cards are wide enough, so step the grid
